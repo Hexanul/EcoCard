@@ -1,28 +1,12 @@
-import type {
-  AudioBlobSummary,
-  ConvertedAudioInfo,
-  PipelineStatus,
-} from './audioPipeline';
+import type { PipelineStatus, TranscriptionResponse } from './audioPipeline';
 
 export type EchoReportAPI = {
   isAvailable: true;
   getPipelineStatus: () => Promise<PipelineStatus>;
-  convertAudio: (
+  transcribeAudio: (
     audioBytes: Uint8Array,
     mimeType: string,
-  ) => Promise<{
-    original: AudioBlobSummary;
-    converted: ConvertedAudioInfo;
-    wavBytes: Uint8Array;
-  }>;
-  processRecording: (
-    audioBytes: Uint8Array,
-    mimeType: string,
-  ) => Promise<{
-    transcript: string;
-    original: AudioBlobSummary;
-    converted: ConvertedAudioInfo;
-  }>;
+  ) => Promise<TranscriptionResponse>;
 };
 
 declare global {

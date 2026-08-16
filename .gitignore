@@ -9,7 +9,9 @@ node_modules
 # Build
 dist
 dist-ssr
+dist-electron
 *.local
+*.tsbuildinfo
 
 # Editor
 .vscode/*
@@ -22,3 +24,7 @@ Thumbs.db
 
 # Local machine-specific binary/model paths
 echoReport.paths.json
+
+# Local offline runtime files (medical audio must never be committed)
+app/bin/*.exe
+app/models/*.bin

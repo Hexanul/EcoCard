@@ -20,7 +20,7 @@ type DictationState =
 const TRANSCRIPTION_READY =
   'Înregistrarea este pregătită pentru transcriere.';
 const TRANSCRIPTION_PROCESSING =
-  'Se procesează înregistrarea...';
+  'Se procesează local...';
 
 // Recorded audio is kept in memory only (React state + Blob).
 // It will later be passed to local whisper.cpp for offline transcription.
@@ -108,7 +108,11 @@ export function DictationPanel() {
   const [transcription, setTranscription] = useState('');
   const [originalAudioInfo, setOriginalAudioInfo] = useState<AudioBlobSummary | null>(null);
   const [convertedAudioInfo, setConvertedAudioInfo] = useState<ConvertedAudioInfo | null>(null);
-  const [pipelineHint, setPipelineHint] = useState<string | null>(null);
+  const [pipelineHint, setPipelineHint] = useState<string | null>(() =>
+    !isElectronAvailable() && import.meta.env.DEV
+      ? 'Pentru transcriere locală, rulați aplicația cu Electron: npm run dev'
+      : null,
+  );
 
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -386,10 +390,6 @@ export function DictationPanel() {
           }
         })
         .catch(() => undefined);
-    } else if (import.meta.env.DEV) {
-      setPipelineHint(
-        'Pentru transcriere locală, rulați aplicația cu Electron: npm run electron:dev',
-      );
     }
 
     return () => {
@@ -412,12 +412,12 @@ export function DictationPanel() {
       ? 'Înregistrare...'
       : state === 'paused'
         ? 'Pauză...'
-        : state === 'processing'
-          ? 'Se procesează...'
+          : state === 'processing'
+          ? 'Se procesează local...'
           : state === 'transcribed'
             ? 'Transcriere finalizată'
             : state === 'error'
-              ? 'Eroare la transcriere'
+              ? 'Transcrierea locală a eșuat.'
               : 'Microfon pregătit';
 
   const showTimer = state === 'recording' || state === 'paused';

@@ -1,4 +1,3 @@
-import { whisperConfig } from '../config/whisperConfig';
 import type { TranscriptionResult } from '../types/audioPipeline';
 import { getEchoReportApi } from './electronBridge';
 
@@ -34,13 +33,14 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
   const audioBytes = new Uint8Array(await audio.arrayBuffer());
 
   try {
-    const result = await api.processRecording(
+    const result = await api.transcribeAudio(
       audioBytes,
       audio.type || 'audio/webm',
     );
 
-    console.info('[Echo Report] Whisper config:', whisperConfig);
-    console.info('[Echo Report] Transcription completed locally.');
+    if (!result.success) {
+      throw new TranscriptionError(result.message);
+    }
 
     return {
       text: result.transcript,
@@ -49,6 +49,7 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
       convertedAudio: result.converted,
     };
   } catch (error) {
+    if (error instanceof TranscriptionError) throw error;
     const message =
       error instanceof Error
         ? error.message

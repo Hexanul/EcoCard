@@ -1,6 +1,6 @@
 {
-  "ffmpegPath": "C:\\Users\\Calin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-9.0-full_build\\bin\\ffmpeg.exe",
-  "whisperCliPath": "C:\\Calin\\Whisper\\whisper.cpp\\build\\bin\\Release\\whisper-cli.exe",
-  "modelPath": "C:\\EchoReport\\models\\ggml-large-v3-turbo.bin",
+  "ffmpegPath": "C:\\EchoReport\\app\\bin\\ffmpeg.exe",
+  "whisperCliPath": "C:\\EchoReport\\app\\bin\\whisper-cli.exe",
+  "modelPath": "C:\\EchoReport\\app\\models\\ggml-large-v3-turbo.bin",
   "tempDir": ""
 }

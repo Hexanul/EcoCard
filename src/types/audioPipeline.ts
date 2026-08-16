@@ -25,9 +25,21 @@ export type PipelineStatus = {
   ffmpegFound: boolean;
   whisperCliFound: boolean;
   modelFound: boolean;
-  ffmpegPath: string;
-  whisperCliPath: string;
-  modelPath: string;
   model: string;
   language: string;
 };
+
+export type TranscriptionFailure = {
+  success: false;
+  errorCode: string;
+  message: string;
+};
+
+export type TranscriptionSuccess = {
+  success: true;
+  transcript: string;
+  original: AudioBlobSummary;
+  converted: ConvertedAudioInfo;
+};
+
+export type TranscriptionResponse = TranscriptionSuccess | TranscriptionFailure;
