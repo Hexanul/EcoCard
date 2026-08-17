@@ -27,4 +27,5 @@ echoReport.paths.json
 
 # Local offline runtime files (medical audio must never be committed)
 app/bin/*.exe
+app/bin/*.dll
 app/models/*.bin

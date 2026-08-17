@@ -11,6 +11,7 @@ app/
   bin/
     ffmpeg.exe
     whisper-cli.exe
+    # all *.dll files distributed alongside whisper-cli.exe
   models/
     ggml-large-v3-turbo.bin
 ```

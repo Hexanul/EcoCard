@@ -43,9 +43,13 @@ vite.once('exit', (code) => shutdown(code ?? 1));
 
 try {
   await waitForVite();
+  const electronEnvironment = { ...process.env, ECHOREPORT_DEV_SERVER_URL: `http://127.0.0.1:${port}` };
+  // Some IDE-integrated terminals set this for their own Electron tooling.
+  // It makes electron.exe behave like plain Node.js, so never inherit it.
+  delete electronEnvironment.ELECTRON_RUN_AS_NODE;
   electron = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['electron', '.'], {
     stdio: 'inherit',
-    env: { ...process.env, ECHOREPORT_DEV_SERVER_URL: `http://127.0.0.1:${port}` },
+    env: electronEnvironment,
     shell: useWindowsCommandShell,
   });
   electron.once('exit', (code) => shutdown(code ?? 0));

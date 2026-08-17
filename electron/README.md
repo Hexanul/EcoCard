@@ -1,3 +1,3 @@
 # Electron process code
 
-`main.ts` creates the secure native window and owns fixed IPC handlers. `preload.ts` contains the narrow renderer bridge. `transcription.ts` owns temporary files and fixed FFmpeg/whisper.cpp process invocations. See the root README for setup and commands.
+`main.cts` creates the secure native window and owns fixed IPC handlers. `preload.cts` contains the narrow renderer bridge. `transcription.cts` owns temporary files and fixed FFmpeg/whisper.cpp process invocations. They compile to CommonJS (`.cjs`) because Electron's main and sandboxed preload processes require that runtime format here. See the root README for setup and commands.

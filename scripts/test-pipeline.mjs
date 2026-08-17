@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { transcribeAudio } from '../dist-electron/transcription.js';
+import { transcribeAudio } from '../dist-electron/transcription.cjs';
 
 const testAudioPath = process.env.ECHOREPORT_TEST_AUDIO;
 
