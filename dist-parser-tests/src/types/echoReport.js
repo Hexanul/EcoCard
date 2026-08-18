@@ -33,7 +33,6 @@ export function createEmptyMeasurements() {
         mitralValves: '',
         tricuspidValves: '',
         pulmonaryValves: '',
-        pericardium: '',
         pericardialFluid: '',
         laArea: '',
         raArea: '',

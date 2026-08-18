@@ -1,22 +1,56 @@
-const singleDigits = {
-    zero: 0, un: 1, unu: 1, una: 1, o: 1, doi: 2, doua: 2, trei: 3, patru: 4,
-    cinci: 5, sase: 6, sapte: 7, opt: 8, noua: 9,
+const SINGLE_DIGITS = {
+    zero: 0,
+    un: 1,
+    unu: 1,
+    una: 1,
+    o: 1,
+    doi: 2,
+    doua: 2,
+    trei: 3,
+    patru: 4,
+    cinci: 5,
+    sase: 6,
+    sapte: 7,
+    opt: 8,
+    noua: 9,
 };
-const teens = {
-    zece: 10, unsprezece: 11, doisprezece: 12, treisprezece: 13, paisprezece: 14,
-    cincisprezece: 15, saisprezece: 16, saptesprezece: 17, optsprezece: 18, nouasprezece: 19,
+const TEENS = {
+    zece: 10,
+    unsprezece: 11,
+    doisprezece: 12,
+    treisprezece: 13,
+    paisprezece: 14,
+    cincisprezece: 15,
+    saisprezece: 16,
+    saptesprezece: 17,
+    optsprezece: 18,
+    nouasprezece: 19,
 };
-const tens = {
-    douazeci: 20, treizeci: 30, patruzeci: 40, cincizeci: 50, saizeci: 60,
-    saptezeci: 70, optzeci: 80, nouazeci: 90,
+const TENS = {
+    douazeci: 20,
+    treizeci: 30,
+    patruzeci: 40,
+    cincizeci: 50,
+    saizeci: 60,
+    saptezeci: 70,
+    optzeci: 80,
+    nouazeci: 90,
+};
+const NUMBER_WORDS = {
+    ...SINGLE_DIGITS,
+    ...TEENS,
+    ...TENS,
 };
 function normalize(text) {
     return text
         .toLocaleLowerCase('ro-RO')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/ș/g, 's')
-        .replace(/ț/g, 't');
+        .replace(/[șş]/g, 's')
+        .replace(/[țţ]/g, 't')
+        .replace(/-/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 function tokenize(text) {
     const normalized = normalize(text);
@@ -48,7 +82,7 @@ function parseInteger(tokens, start) {
             index += 1;
             continue;
         }
-        const number = singleDigits[token] ?? teens[token] ?? tens[token];
+        const number = NUMBER_WORDS[token];
         if (number === undefined)
             break;
         current += number;
@@ -66,23 +100,30 @@ function fractionText(tokens, start) {
     }
     const digitValues = [];
     let index = start;
-    while (index < tokens.length && singleDigits[tokens[index].value] !== undefined) {
-        digitValues.push(singleDigits[tokens[index].value]);
+    while (index < tokens.length && SINGLE_DIGITS[tokens[index].value] !== undefined) {
+        digitValues.push(SINGLE_DIGITS[tokens[index].value]);
         index += 1;
     }
-    if (digitValues.length > 0)
+    if (digitValues.length > 0) {
         return { value: digitValues.join(''), next: index };
+    }
     const integer = parseInteger(tokens, start);
     return integer ? { value: String(integer.value), next: integer.next } : null;
 }
-/** Finds the first numeric expression in a Romanian phrase, including spoken decimals. */
+/**
+ * Finds the first numeric expression in a Romanian phrase, including spoken
+ * decimals ("patru virgulă opt") and already-digit forms ("4,8", "4.8", "21").
+ * Returns null when the text contains no number.
+ */
 export function findRomanianNumber(text) {
     const tokens = tokenize(text);
     for (let index = 0; index < tokens.length; index += 1) {
         const direct = tokens[index];
         if (/^\d+(?:[.,]\d+)?$/.test(direct.value)) {
             return {
-                value: direct.value.replace(',', '.'), start: direct.start, end: direct.end,
+                value: direct.value.replace(',', '.'),
+                start: direct.start,
+                end: direct.end,
                 sourceText: text.slice(direct.start, direct.end),
             };
         }
@@ -107,7 +148,10 @@ export function findRomanianNumber(text) {
     }
     return null;
 }
-/** Parses a Romanian number only when the supplied text contains one unambiguous number. */
+/**
+ * Parses a Romanian number only when the supplied text contains one
+ * unambiguous number. Returns null otherwise.
+ */
 export function parseRomanianNumber(text) {
     return findRomanianNumber(text)?.value ?? null;
 }

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   TranscriptionError,
   transcribeAudio,
 } from '../services/transcriptionService';
+import { parseEchoTranscript, type ParsedEchoData } from '../services/medicalParser';
 import { isElectronAvailable, getEchoReportApi } from '../services/electronBridge';
 import type { ConvertedAudioInfo, AudioBlobSummary } from '../types/audioPipeline';
 import {
@@ -100,7 +101,11 @@ function StopIcon() {
   );
 }
 
-export function DictationPanel() {
+type DictationPanelProps = {
+  onMeasurementsParsed?: (data: ParsedEchoData) => void;
+};
+
+export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
   const [state, setState] = useState<DictationState>('idle');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -113,6 +118,14 @@ export function DictationPanel() {
       ? 'Pentru transcriere locală, rulați aplicația cu Electron: npm run dev'
       : null,
   );
+
+  // The transcript is re-parsed on every edit so the review panel always
+  // reflects what the doctor sees in the textarea.
+  const parsedData = useMemo(() => parseEchoTranscript(transcription), [transcription]);
+
+  useEffect(() => {
+    onMeasurementsParsed?.(parsedData);
+  }, [onMeasurementsParsed, parsedData]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -578,6 +591,13 @@ export function DictationPanel() {
           rows={5}
           aria-busy={state === 'processing'}
         />
+        {parsedData.measurements.length > 0 && (
+          <p className="dictation-panel__parsed-hint" role="status">
+            {parsedData.measurements.length === 1
+              ? '1 măsurătoare detectată — revizuiește înainte de aplicare.'
+              : `${parsedData.measurements.length} măsurători detectate — revizuiește înainte de aplicare.`}
+          </p>
+        )}
       </div>
     </section>
   );

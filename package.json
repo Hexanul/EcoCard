@@ -14,7 +14,8 @@
     "electron": "electron .",
     "electron:dev": "npm run dev",
     "electron:start": "npm run build && electron .",
-    "test:pipeline": "node scripts/test-pipeline.mjs"
+    "test:pipeline": "node scripts/test-pipeline.mjs",
+    "test:parser": "tsc -p tsconfig.parser.json && node --test tests/*.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

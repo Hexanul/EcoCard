@@ -609,3 +609,139 @@
     text-align: center;
   }
 }
+
+/* Measurement review */
+
+.measurement-review__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.measurement-review__header .panel__title {
+  margin-bottom: 0;
+}
+
+.measurement-review__list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.measurement-review__row {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.measurement-review__row--conflict {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.measurement-review__row--low {
+  border-color: var(--paused-border);
+}
+
+.measurement-review__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.measurement-review__checkbox {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.measurement-review__field {
+  font-weight: 600;
+  flex: 0 0 240px;
+}
+
+.measurement-review__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.measurement-review__unit {
+  margin-left: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.measurement-review__kind {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.measurement-review__badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
+.measurement-review__badge--high {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.measurement-review__badge--medium {
+  color: var(--paused);
+  background: var(--paused-bg);
+}
+
+.measurement-review__badge--low {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.measurement-review__source {
+  margin: 6px 0 0 34px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.measurement-review__conflict {
+  margin: 6px 0 0 34px;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.measurement-review__low-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--paused);
+}
+
+.measurement-review__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.measurement-review__actions .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dictation-panel__parsed-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--success);
+}

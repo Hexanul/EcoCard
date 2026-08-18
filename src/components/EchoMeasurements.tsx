@@ -59,13 +59,15 @@ export function EchoMeasurements({ measurements, onChange }: EchoMeasurementsPro
         {field('mitralValves', 'Valve mitrale', undefined, 'textarea')}
         {field('tricuspidValves', 'Valve tricuspide', undefined, 'textarea')}
         {field('pulmonaryValves', 'Valve pulmonare', undefined, 'textarea')}
-        {field('pericardium', 'Pericard', undefined, 'textarea')}
-        {field('pericardialFluid', 'Lichid pericardic', undefined, 'textarea')}
         {field('laArea', 'Aria AS', 'cm²')}
         {field('raArea', 'Aria AD', 'cm²')}
         {field('lvEndDiastolicVolume', 'Volum telediastolic VS', 'ml')}
         {field('lvEndSystolicVolume', 'Volum telesistolic VS', 'ml')}
         {field('lvEjectionFractionSimpson', 'Fracție de ejecție Simpson', '%')}
+      </MeasurementSection>
+
+      <MeasurementSection title="Pericard">
+        {field('pericardialFluid', 'Lichid pericardic', undefined, 'textarea')}
       </MeasurementSection>
     </div>
   );

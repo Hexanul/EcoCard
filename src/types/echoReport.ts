@@ -36,7 +36,6 @@ export type Measurements = {
   mitralValves: string;
   tricuspidValves: string;
   pulmonaryValves: string;
-  pericardium: string;
   pericardialFluid: string;
 
   // Additional measurements
@@ -134,7 +133,6 @@ export function createEmptyMeasurements(): Measurements {
     mitralValves: '',
     tricuspidValves: '',
     pulmonaryValves: '',
-    pericardium: '',
     pericardialFluid: '',
     laArea: '',
     raArea: '',
