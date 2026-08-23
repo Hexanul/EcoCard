@@ -69,6 +69,57 @@ export function EchoMeasurements({ measurements, onChange }: EchoMeasurementsPro
       <MeasurementSection title="Pericard">
         {field('pericardialFluid', 'Lichid pericardic', undefined, 'textarea')}
       </MeasurementSection>
+
+      <h2 className="form-group__title">ECHO DOPPLER</h2>
+
+      <MeasurementSection title="Flux aortic">
+        {field('aorticVmax', 'Vmax', 'cm/s')}
+        {field('aorticPmax', 'Pmax', 'mmHg')}
+        {field('aorticPmean', 'Pmediu', 'mmHg')}
+      </MeasurementSection>
+
+      <MeasurementSection title="Flux LVOT">
+        {field('lvotVmax', 'Vmax', 'cm/s')}
+        {field('lvotPmax', 'Pmax', 'mmHg')}
+        {field('lvotVti', 'VTI', 'cm')}
+        {field('aorticValveArea', 'Aria valvei aortice (EC)', 'cm²')}
+        {field('aorticRegurgitation', 'Regurgitare aortică', undefined, 'textarea')}
+      </MeasurementSection>
+
+      <MeasurementSection title="Flux mitral">
+        {field('mitralE', 'Undă E', 'cm/s')}
+        {field('mitralA', 'Undă A', 'cm/s')}
+        {field('mitralEaRatio', 'E/A')}
+        {field('mitralDecelerationTime', 'TDE', 'ms')}
+        {field('mitralTriv', 'TRIV', 'ms')}
+        {field('mitralValveArea', 'Aria valvei mitrale', 'cm²')}
+        {field('mitralRegurgitation', 'Regurgitare mitrală', undefined, 'textarea')}
+      </MeasurementSection>
+
+      <MeasurementSection title="Flux tricuspidian">
+        {field('tricuspidVmax', 'Vmax', 'cm/s')}
+        {field('tricuspidPmax', 'Pmax', 'mmHg')}
+        {field('psvd', 'PSVD', 'mmHg')}
+        {field('tricuspidE', 'Undă E', 'cm/s')}
+        {field('tricuspidA', 'Undă A', 'cm/s')}
+        {field('tricuspidEaRatio', 'E/A')}
+        {field('tricuspidRegurgitation', 'Regurgitare tricuspidiană', undefined, 'textarea')}
+      </MeasurementSection>
+
+      <MeasurementSection title="Flux pulmonar">
+        {field('pulmonaryVmax', 'Vmax', 'cm/s')}
+        {field('pulmonaryPmax', 'Pmax', 'mmHg')}
+        {field('pulmonaryVti', 'VTI', 'cm')}
+        {field('pulmonaryRegurgitation', 'Regurgitare pulmonară', undefined, 'textarea')}
+      </MeasurementSection>
+
+      <MeasurementSection title="Doppler tisular (sept)">
+        {field('septalEPrime', "Undă E'", 'cm/s')}
+        {field('septalAPrime', "Undă A'", 'cm/s')}
+        {field('septalEaPrimeRatio', "E'/A'")}
+        {field('eePrimeRatio', "E/E'")}
+        {field('septalS', 'Undă S', 'cm/s')}
+      </MeasurementSection>
     </div>
   );
 }

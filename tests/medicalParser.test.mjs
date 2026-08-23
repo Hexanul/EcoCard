@@ -332,6 +332,12 @@ test('parses the "taiciolți" and "teicholtz" variations as the Teicholz fractio
   );
 });
 
+test('parses the "atera pulmonară" Whisper variation', () => {
+  const result = parsed('Atera pulmonară 4,44 cm', 'pulmonaryArtery');
+  assert.equal(result.value, '4.44');
+  assert.equal(result.unit, 'cm');
+});
+
 test('normalizes gram per square metre variants', () => {
   assert.equal(normalizeUnit('gram pe metru pătrat'), 'g/m²');
   assert.equal(normalizeUnit('grame pe metru pătrat'), 'g/m²');
@@ -804,4 +810,647 @@ test('parses the combined realistic shorthand transcript', () => {
   );
   const aortic = data.measurements.find((item) => item.field === 'aorticValves');
   assert.equal(aortic.sourceText, 'Valve aortice, îngroșate');
+});
+
+test('parses the unprefixed "diametrul telesistolic" as VS', () => {
+  const result = parsed('diametrul telesistolic 8,4', 'lvEndSystolicDiameter');
+  assert.equal(result.value, '8.4');
+});
+
+test('parses the unprefixed tele-separated telesistolic forms', () => {
+  for (const transcript of ['diametrul tele sistolic 8,4', 'diametrul tele, sistolic, 8,4']) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'lvEndSystolicDiameter' && item.value === '8.4',
+      ),
+      transcript,
+    );
+  }
+});
+
+test('parses the unprefixed "diametrul diastolic" as VS', () => {
+  const result = parsed('diametrul diastolic 5,5', 'lvEndDiastolicDiameter');
+  assert.equal(result.value, '5.5');
+});
+
+test('parses the unprefixed telediastolic dictation variants', () => {
+  for (const transcript of [
+    'diametru diastolic 5,5',
+    'diametrul tele diastolic 5,5',
+    'diametru tele diastolic 5,5',
+    'diametrul telediastolic 5,5',
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'lvEndDiastolicDiameter' && item.value === '5.5',
+      ),
+      transcript,
+    );
+  }
+});
+
+test('parses unprefixed VS diameters under a parasternal longitudinal heading', () => {
+  const data = parseEchoTranscript(
+    'PARASTERNAL LONGITUDINAL. Diametrul telesistolic 8,4. Diametrul diastolic 5,5.',
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'lvEndSystolicDiameter')?.value,
+    '8.4',
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'lvEndDiastolicDiameter')?.value,
+    '5.5',
+  );
+});
+
+test('does not map unprefixed VS diameters inside APICAL 4C', () => {
+  const data = parseEchoTranscript('APICAL 4C. Diametrul telesistolic 8,4.');
+  assert.equal(data.measurements.length, 0);
+});
+
+test('parses "AS diametrul anterior posterior 8"', () => {
+  const result = parsed('AS diametrul anterior posterior 8', 'laAnteroposteriorDiameter');
+  assert.equal(result.value, '8');
+  assert.equal(result.unit, undefined);
+});
+
+test('parses all AS anterior/antero-posterior variants', () => {
+  for (const transcript of [
+    'AS diametrul anterior posterior 43',
+    'AS diametru anterior posterior 43',
+    'AS diametrul antero posterior 43',
+    'AS diametru antero posterior 43',
+    'AS diametrul antero-posterior 43',
+    'AS diametru antero-posterior 43',
+    'AS diametrul anteroposterior 43',
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'laAnteroposteriorDiameter' && item.value === '43',
+      ),
+      transcript,
+    );
+  }
+});
+
+test('parses "VS, diametru lateromedian, 5"', () => {
+  const result = parsed('VS, diametru lateromedian, 5', 'lvLateromedialDiameter');
+  assert.equal(result.value, '5');
+});
+
+test('parses all lateromedian diametru/diametrul variants for each chamber', () => {
+  for (const [prefix, field] of [
+    ['VS', 'lvLateromedialDiameter'],
+    ['Vd', 'rvLateromedialDiameter'],
+    ['As', 'laLateromedialDiameter'],
+    ['Ad', 'raLateromedialDiameter'],
+  ]) {
+    for (const phrase of [
+      'diametru lateromedian',
+      'diametrul lateromedian',
+      'diametru latero median',
+      'diametrul latero median',
+      'diametru latero-median',
+      'diametrul latero-median',
+    ]) {
+      const transcript = `${prefix}, ${phrase}, 5`;
+      assert.ok(
+        parseEchoTranscript(transcript).measurements.some(
+          (item) => item.field === field && item.value === '5',
+        ),
+        transcript,
+      );
+    }
+  }
+});
+
+test('parses "Area As, 9" as the AS area', () => {
+  const result = parsed('Area As, 9', 'laArea');
+  assert.equal(result.value, '9');
+});
+
+test('parses the AS and AD area dictation variants', () => {
+  for (const transcript of [
+    'Aria AS 9',
+    'Aria As 9',
+    'Area AS 9',
+    'Area As 9',
+    'Aria AS, 9',
+    'Area AS, 9',
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'laArea' && item.value === '9',
+      ),
+      transcript,
+    );
+  }
+  for (const transcript of [
+    'Aria AD 9.99',
+    'Aria Ad 9.99',
+    'Area AD 9.99',
+    'Area Ad 9.99',
+    'Aria AD, 9,99',
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'raArea' && item.value === '9.99',
+      ),
+      transcript,
+    );
+  }
+});
+
+test('preserves 9.99 exactly without rounding', () => {
+  const result = parsed('Area Ad, 9.99', 'raArea');
+  assert.equal(result.value, '9.99');
+});
+
+test('parses "Volum tele sistolic.Vs, 9" as the telesistolic volume', () => {
+  const result = parsed('Volum tele sistolic.Vs, 9', 'lvEndSystolicVolume');
+  assert.equal(result.value, '9');
+  assert.ok(result.sourceText.includes('Volum tele sistolic.Vs, 9'));
+});
+
+test('parses the telesistolic volume dictation variants', () => {
+  for (const transcript of [
+    'Volum telesistolic VS 9',
+    'Volum tele sistolic VS 9',
+    'Volum tele sistolic. VS, 9',
+    'Volum telesistolic. VS, 9',
+    'Volum tele sistolic.Vs, 9',
+    'VS volum telesistolic 9',
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'lvEndSystolicVolume' && item.value === '9',
+      ),
+      transcript,
+    );
+  }
+});
+
+test('parses "Fracții de ejecție Simpson, 4"', () => {
+  const result = parsed('Fracții de ejecție Simpson, 4', 'lvEjectionFractionSimpson');
+  assert.equal(result.value, '4');
+  assert.equal(
+    parseEchoTranscript('Fracții de ejecție Simpson, 4').measurements.some(
+      (item) => item.field === 'lvEjectionFractionTeicholz',
+    ),
+    false,
+  );
+});
+
+test('parses the plural Simpson ejection fraction with percent', () => {
+  const result = parsed('Fracții de ejecție Simpson, 4%', 'lvEjectionFractionSimpson');
+  assert.equal(result.value, '4');
+  assert.equal(result.unit, '%');
+});
+
+test('parses the combined unprefixed realistic transcript', () => {
+  const data = parseEchoTranscript(
+    'diametrul telesistolic 8,4, diametrul diastolic 5,5, AS diametrul anterior posterior 8, Vs, diametru lateromedian, 5. Vd, diametru lateromedian, 8. As, diametru lateromedian, 5. Ad, diametru lateromedian, 94, Area As, 9. Area Ad, 9.99, Volum tele sistolic.Vs, 9.Fracții de ejecție Simpson, 4',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvEndSystolicDiameter', '8.4'],
+      ['lvEndDiastolicDiameter', '5.5'],
+      ['laAnteroposteriorDiameter', '8'],
+      ['lvLateromedialDiameter', '5'],
+      ['rvLateromedialDiameter', '8'],
+      ['laLateromedialDiameter', '5'],
+      ['raLateromedialDiameter', '94'],
+      ['laArea', '9'],
+      ['raArea', '9.99'],
+      ['lvEndSystolicVolume', '9'],
+      ['lvEjectionFractionSimpson', '4'],
+    ],
+  );
+  const areaAd = data.measurements.find((item) => item.field === 'raArea');
+  assert.ok(areaAd.sourceText.includes('Area Ad, 9.99'));
+  const volume = data.measurements.find((item) => item.field === 'lvEndSystolicVolume');
+  assert.ok(volume.sourceText.includes('Volum tele sistolic.Vs, 9'));
+  const simpson = data.measurements.find((item) => item.field === 'lvEjectionFractionSimpson');
+  assert.ok(simpson.sourceText.includes('Fracții de ejecție Simpson, 4'));
+});
+
+test('parses "Flux mitral unda E4" with an attached number', () => {
+  const result = parsed('Flux mitral unda E4', 'mitralE');
+  assert.equal(result.value, '4');
+});
+
+test('parses "Flux mitral unda A5" with an attached number', () => {
+  const result = parsed('Flux mitral unda A5', 'mitralA');
+  assert.equal(result.value, '5');
+});
+
+test('parses "Flux mitral EA 1.2" and the attached EA form', () => {
+  assert.equal(parsed('Flux mitral EA 1.2', 'mitralEaRatio').value, '1.2');
+  assert.equal(parsed('Flux mitral EA1.2', 'mitralEaRatio').value, '1.2');
+  assert.equal(parsed('Flux mitral EA 1,2', 'mitralEaRatio').value, '1.2');
+  assert.equal(parsed('Flux mitral E/A 1.2', 'mitralEaRatio').value, '1.2');
+  assert.equal(parsed('Flux mitral E A 1.2', 'mitralEaRatio').value, '1.2');
+});
+
+test('parses "Flux mitral TDE 9" and the attached TDE form', () => {
+  assert.equal(parsed('Flux mitral TDE 9', 'mitralDecelerationTime').value, '9');
+  assert.equal(parsed('Flux mitral TDE9', 'mitralDecelerationTime').value, '9');
+  assert.equal(parsed('Flux mitral TDE, 9', 'mitralDecelerationTime').value, '9');
+});
+
+test('parses "Flux mitral TRIV 4.5" and the attached TRIV form', () => {
+  assert.equal(parsed('Flux mitral TRIV 4.5', 'mitralTriv').value, '4.5');
+  assert.equal(parsed('Flux mitral TRIV4.5', 'mitralTriv').value, '4.5');
+  assert.equal(parsed('Flux mitral TRIV 4,5', 'mitralTriv').value, '4.5');
+});
+
+test('parses "Flux mitral area valvei mitrală 9"', () => {
+  const result = parsed('Flux mitral area valvei mitrală 9', 'mitralValveArea');
+  assert.equal(result.value, '9');
+});
+
+test('parses the mitral valve area dictation variants', () => {
+  for (const transcript of [
+    'Flux mitral aria valvei mitrale 9',
+    'Flux mitral aria valvei mitrală 9',
+    'Flux mitral area valvei mitrale 9',
+    'Flux mitral area valvei mitrală 9',
+    'Flux mitral aria valvei mitrale, 9',
+    'Flux mitral area valvei mitrală, 9',
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === 'mitralValveArea' && item.value === '9',
+      ),
+      transcript,
+    );
+  }
+});
+
+test('parses "Flux tricuspidian unda A9 EA3"', () => {
+  const data = parseEchoTranscript('Flux tricuspidian unda A9 EA3');
+  assert.equal(data.measurements.find((item) => item.field === 'tricuspidA')?.value, '9');
+  assert.equal(data.measurements.find((item) => item.field === 'tricuspidEaRatio')?.value, '3');
+  assert.equal(
+    data.measurements.some((item) => item.field === 'mitralEaRatio' || item.field === 'mitralA'),
+    false,
+  );
+});
+
+test('parses Doppler tisular unda E/A as E-prime waves', () => {
+  assert.equal(parsed('Doppler tisular unda E5', 'septalEPrime').value, '5');
+  assert.equal(parsed('Doppler tisular unda A9', 'septalAPrime').value, '9');
+  assert.equal(parsed('Doppler tisular EA5', 'septalEaPrimeRatio').value, '5');
+  assert.equal(parsed('Doppler tisular EE4', 'eePrimeRatio').value, '4');
+  assert.equal(parsed('Doppler tisular E E 4', 'eePrimeRatio').value, '4');
+  assert.equal(parsed('Doppler tisular E A 5', 'septalEaPrimeRatio').value, '5');
+});
+
+test('does not interpret bare E4 outside mitral context', () => {
+  assert.equal(parseEchoTranscript('unda E4').measurements.length, 0);
+  assert.equal(parseEchoTranscript('EA 1.2').measurements.length, 0);
+  assert.equal(parseEchoTranscript('EE4').measurements.length, 0);
+});
+
+test('parses the full multi-section Doppler attached-number transcript', () => {
+  const data = parseEchoTranscript(
+    'Flux mitral unda E4, unda A5, EA 1.2, TDE 9, TRIV 4.5, area valvei mitrală 9. Flux tricuspidian Unda A 9 EA 3 Doppler tisular Unda E 5 Unda A 9 E A 5 E E 4',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['mitralE', '4'],
+      ['mitralA', '5'],
+      ['mitralEaRatio', '1.2'],
+      ['mitralDecelerationTime', '9'],
+      ['mitralTriv', '4.5'],
+      ['mitralValveArea', '9'],
+      ['tricuspidA', '9'],
+      ['tricuspidEaRatio', '3'],
+      ['septalEPrime', '5'],
+      ['septalAPrime', '9'],
+      ['septalEaPrimeRatio', '5'],
+      ['eePrimeRatio', '4'],
+    ],
+  );
+});
+
+test('parses continuous mitral dictation with attached numbers', () => {
+  const data = parseEchoTranscript(
+    'Flux mitral unda E4, unda A5, EA1.2, TDE9, TRIV4.5, area valvei mitrale 9',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['mitralE', '4'],
+      ['mitralA', '5'],
+      ['mitralEaRatio', '1.2'],
+      ['mitralDecelerationTime', '9'],
+      ['mitralTriv', '4.5'],
+      ['mitralValveArea', '9'],
+    ],
+  );
+});
+
+test('parses spaced mitral short-token variants', () => {
+  for (const [transcript, field, value] of [
+    ['Flux mitral unda E 4', 'mitralE', '4'],
+    ['Flux mitral E 4', 'mitralE', '4'],
+    ['Flux mitral E4', 'mitralE', '4'],
+    ['Flux mitral unda e 4', 'mitralE', '4'],
+    ['Flux mitral unda A 5', 'mitralA', '5'],
+    ['Flux mitral A 5', 'mitralA', '5'],
+    ['Flux mitral A5', 'mitralA', '5'],
+    ['Flux tricuspidian A9', 'tricuspidA', '9'],
+    ['Flux tricuspidian unda A 9', 'tricuspidA', '9'],
+  ]) {
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === field && item.value === value,
+      ),
+      transcript,
+    );
+  }
+});
+
+test('parses concatenated Whisper valve values with multiple fields', () => {
+  const data = parseEchoTranscript(
+    'Valve mitralesuple, valve tricuspide normale, valve pulmonare îngroșate',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['mitralValves', 'suple'],
+      ['tricuspidValves', 'normale'],
+      ['pulmonaryValves', 'îngroșate'],
+    ],
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'mitralValves')?.sourceText,
+    'Valve mitralesuple',
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'tricuspidValves')?.sourceText,
+    'valve tricuspide normale',
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'pulmonaryValves')?.sourceText,
+    'valve pulmonare îngroșate',
+  );
+});
+
+test('parses four spaced qualitative valve fields in one sentence', () => {
+  const data = parseEchoTranscript(
+    'Valve aortice îngroșate, valve mitrale normale, valve tricuspide suple, valve pulmonare normale',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['aorticValves', 'îngroșate'],
+      ['mitralValves', 'normale'],
+      ['tricuspidValves', 'suple'],
+      ['pulmonaryValves', 'normale'],
+    ],
+  );
+});
+
+test('parses multiple valve fields without commas between them', () => {
+  const data = parseEchoTranscript(
+    'Valve mitrale suple valve tricuspide normale valve pulmonare îngroșate',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['mitralValves', 'suple'],
+      ['tricuspidValves', 'normale'],
+      ['pulmonaryValves', 'îngroșate'],
+    ],
+  );
+});
+
+test('parses concatenated valve values for each chamber', () => {
+  for (const [transcript, field, value] of [
+    ['Valve aorticeîngroșate', 'aorticValves', 'îngroșate'],
+    ['Valve mitralenormale', 'mitralValves', 'normale'],
+    ['Valve tricuspidenormale', 'tricuspidValves', 'normale'],
+    ['Valve pulmonareîngroșate', 'pulmonaryValves', 'îngroșate'],
+    ['Valve mitralesuple', 'mitralValves', 'suple'],
+  ]) {
+    const result = parsed(transcript, field);
+    assert.equal(result.value, value);
+    assert.equal(result.kind, 'qualitative');
+  }
+});
+
+test('keeps LVOT context across Vmax, Pmax, VTI, valve area and regurgitation', () => {
+  const data = parseEchoTranscript(
+    'Flux LVOT Vmax 120 Pmax 5 VTI 20 aria valvei aortice EC 1.5 regurgitare aortica absent',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvotVmax', '120'],
+      ['lvotPmax', '5'],
+      ['lvotVti', '20'],
+      ['aorticValveArea', '1.5'],
+      ['aorticRegurgitation', 'absent'],
+    ],
+  );
+});
+
+test('parses Flux aortic Vmax, Pmax, Pmediu without the valve area', () => {
+  const data = parseEchoTranscript('Flux aortic Vmax 130 Pmax 7 Pmediu 4');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['aorticVmax', '130'],
+      ['aorticPmax', '7'],
+      ['aorticPmean', '4'],
+    ],
+  );
+  assert.ok(
+    !data.measurements.some((item) => item.field === 'aorticValveArea'),
+    'aortic valve area must not be populated under Flux aortic',
+  );
+});
+
+test('keeps valve morphology, valve area and regurgitation as separate fields', () => {
+  const data = parseEchoTranscript(
+    'Valve aortice îngroșate. Flux LVOT aria valvei aortice EC 1.2, regurgitare aortica absent',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['aorticValves', 'îngroșate'],
+      ['aorticValveArea', '1.2'],
+      ['aorticRegurgitation', 'absent'],
+    ],
+  );
+});
+
+test('parses the aortic valve area EC dictation variants under LVOT', () => {
+  for (const [transcript, value] of [
+    ['Flux LVOT aria valvei aortice EC 1.5', '1.5'],
+    ['Flux LVOT aria valvei aortice (EC) 1.5', '1.5'],
+    ['Flux LVOT aria valve aortica EC 1.5', '1.5'],
+    ['Flux LVOT aria valve aortica (EC) 1.5', '1.5'],
+    ['Flux LVOT area valvei aortice ec 1.5', '1.5'],
+    ['Flux LVOT area valvei aortice EC 1.5', '1.5'],
+  ]) {
+    const result = parsed(transcript, 'aorticValveArea');
+    assert.equal(result.value, value);
+  }
+});
+
+test('does not assign the aortic valve area to Flux aortic', () => {
+  const data = parseEchoTranscript('Flux aortic Vmax 130 aria valvei aortice EC 1.5');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [['aorticVmax', '130']],
+  );
+});
+
+test('does not assign VTI to Flux aortic', () => {
+  const data = parseEchoTranscript('Flux aortic Vmax 130 VTI 20');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [['aorticVmax', '130']],
+  );
+});
+
+test('parses the aortic valve area short and nominative forms under LVOT', () => {
+  for (const [transcript, value] of [
+    ['Flux LVOT VTI 3, area valve 5', '5'],
+    ['Flux LVOT VTI 3, aria valve 5', '5'],
+    ['Flux LVOT VTI 3, area valva 5', '5'],
+    ['Flux LVOT VTI 3, aria valva 5', '5'],
+    ['Flux LVOT VTI 3, area valva aortica 5', '5'],
+    ['Flux LVOT VTI 3, aria valva aortica 5', '5'],
+    ['Flux LVOT VTI 3, area valve aortice 5', '5'],
+    ['Flux LVOT VTI 3, are valvă aortică 5', '5'],
+    ['Flux LVOT VTI 3, are valva aortica 5', '5'],
+    ['Flux LVOT VTI 3, are valve aortice 5', '5'],
+    ['Flux LVOT VTI 3, are valva 5', '5'],
+    ['Flux LVOT VTI 3, are valve 5', '5'],
+  ]) {
+    const data = parseEchoTranscript(transcript);
+    assert.deepEqual(
+      data.measurements.map((item) => [item.field, item.value]),
+      [
+        ['lvotVti', '3'],
+        ['aorticValveArea', value],
+      ],
+      transcript,
+    );
+  }
+});
+
+test('keeps VTI and plain area valvei aortice separate in an LVOT chain', () => {
+  const data = parseEchoTranscript('Flux luvot Vmax 3, Pmax 3, VTI 3, area valvei aortice 3');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvotVmax', '3'],
+      ['lvotPmax', '3'],
+      ['lvotVti', '3'],
+      ['aorticValveArea', '3'],
+    ],
+  );
+});
+
+test('parses the aortic regurgitation qualitative variants', () => {
+  for (const [transcript, value] of [
+    ['Flux LVOT regurgitare aortica absent', 'absent'],
+    ['Flux LVOT regurgitare aortică absentă', 'absentă'],
+    ['Flux LVOT regurgitare aortica prezenta', 'prezenta'],
+    ['Flux LVOT regurgitare aortică prezentă', 'prezentă'],
+  ]) {
+    const result = parsed(transcript, 'aorticRegurgitation');
+    assert.equal(result.value, value);
+    assert.equal(result.kind, 'qualitative');
+  }
+});
+
+test('parses aortic valve area and recurgitare under Flux LVOT', () => {
+  const data = parseEchoTranscript(
+    'Flux LVOT Aria valvei aortice (EC) 3, recurgitare aortică ușoară',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['aorticValveArea', '3'],
+      ['aorticRegurgitation', 'ușoară'],
+    ],
+  );
+});
+
+test('parses the LVOT flow context Whisper variants', () => {
+  for (const [context, field, value] of [
+    ['Flux luvot Vmax 120', 'lvotVmax', '120'],
+    ['Fluxul luvot Vmax 120', 'lvotVmax', '120'],
+    ['Flux luvod Vmax 120', 'lvotVmax', '120'],
+    ['Fluxul luvod Vmax 120', 'lvotVmax', '120'],
+    ['Flux eluvot Vmax 120', 'lvotVmax', '120'],
+    ['Fluxul eluvot Vmax 120', 'lvotVmax', '120'],
+    ['Flux l v o t Vmax 120', 'lvotVmax', '120'],
+    ['Flux lu vot Vmax 120', 'lvotVmax', '120'],
+    ['Flux vot Vmax 120', 'lvotVmax', '120'],
+    ['Fluxul vot Vmax 120', 'lvotVmax', '120'],
+    ['Flux de vot Vmax 120', 'lvotVmax', '120'],
+    ['Fluxul de vot Vmax 120', 'lvotVmax', '120'],
+    ['Tract de ejectie Vmax 120', 'lvotVmax', '120'],
+    ['Tractul de ejectie stang Vmax 120', 'lvotVmax', '120'],
+    ['Cai de ejectie Vmax 120', 'lvotVmax', '120'],
+    ['Caii de ejectie Vmax 120', 'lvotVmax', '120'],
+    ['Calea de ejectie Vmax 120', 'lvotVmax', '120'],
+    ['Caiile de ejectie Vmax 120', 'lvotVmax', '120'],
+  ]) {
+    const result = parsed(context, field);
+    assert.equal(result.value, value, context);
+  }
+});
+
+test('parses the full LVOT transcript with the PTI Whisper variant', () => {
+  const data = parseEchoTranscript(
+    'Flux luvot, Vmax 3, Pmax 3, PTI 3. Area valve aortice 3, regurgitare aortică nu.',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvotVmax', '3'],
+      ['lvotPmax', '3'],
+      ['lvotVti', '3'],
+      ['aorticValveArea', '3'],
+      ['aorticRegurgitation', 'nu'],
+    ],
+  );
+});
+
+test('parses the LVOT VTI spaced-letter Whisper variant', () => {
+  for (const [transcript, value] of [
+    ['Flux LVOT V T I 3', '3'],
+    ['Flux LVOT v t i 3', '3'],
+    ['Flux pulmonar V T I 20', '20'],
+  ]) {
+    const field = transcript.startsWith('Flux pulmonar') ? 'pulmonaryVti' : 'lvotVti';
+    const result = parsed(transcript, field);
+    assert.equal(result.value, value);
+  }
+});
+
+test('keeps the LVOT luvot context across the full field chain', () => {
+  const data = parseEchoTranscript(
+    'Flux luvot Vmax 120 Pmax 5 VTI 20 aria valvei aortice EC 1.5 regurgitare aortica absent',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvotVmax', '120'],
+      ['lvotPmax', '5'],
+      ['lvotVti', '20'],
+      ['aorticValveArea', '1.5'],
+      ['aorticRegurgitation', 'absent'],
+    ],
+  );
 });

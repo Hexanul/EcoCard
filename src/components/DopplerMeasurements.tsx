@@ -39,9 +39,6 @@ export function DopplerMeasurements({ measurements, onChange }: DopplerMeasureme
         {field('lvotVmax', 'Vmax', 'cm/s')}
         {field('lvotPmax', 'Pmax', 'mmHg')}
         {field('lvotVti', 'VTI', 'cm')}
-      </MeasurementSection>
-
-      <MeasurementSection title="Valvă aortică">
         {field('aorticValveArea', 'Aria valvei aortice (EC)', 'cm²')}
         {field('aorticRegurgitation', 'Regurgitare aortică', undefined, 'textarea')}
       </MeasurementSection>

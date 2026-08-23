@@ -2,7 +2,35 @@ import { findRomanianNumber } from './romanianNumberParser.js';
 import { findUnit } from './unitNormalizer.js';
 const CONTEXT_ALIASES = {
     aortic: ['flux aortic', 'fluxul aortic'],
-    lvot: ['flux lvot', 'fluxul lvot', 'tract de ejectie', 'tractul de ejectie'],
+    lvot: [
+        'flux lvot',
+        'fluxul lvot',
+        // Whisper reads "LVOT" letter-by-letter and often fuses the letters
+        // ("El-V-O-T") or splits them ("l v o t", "lu vot").
+        'flux luvot',
+        'fluxul luvot',
+        // Whisper hearing "t" as "d" ("luvod").
+        'flux luvod',
+        'fluxul luvod',
+        'flux eluvot',
+        'fluxul eluvot',
+        'flux l v o t',
+        'flux lu vot',
+        // Whisper dropping the "L" entirely ("VOT").
+        'flux vot',
+        'fluxul vot',
+        'flux de vot',
+        'fluxul de vot',
+        'tract de ejectie',
+        'tractul de ejectie',
+        'tract de ejectie stang',
+        'tractul de ejectie stang',
+        // Romanian for "outflow tract" ("căi de ejecție").
+        'cai de ejectie',
+        'caii de ejectie',
+        'calea de ejectie',
+        'caiile de ejectie',
+    ],
     mitral: ['flux mitral', 'fluxul mitral'],
     tricuspid: ['flux tricuspidian', 'fluxul tricuspidian'],
     pulmonary: ['flux pulmonar', 'fluxul pulmonar'],
@@ -26,6 +54,19 @@ const NUMERIC_FIELDS = [
             'ps telediastolic',
         ],
     },
+    // Unprefixed telediastolic forms (same parasternal rule as above).
+    {
+        field: 'lvEndDiastolicDiameter',
+        label: 'VS — diametrul telediastolic',
+        aliases: [
+            'diametrul telediastolic',
+            'diametrul tele diastolic',
+            'diametru tele diastolic',
+            'diametrul diastolic',
+            'diametru diastolic',
+        ],
+        excludeContexts: ['apical4c'],
+    },
     {
         field: 'lvEndSystolicDiameter',
         label: 'VS — diametrul telesistolic',
@@ -40,6 +81,16 @@ const NUMERIC_FIELDS = [
             'ps diametrul telesistolic',
             'ps telesistolic',
         ],
+    },
+    // Unprefixed diameters: in parasternal longitudinal dictation the doctor
+    // may omit "VS" because the section identifies the field. The bare
+    // phrases map to the VS diameters only when no other section context
+    // (e.g. APICAL 4C, where diameters are latero-median) is active.
+    {
+        field: 'lvEndSystolicDiameter',
+        label: 'VS — diametrul telesistolic',
+        aliases: ['diametrul telesistolic', 'diametrul tele sistolic'],
+        excludeContexts: ['apical4c'],
     },
     {
         field: 'ivsDiastolicDiameter',
@@ -126,6 +177,9 @@ const NUMERIC_FIELDS = [
             // Shorter spoken forms without the "-l" article.
             'as diametru antero posterior',
             'as diametru anteroposterior',
+            // "anterior posterior" is a known spoken variant of "antero-posterior".
+            'as diametrul anterior posterior',
+            'as diametru anterior posterior',
             'atriul stang diametrul antero posterior',
             // Dictated without the "AS" prefix ("Diametrul anteroposterior, 3 cm").
             'diametrul anteroposterior',
@@ -140,7 +194,7 @@ const NUMERIC_FIELDS = [
     {
         field: 'pulmonaryArtery',
         label: 'Arteră pulmonară',
-        aliases: ['artera pulmonara'],
+        aliases: ['artera pulmonara', 'atera pulmonara'],
     },
     // Apical 4C
     {
@@ -149,6 +203,8 @@ const NUMERIC_FIELDS = [
         aliases: [
             'vs diametrul latero median',
             'vs diametrul lateromedian',
+            'vs diametru latero median',
+            'vs diametru lateromedian',
             'vs diam latero median',
             'vs diam lateromedian',
         ],
@@ -159,6 +215,8 @@ const NUMERIC_FIELDS = [
         aliases: [
             'vd diametrul latero median',
             'vd diametrul lateromedian',
+            'vd diametru latero median',
+            'vd diametru lateromedian',
             'vd diam latero median',
             'vd diam lateromedian',
         ],
@@ -169,6 +227,8 @@ const NUMERIC_FIELDS = [
         aliases: [
             'as diametrul latero median',
             'as diametrul lateromedian',
+            'as diametru latero median',
+            'as diametru lateromedian',
             'as diam latero median',
             'as diam lateromedian',
         ],
@@ -179,6 +239,8 @@ const NUMERIC_FIELDS = [
         aliases: [
             'ad diametrul latero median',
             'ad diametrul lateromedian',
+            'ad diametru latero median',
+            'ad diametru lateromedian',
             'ad diam latero median',
             'ad diam lateromedian',
         ],
@@ -207,12 +269,12 @@ const NUMERIC_FIELDS = [
     {
         field: 'laArea',
         label: 'Aria AS',
-        aliases: ['aria as', 'aria atriului stang'],
+        aliases: ['aria as', 'area as', 'aria atriului stang'],
     },
     {
         field: 'raArea',
         label: 'Aria AD',
-        aliases: ['aria ad', 'aria atriului drept'],
+        aliases: ['aria ad', 'area ad', 'aria atriului drept'],
     },
     {
         field: 'lvEndDiastolicVolume',
@@ -222,7 +284,19 @@ const NUMERIC_FIELDS = [
     {
         field: 'lvEndSystolicVolume',
         label: 'Volum telesistolic VS',
-        aliases: ['volum telesistolic vs', 'volumul telesistolic vs', 'volum telesistolic'],
+        aliases: [
+            'volum telesistolic vs',
+            'volumul telesistolic vs',
+            'volum telesistolic',
+            // Whisper splits "telesistolic" and may attach the "VS" directly to
+            // the sentence period ("Volum tele sistolic.Vs, 9").
+            'volum tele sistolic vs',
+            'volum tele sistolic. vs',
+            'volum tele sistolic.vs',
+            'volum telesistolic. vs',
+            'volum telesistolic.vs',
+            'vs volum telesistolic',
+        ],
     },
     {
         field: 'lvEjectionFractionSimpson',
@@ -230,6 +304,9 @@ const NUMERIC_FIELDS = [
         aliases: [
             'fractie de ejectie simpson',
             'fractia de ejectie simpson',
+            // Whisper/colloquial plural forms.
+            'fractii de ejectie simpson',
+            'fractiile de ejectie simpson',
             'fractie ejectie simpson',
             'fractia ejectie simpson',
             'fe simpson',
@@ -237,13 +314,50 @@ const NUMERIC_FIELDS = [
     },
     {
         field: 'aorticValveArea',
-        label: 'Aria valvei aortice',
-        aliases: ['aria valvei aortice', 'aria valvulei aortice'],
+        label: 'Aria valvei aortice (EC)',
+        aliases: [
+            // The "EC" suffix is dictated by Whisper with or without parentheses;
+            // "area" instead of "aria" is a known Whisper variant.
+            'aria valvei aortice ec',
+            'aria valvei aortice (ec)',
+            'aria valve aortica ec',
+            'aria valve aortica (ec)',
+            'area valvei aortice ec',
+            'area valvei aortice (ec)',
+            // Nominative forms ("aria valva aortica") and short forms without the
+            // "aortice" qualifier ("area valve 5"). Whisper also hears the first
+            // word as "are" ("are valvă aortică").
+            'aria valva aortica',
+            'area valva aortica',
+            'are valva aortica',
+            'aria valve aortice',
+            'area valve aortice',
+            'are valve aortice',
+            'area valvei aortice',
+            'aria valva',
+            'area valva',
+            'are valva',
+            'aria valve',
+            'area valve',
+            'are valve',
+            'aria valvei aortice',
+            'aria valvulei aortice',
+        ],
+        // The aortic valve area belongs to the LVOT section, never to "Flux aortic".
+        context: 'lvot',
     },
     {
         field: 'mitralValveArea',
         label: 'Aria valvei mitrale',
-        aliases: ['aria valvei mitrale', 'aria valvulei mitrale'],
+        aliases: [
+            'aria valvei mitrale',
+            'aria valvei mitrala',
+            'aria valvulei mitrale',
+            'aria valvulei mitrala',
+            // Whisper "area" instead of "aria".
+            'area valvei mitrale',
+            'area valvei mitrala',
+        ],
     },
     // Doppler — flux aortic
     { field: 'aorticVmax', label: 'Flux aortic — Vmax', aliases: ['vmax', 'v max'], context: 'aortic' },
@@ -252,33 +366,60 @@ const NUMERIC_FIELDS = [
     // Doppler — flux LVOT
     { field: 'lvotVmax', label: 'Flux LVOT — Vmax', aliases: ['vmax', 'v max'], context: 'lvot' },
     { field: 'lvotPmax', label: 'Flux LVOT — Pmax', aliases: ['pmax', 'p max'], context: 'lvot' },
-    { field: 'lvotVti', label: 'Flux LVOT — VTI', aliases: ['vti'], context: 'lvot' },
+    { field: 'lvotVti', label: 'Flux LVOT — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i'], context: 'lvot' },
     // Doppler — flux mitral
-    { field: 'mitralE', label: 'Flux mitral — Undă E', aliases: ['unda e'], context: 'mitral' },
-    { field: 'mitralA', label: 'Flux mitral — Undă A', aliases: ['unda a'], context: 'mitral' },
-    { field: 'mitralEaRatio', label: 'Flux mitral — E/A', aliases: ['e/a', 'e a'], context: 'mitral' },
+    // Bare "e"/"a"/"ea" are only matched while the mitral context is active, so
+    // Whisper forms like "E4", "A5", "EA1.2" never leak into other sections.
+    { field: 'mitralE', label: 'Flux mitral — Undă E', aliases: ['unda e', 'e'], context: 'mitral' },
+    { field: 'mitralA', label: 'Flux mitral — Undă A', aliases: ['unda a', 'a'], context: 'mitral' },
+    { field: 'mitralEaRatio', label: 'Flux mitral — E/A', aliases: ['e/a', 'e a', 'ea'], context: 'mitral' },
     { field: 'mitralDecelerationTime', label: 'Flux mitral — TDE', aliases: ['tde', 'timp de deceleratie'], context: 'mitral' },
     { field: 'mitralTriv', label: 'Flux mitral — TRIV', aliases: ['triv'], context: 'mitral' },
     // Doppler — flux tricuspidian
     { field: 'tricuspidVmax', label: 'Flux tricuspidian — Vmax', aliases: ['vmax', 'v max'], context: 'tricuspid' },
     { field: 'tricuspidPmax', label: 'Flux tricuspidian — Pmax', aliases: ['pmax', 'p max'], context: 'tricuspid' },
     { field: 'psvd', label: 'Flux tricuspidian — PSVD', aliases: ['psvd'], context: 'tricuspid' },
-    { field: 'tricuspidE', label: 'Flux tricuspidian — Undă E', aliases: ['unda e'], context: 'tricuspid' },
-    { field: 'tricuspidA', label: 'Flux tricuspidian — Undă A', aliases: ['unda a'], context: 'tricuspid' },
-    { field: 'tricuspidEaRatio', label: 'Flux tricuspidian — E/A', aliases: ['e/a', 'e a'], context: 'tricuspid' },
+    { field: 'tricuspidE', label: 'Flux tricuspidian — Undă E', aliases: ['unda e', 'e'], context: 'tricuspid' },
+    { field: 'tricuspidA', label: 'Flux tricuspidian — Undă A', aliases: ['unda a', 'a'], context: 'tricuspid' },
+    { field: 'tricuspidEaRatio', label: 'Flux tricuspidian — E/A', aliases: ['e/a', 'e a', 'ea'], context: 'tricuspid' },
     // Doppler — flux pulmonar
     { field: 'pulmonaryVmax', label: 'Flux pulmonar — Vmax', aliases: ['vmax', 'v max'], context: 'pulmonary' },
     { field: 'pulmonaryPmax', label: 'Flux pulmonar — Pmax', aliases: ['pmax', 'p max'], context: 'pulmonary' },
-    { field: 'pulmonaryVti', label: 'Flux pulmonar — VTI', aliases: ['vti'], context: 'pulmonary' },
-    // Doppler tisular (sept)
-    { field: 'septalEPrime', label: "Doppler tisular — Undă E'", aliases: ["unda e'", 'unda e prim', 'unda e prime'], context: 'septal' },
-    { field: 'septalAPrime', label: "Doppler tisular — Undă A'", aliases: ["unda a'", 'unda a prim', 'unda a prime'], context: 'septal' },
-    { field: 'septalEaPrimeRatio', label: "Doppler tisular — E'/A'", aliases: ["e'/a'", 'e prim a prim', 'e prim pe a prim'], context: 'septal' },
-    { field: 'eePrimeRatio', label: "Doppler tisular — E/E'", aliases: ["e/e'", 'e e prim', 'e pe e prim'], context: 'septal' },
+    { field: 'pulmonaryVti', label: 'Flux pulmonar — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i'], context: 'pulmonary' },
+    // Doppler tisular (sept) — in this section "Unda E"/"Unda A"/"EA"/"EE" mean
+    // E', A', E'/A' and E/E' respectively (not the mitral waves).
+    {
+        field: 'septalEPrime',
+        label: "Doppler tisular — Undă E'",
+        aliases: ["unda e'", 'unda e prim', 'unda e prime', 'unda e', 'e'],
+        context: 'septal',
+    },
+    {
+        field: 'septalAPrime',
+        label: "Doppler tisular — Undă A'",
+        aliases: ["unda a'", 'unda a prim', 'unda a prime', 'unda a', 'a'],
+        context: 'septal',
+    },
+    {
+        field: 'septalEaPrimeRatio',
+        label: "Doppler tisular — E'/A'",
+        aliases: ["e'/a'", 'e prim a prim', 'e prim pe a prim', 'e/a', 'e a', 'ea'],
+        context: 'septal',
+    },
+    {
+        field: 'eePrimeRatio',
+        label: "Doppler tisular — E/E'",
+        aliases: ["e/e'", 'e e prim', 'e pe e prim', 'e/e', 'e e', 'ee'],
+        context: 'septal',
+    },
     { field: 'septalS', label: 'Doppler tisular — Undă S', aliases: ['unda s'], context: 'septal' },
 ];
 const QUALITATIVE_FIELDS = [
-    { field: 'aorticRegurgitation', label: 'Regurgitare aortică', aliases: ['regurgitare aortica'] },
+    {
+        field: 'aorticRegurgitation',
+        label: 'Regurgitare aortică',
+        aliases: ['regurgitare aortica', 'recurgitare aortica'],
+    },
     { field: 'mitralRegurgitation', label: 'Regurgitare mitrală', aliases: ['regurgitare mitrala'] },
     { field: 'tricuspidRegurgitation', label: 'Regurgitare tricuspidiană', aliases: ['regurgitare tricuspidiana'] },
     { field: 'pulmonaryRegurgitation', label: 'Regurgitare pulmonară', aliases: ['regurgitare pulmonara'] },
@@ -294,6 +435,30 @@ const QUALITATIVE_FIELDS = [
     { field: 'wallMotion', label: 'Cinetică parietală', aliases: ['cinetica parietala'] },
     { field: 'aorticValves', label: 'Valve aortice', aliases: ['valve aortice'] },
     { field: 'mitralValves', label: 'Valve mitrale', aliases: ['valve mitrale'] },
+    { field: 'tricuspidValves', label: 'Valve tricuspide', aliases: ['valve tricuspide'] },
+    { field: 'pulmonaryValves', label: 'Valve pulmonare', aliases: ['valve pulmonare'] },
+];
+// Known qualitative value words used to recover Whisper concatenations such as
+// "valvemitralessuple" → alias "valve mitrale" + value "suple". Matching is
+// limited to this explicit list (no unrestricted fuzzy matching).
+const KNOWN_QUALITATIVE_VALUES = [
+    'normale',
+    'normala',
+    'suple',
+    'ingrosate',
+    'ingrosata',
+    'stenotice',
+    'stenozate',
+    'calcificate',
+    'degenerative',
+    'absent',
+    'prezent',
+    'usoara',
+    'moderata',
+    'severa',
+    'hipokinetica',
+    'akinetica',
+    'diskinezie',
 ];
 const LOW_CONFIDENCE_PATTERNS = [
     /\b(?:probabil|posibil|nesigur|banuiesc)\b/,
@@ -366,10 +531,22 @@ function escapeRegExp(text) {
 }
 // Field aliases are matched word by word, tolerating comma or semicolon
 // separators between the words ("vs, diametrul telediastolic") exactly as
-// Whisper dictates them, while decimal commas are already protected above.
+// Whisper dictates them. The trailing boundary allows a digit to follow the
+// alias immediately so Whisper attachments like "E4", "EA1.2", "TDE9" still
+// match the label and leave the number in the value window ("e"+"4", "ea"+"1.2").
+// A following letter still ends the match, so "area" never matches bare "a".
 function aliasPattern(alias) {
     const words = alias.split(' ').map((word) => escapeRegExp(word));
-    return new RegExp(`(?<![a-z0-9])${words.join('[\\s,;]+')}(?![a-z0-9])`, 'g');
+    return new RegExp(`(?<![a-z0-9])${words.join('[\\s,;]+')}(?![a-z])`, 'g');
+}
+// Qualitative aliases additionally allow a known value word to be attached
+// with no space ("valve mitralesuple" → alias ends before "suple"). The known
+// value is only looked ahead, never consumed, so it stays in the value window.
+function qualitativeAliasPattern(alias) {
+    const words = alias.split(' ').map((word) => escapeRegExp(word));
+    const body = words.join('[\\s,;]+');
+    const known = KNOWN_QUALITATIVE_VALUES.map((value) => escapeRegExp(value)).join('|');
+    return new RegExp(`(?<![a-z0-9])${body}(?:(?![a-z])|(?=(?:${known})(?![a-z])))`, 'g');
 }
 function collectMatches(normalizedText) {
     const matches = [];
@@ -401,7 +578,7 @@ function collectMatches(normalizedText) {
     }
     for (const def of QUALITATIVE_FIELDS) {
         for (const alias of def.aliases) {
-            const pattern = aliasPattern(alias);
+            const pattern = qualitativeAliasPattern(alias);
             for (const match of normalizedText.matchAll(pattern)) {
                 matches.push({
                     kind: 'qualitative',
@@ -471,9 +648,12 @@ function qualitativeValue(rawWindow) {
         }
         break;
     }
+    if (pos >= rawIndex.length)
+        return null;
     const value = rawWindow
         .slice(rawIndex[pos])
         .replace(/^[\s,;]+/, '')
+        .replace(/[\s,;]+$/g, '')
         .trim();
     return value || null;
 }
@@ -534,7 +714,12 @@ export function parseEchoTranscript(transcript) {
             if (m.kind === 'context' || m.def === undefined)
                 return false;
             if ('context' in m.def) {
-                return m.def.context === undefined || m.def.context === activeContext;
+                if (m.def.context !== undefined && m.def.context !== activeContext)
+                    return false;
+            }
+            const excluded = 'excludeContexts' in m.def ? m.def.excludeContexts : undefined;
+            if (excluded !== undefined && activeContext !== null && excluded.includes(activeContext)) {
+                return false;
             }
             return true;
         });
@@ -555,19 +740,27 @@ export function parseEchoTranscript(transcript) {
             const value = qualitativeValue(rawWindow);
             if (!value)
                 continue;
+            // Drop a trailing field separator before the next known field
+            // ("Valve mitralesuple, valve tricuspide..." → source ends at "suple").
+            const qualitativeSource = sourceText.replace(/[\s,;]+$/g, '');
             measurements.push({
                 field: def.field,
                 label: def.label,
                 value,
                 kind: 'qualitative',
                 confidence,
-                sourceText,
+                sourceText: qualitativeSource || sourceText,
             });
             continue;
         }
         const numericDef = def;
         if (numericDef.context && numericDef.context !== activeContext)
             continue;
+        if (numericDef.excludeContexts &&
+            activeContext !== null &&
+            numericDef.excludeContexts.includes(activeContext)) {
+            continue;
+        }
         const valueCount = countNumericValues(normWindow);
         if (valueCount === 0)
             continue;
