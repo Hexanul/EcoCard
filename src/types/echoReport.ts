@@ -1,5 +1,6 @@
 export type PatientInfo = {
   name: string;
+  age: string;
   examinationDate: string;
   currentNumber: string;
   weight: string;
@@ -93,6 +94,7 @@ export type Measurements = {
 export type EchoReport = {
   patient: PatientInfo;
   measurements: Measurements;
+  conclusions: string;
 };
 
 export type MeasurementKey = keyof Measurements;
@@ -100,6 +102,7 @@ export type MeasurementKey = keyof Measurements;
 export function createEmptyPatient(): PatientInfo {
   return {
     name: '',
+    age: '',
     examinationDate: new Date().toISOString().slice(0, 10),
     currentNumber: '',
     weight: '',
@@ -177,5 +180,6 @@ export function createEmptyEchoReport(): EchoReport {
   return {
     patient: createEmptyPatient(),
     measurements: createEmptyMeasurements(),
+    conclusions: '',
   };
 }

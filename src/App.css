@@ -561,6 +561,12 @@
   padding-top: 4px;
 }
 
+.dev-actions {
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0.75;
+}
+
 .btn {
   padding: 10px 20px;
   font-size: 14px;

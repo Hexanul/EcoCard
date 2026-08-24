@@ -37,7 +37,9 @@ npm run test:pipeline
 
 ## Security and audio flow
 
-The BrowserWindow enables `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, and `webSecurity: true`. The preload bridge exposes only `getPipelineStatus()` and `transcribeAudio(audioBytes, mimeType)`. It does not expose Node.js, `process`, `require`, filesystem access, a shell, `child_process`, or a generic command API.
+The BrowserWindow enables `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, and `webSecurity: true`. The preload bridge exposes only `getPipelineStatus()`, `transcribeAudio(audioBytes, mimeType)`, and `exportPdf(suggestedName)`. It does not expose Node.js, `process`, `require`, filesystem access, a shell, `child_process`, or a generic command API.
+
+`exportPdf()` triggers the `echo-report:export-pdf` IPC channel; the main process waits for the rendered `#printable-report`, opens the native Windows Save As dialog, and generates the selected file with `webContents.printToPDF()` using A4 portrait settings. Nothing is sent to a printer and no report data leaves the machine. The "Previzualizare raport" button opens a read-only preview of the current report state; "Exportă PDF" saves that same rendered report (print CSS: `@page { size: A4 portrait; margin: 12mm; }`, app UI hidden via `.no-print`).
 
 ```
 React MediaRecorder (WebM/Opus)

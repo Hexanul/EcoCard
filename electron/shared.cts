@@ -1,6 +1,7 @@
 export const IPC = {
   getPipelineStatus: 'echo-report:get-pipeline-status',
   transcribeAudio: 'echo-report:transcribe-audio',
+  exportPdf: 'echo-report:export-pdf',
 } as const;
 
 export type AudioSummary = { mimeType: string; sizeBytes: number; sizeFormatted: string };
@@ -15,3 +16,8 @@ export type TranscriptionFailure = {
 export type TranscriptionSuccess = { success: true; transcript: string; original: AudioSummary; converted: ConvertedAudio };
 export type TranscriptionResponse = TranscriptionSuccess | TranscriptionFailure;
 export type PipelineStatus = { ffmpegFound: boolean; whisperCliFound: boolean; modelFound: boolean; model: 'large-v3-turbo'; language: 'ro' };
+
+export type ExportPdfErrorCode = 'CANCELED' | 'REPORT_NOT_READY_FOR_PDF' | 'PDF_GENERATION_FAILED' | 'PDF_SAVE_FAILED' | 'UNEXPECTED_ERROR';
+export type ExportPdfResponse =
+  | { success: true }
+  | { success: false; errorCode: ExportPdfErrorCode; message: string };

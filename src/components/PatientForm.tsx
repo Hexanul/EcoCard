@@ -49,6 +49,21 @@ export function PatientForm({ patient, onChange }: PatientFormProps) {
           />
         </div>
 
+        <div className="field">
+          <label htmlFor="patient-age">Vârstă</label>
+          <div className="field__input-row">
+            <input
+              id="patient-age"
+              type="text"
+              inputMode="decimal"
+              value={patient.age}
+              onChange={(e) => update('age', e.target.value)}
+              autoComplete="off"
+            />
+            <span className="field__unit">ani</span>
+          </div>
+        </div>
+
         <div className="patient-form__date-group">
           <div className="field">
             <label htmlFor="examination-date">Data examinării</label>

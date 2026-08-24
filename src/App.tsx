@@ -6,7 +6,10 @@ import { DictationPanel } from './components/DictationPanel';
 import { MeasurementReview } from './components/MeasurementReview';
 import { EchoMeasurements } from './components/EchoMeasurements';
 import { DopplerMeasurements } from './components/DopplerMeasurements';
+import { ConclusionsForm } from './components/ConclusionsForm';
 import { ReportActions } from './components/ReportActions';
+import { ReportPreviewPage } from './components/ReportPreviewPage';
+import { createTestEchoReport } from './dev/testReport';
 import type { ParsedEchoData, ParsedMeasurement } from './services/medicalParser';
 import {
   createEmptyEchoReport,
@@ -18,6 +21,7 @@ import {
 function App() {
   const [report, setReport] = useState<EchoReport>(createEmptyEchoReport);
   const [pendingMeasurements, setPendingMeasurements] = useState<ParsedMeasurement[]>([]);
+  const [view, setView] = useState<'form' | 'preview'>('form');
 
   const updatePatient = (patient: PatientInfo) => {
     setReport((prev) => ({ ...prev, patient }));
@@ -28,6 +32,10 @@ function App() {
       ...prev,
       measurements: { ...prev.measurements, [key]: value },
     }));
+  };
+
+  const updateConclusions = (conclusions: string) => {
+    setReport((prev) => ({ ...prev, conclusions }));
   };
 
   const handleMeasurementsParsed = useCallback((data: ParsedEchoData) => {
@@ -69,6 +77,16 @@ function App() {
     console.log('Generează raport', report);
   };
 
+  const handleLoadTestReport = () => {
+    setReport(createTestEchoReport());
+  };
+
+  // The read-only preview renders the same report state — no copy is made,
+  // so it always reflects the current form values.
+  if (view === 'preview') {
+    return <ReportPreviewPage report={report} onBack={() => setView('form')} />;
+  }
+
   return (
     <div className="app">
       <Header />
@@ -97,7 +115,21 @@ function App() {
           />
         </section>
 
-        <ReportActions onClear={handleClear} onGenerate={handleGenerate} />
+        <ConclusionsForm value={report.conclusions} onChange={updateConclusions} />
+
+        <ReportActions
+          onClear={handleClear}
+          onPreview={() => setView('preview')}
+          onGenerate={handleGenerate}
+        />
+
+        {import.meta.env.DEV && (
+          <div className="dev-actions">
+            <button type="button" className="btn btn--secondary" onClick={handleLoadTestReport}>
+              Date test (dev)
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -924,6 +924,23 @@ test('parses all lateromedian diametru/diametrul variants for each chamber', () 
   }
 });
 
+test('parses the Whisper ateromedian variant for each chamber', () => {
+  for (const [prefix, field] of [
+    ['Vs', 'lvLateromedialDiameter'],
+    ['Vd', 'rvLateromedialDiameter'],
+    ['As', 'laLateromedialDiameter'],
+    ['Ad', 'raLateromedialDiameter'],
+  ]) {
+    const transcript = `${prefix}, diametrul ateromedian, 5`;
+    assert.ok(
+      parseEchoTranscript(transcript).measurements.some(
+        (item) => item.field === field && item.value === '5',
+      ),
+      transcript,
+    );
+  }
+});
+
 test('parses "Area As, 9" as the AS area', () => {
   const result = parsed('Area As, 9', 'laArea');
   assert.equal(result.value, '9');
@@ -1172,6 +1189,18 @@ test('parses spaced mitral short-token variants', () => {
       transcript,
     );
   }
+});
+
+test('parses onda E, onda A and EPA in mitral flow', () => {
+  const data = parseEchoTranscript('Flux mitral, onda E3, onda A3, EPA3');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['mitralE', '3'],
+      ['mitralA', '3'],
+      ['mitralEaRatio', '3'],
+    ],
+  );
 });
 
 test('parses concatenated Whisper valve values with multiple fields', () => {

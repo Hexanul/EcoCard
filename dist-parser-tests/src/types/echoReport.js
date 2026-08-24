@@ -1,6 +1,7 @@
 export function createEmptyPatient() {
     return {
         name: '',
+        age: '',
         examinationDate: new Date().toISOString().slice(0, 10),
         currentNumber: '',
         weight: '',
@@ -76,5 +77,6 @@ export function createEmptyEchoReport() {
     return {
         patient: createEmptyPatient(),
         measurements: createEmptyMeasurements(),
+        conclusions: '',
     };
 }

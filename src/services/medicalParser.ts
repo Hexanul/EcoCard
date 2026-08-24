@@ -248,6 +248,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vs diametru lateromedian',
       'vs diam latero median',
       'vs diam lateromedian',
+      'vs diametrul ateromedian',
+      'vs diametru ateromedian',
+      'vs diam ateromedian',
     ],
   },
   {
@@ -260,6 +263,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vd diametru lateromedian',
       'vd diam latero median',
       'vd diam lateromedian',
+      'vd diametrul ateromedian',
+      'vd diametru ateromedian',
+      'vd diam ateromedian',
     ],
   },
   {
@@ -272,6 +278,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'as diametru lateromedian',
       'as diam latero median',
       'as diam lateromedian',
+      'as diametrul ateromedian',
+      'as diametru ateromedian',
+      'as diam ateromedian',
     ],
   },
   {
@@ -284,6 +293,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'ad diametru lateromedian',
       'ad diam latero median',
       'ad diam lateromedian',
+      'ad diametrul ateromedian',
+      'ad diametru ateromedian',
+      'ad diam ateromedian',
     ],
   },
   // In APICAL 4C dictation the first bare "diametrul latero-median" is
@@ -415,9 +427,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Doppler — flux mitral
   // Bare "e"/"a"/"ea" are only matched while the mitral context is active, so
   // Whisper forms like "E4", "A5", "EA1.2" never leak into other sections.
-  { field: 'mitralE', label: 'Flux mitral — Undă E', aliases: ['unda e', 'e'], context: 'mitral' },
-  { field: 'mitralA', label: 'Flux mitral — Undă A', aliases: ['unda a', 'a'], context: 'mitral' },
-  { field: 'mitralEaRatio', label: 'Flux mitral — E/A', aliases: ['e/a', 'e a', 'ea'], context: 'mitral' },
+  { field: 'mitralE', label: 'Flux mitral — Undă E', aliases: ['unda e', 'onda e', 'e'], context: 'mitral' },
+  { field: 'mitralA', label: 'Flux mitral — Undă A', aliases: ['unda a', 'onda a', 'a'], context: 'mitral' },
+  { field: 'mitralEaRatio', label: 'Flux mitral — E/A', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'mitral' },
   { field: 'mitralDecelerationTime', label: 'Flux mitral — TDE', aliases: ['tde', 'timp de deceleratie'], context: 'mitral' },
   { field: 'mitralTriv', label: 'Flux mitral — TRIV', aliases: ['triv'], context: 'mitral' },
 

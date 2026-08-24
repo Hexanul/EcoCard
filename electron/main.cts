@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import path from 'node:path';
 import { pipelineStatus } from './config.cjs';
-import { IPC, type TranscriptionFailure, type TranscriptionResponse } from './shared.cjs';
+import { exportReportPdf } from './pdf.cjs';
+import { IPC, type ExportPdfResponse, type TranscriptionFailure, type TranscriptionResponse } from './shared.cjs';
 import { transcribeAudio } from './transcription.cjs';
 
 const devServerUrl = process.env.ECHOREPORT_DEV_SERVER_URL;
@@ -22,6 +23,17 @@ function createWindow(): void {
 
 function registerIpc(): void {
   ipcMain.handle(IPC.getPipelineStatus, (): ReturnType<typeof pipelineStatus> => pipelineStatus());
+  // Explicit doctor action only: generates an A4 PDF from the already-rendered
+  // report preview and shows the native Windows Save As dialog. Cancelling
+  // the dialog is a clean no-op; report data is never modified.
+  ipcMain.handle(IPC.exportPdf, async (event, payload: unknown): Promise<ExportPdfResponse> => {
+    const contents = event.sender;
+    if (contents.isDestroyed() || !isTrustedRendererUrl(contents.getURL())) return { success: false, errorCode: 'UNEXPECTED_ERROR', message: 'Fereastra nu este disponibilă.' };
+    const suggestedName = payload && typeof payload === 'object' && typeof (payload as { suggestedName?: unknown }).suggestedName === 'string'
+      ? (payload as { suggestedName: string }).suggestedName
+      : undefined;
+    try { return await exportReportPdf(contents, suggestedName); } catch (error) { console.error('[Echo Report] Unexpected PDF export error:', error); return { success: false, errorCode: 'UNEXPECTED_ERROR', message: 'Generarea PDF-ului a eșuat.' }; }
+  });
   ipcMain.handle(IPC.transcribeAudio, async (_event, payload: unknown): Promise<TranscriptionResponse> => {
     if (!payload || typeof payload !== 'object') return failure('INVALID_AUDIO', 'Înregistrarea audio este invalidă.');
     const { audioBytes, mimeType } = payload as { audioBytes?: unknown; mimeType?: unknown };

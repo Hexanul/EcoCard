@@ -1,0 +1,296 @@
+/* Report preview page (screen scaffolding) */
+
+.preview-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.preview-toolbar__note {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.preview-toolbar__status {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.preview-toolbar__status--generating {
+  color: var(--accent);
+}
+
+.preview-toolbar__status--success {
+  color: var(--success);
+}
+
+.preview-toolbar__status--error {
+  color: var(--danger);
+}
+
+.preview-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* Printable A4 report sheet — black on white only, safe for B/W printers */
+
+.rp-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 8mm 10mm;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 2px 12px rgba(26, 35, 50, 0.18);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.printable-report {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  margin: 0 auto;
+  background: white;
+  display: block;
+}
+
+.rp-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: center;
+  color: #000000;
+  margin: 4mm 0;
+}
+
+.rp-clinic-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  margin-bottom: 3mm;
+  font-size: 9px;
+}
+
+.rp-document-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10mm;
+  margin-bottom: 2mm;
+}
+
+/* Patient information */
+
+.rp-patient {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+
+.rp-patient__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8mm;
+}
+
+.rp-patient__row--four {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5mm;
+}
+
+.rp-patient__row--three {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5mm;
+}
+
+/* Sections */
+
+.rp-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #000000;
+  margin: 3mm 0 1.5mm;
+  padding-bottom: 0.5mm;
+  border-bottom: 1px solid #000000;
+}
+
+.rp-section {
+  margin-bottom: 2mm;
+}
+
+.rp-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #000000;
+  margin-bottom: 0.8mm;
+}
+
+.rp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 10mm;
+  row-gap: 1.6mm;
+}
+
+.rp-parasternal-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 7mm;
+  align-items: start;
+}
+
+.rp-apical-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 7mm;
+  align-items: start;
+}
+
+.rp-grid--single {
+  grid-template-columns: 1fr;
+  margin-top: 0.5mm;
+}
+
+.rp-inline-grid {
+  display: grid;
+  gap: 1mm 5mm;
+  margin-top: 0.5mm;
+}
+
+.rp-inline-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rp-inline-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Label: ____ value ____ rows */
+
+.rp-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1mm;
+}
+
+.rp-row__label {
+  flex-shrink: 0;
+}
+
+.rp-row__value {
+  flex: 1;
+  min-width: 7mm;
+  min-height: 1em;
+  border-bottom: 1px solid #000000;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rp-row__unit {
+  flex-shrink: 0;
+}
+
+/* Pericard sub-block inside APICAL 4C */
+
+.rp-pericard {
+  margin-top: 1mm;
+}
+
+.rp-pericard__label {
+  font-weight: 700;
+}
+
+.rp-pericard__content {
+  margin-left: 3mm;
+  margin-top: 0.5mm;
+}
+
+/* Conclusions */
+
+.rp-conclusions-section {
+  margin-top: 2mm;
+}
+
+.rp-conclusions {
+  border: 1px solid #000000;
+  min-height: 12mm;
+  padding: 1mm 2mm;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Print rules */
+
+@page {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .preview-page {
+    display: block;
+    min-height: 0;
+    background: #ffffff;
+  }
+
+  .preview-scroll {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .rp-sheet,
+  .printable-report {
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  /* The @page rule already supplies the A4 page box and 12mm margins; the
+     report must fill the remaining content area, not overflow it. */
+  .printable-report {
+    width: auto;
+    min-height: 0;
+  }
+
+  .rp-sheet {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}
