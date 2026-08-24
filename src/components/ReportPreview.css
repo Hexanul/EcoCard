@@ -173,6 +173,10 @@
   row-gap: 1.8mm;
 }
 
+.rp-section--m-echo .rp-grid {
+  row-gap: 1.3mm;
+}
+
 .rp-parasternal-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -196,6 +200,10 @@
   display: grid;
   gap: 1.8mm 5mm;
   margin-top: 0.5mm;
+}
+
+.rp-section--m-echo .rp-inline-grid {
+  row-gap: 1.2mm;
 }
 
 .rp-flux--spacious .rp-inline-grid {
@@ -226,7 +234,7 @@
 .rp-row__value {
   position: relative;
   flex: 1;
-  margin-left: 3mm;
+  margin-left: 1mm;
   min-width: 7mm;
   min-height: 1em;
   white-space: pre-wrap;
