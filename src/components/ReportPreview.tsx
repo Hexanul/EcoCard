@@ -35,11 +35,14 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         </header>
 
         <div className="rp-document-meta">
-          <Row label="Nr. curent" value={patient.currentNumber} />
-          <Row label="Data" value={formatDate(patient.examinationDate)} />
+          <div className="rp-document-meta__number">
+            <Row label="Nr. curent" value={patient.currentNumber} />
+          </div>
+          <div className="rp-document-meta__date">
+            <Row label="Data" value={formatDate(patient.examinationDate)} />
+          </div>
+          <h1 className="rp-title">ECOCARDIOGRAFIE</h1>
         </div>
-
-        <h1 className="rp-title">ECOCARDIOGRAFIE</h1>
 
       <div className="rp-patient">
         <div className="rp-patient__row">
@@ -106,10 +109,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
           <Row label="Valve pulmonare" value={m.pulmonaryValves} />
         </div>
         <div className="rp-pericard">
-          <span className="rp-pericard__label">Pericard:</span>
-          <div className="rp-pericard__content">
-            <Row label="Lichid pericardic" value={m.pericardialFluid} />
-          </div>
+          <Row label="Pericard: Lichid pericardic" value={m.pericardialFluid} />
         </div>
       </section>
 
@@ -124,7 +124,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         </div>
       </section>
 
-      <section className="rp-section rp-flux">
+      <section className="rp-section rp-flux rp-flux--spacious">
         <h3 className="rp-section-title">Flux LVOT</h3>
         <div className="rp-inline-grid rp-inline-grid--three">
           <Row label="Vmax (cm/s)" value={m.lvotVmax} />
@@ -137,7 +137,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         </div>
       </section>
 
-      <section className="rp-section rp-flux">
+      <section className="rp-section rp-flux rp-flux--spacious">
         <h3 className="rp-section-title">Flux mitral</h3>
         <div className="rp-inline-grid rp-inline-grid--three">
           <Row label="Unda E" value={m.mitralE} />
@@ -154,7 +154,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         </div>
       </section>
 
-      <section className="rp-section rp-flux">
+      <section className="rp-section rp-flux rp-flux--spacious">
         <h3 className="rp-section-title">Flux tricuspidian</h3>
         <div className="rp-inline-grid rp-inline-grid--three">
           <Row label="Vmax (cm/s)" value={m.tricuspidVmax} />

@@ -64,7 +64,7 @@
   background: #ffffff;
   color: #000000;
   box-shadow: 0 2px 12px rgba(26, 35, 50, 0.18);
-  font-size: 9px;
+  font-size: 11.5px;
   line-height: 1.2;
 }
 
@@ -78,12 +78,15 @@
 }
 
 .rp-title {
-  font-size: 16px;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-align: center;
   color: #000000;
-  margin: 4mm 0;
+  margin: 0;
+  align-self: end;
 }
 
 .rp-clinic-header {
@@ -91,14 +94,27 @@
   flex-direction: column;
   gap: 0.5mm;
   margin-bottom: 3mm;
-  font-size: 9px;
+  font-size: 9.5px;
 }
 
 .rp-document-meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10mm;
-  margin-bottom: 2mm;
+  grid-template-rows: auto auto;
+  column-gap: 10mm;
+  row-gap: 1mm;
+  margin-bottom: 4mm;
+}
+
+.rp-document-meta__number {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.rp-document-meta__date {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
 }
 
 /* Patient information */
@@ -129,7 +145,7 @@
 /* Sections */
 
 .rp-group-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #000000;
@@ -143,7 +159,7 @@
 }
 
 .rp-section-title {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.03em;
   color: #000000;
@@ -154,7 +170,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   column-gap: 10mm;
-  row-gap: 1.6mm;
+  row-gap: 1.8mm;
 }
 
 .rp-parasternal-columns {
@@ -178,8 +194,13 @@
 
 .rp-inline-grid {
   display: grid;
-  gap: 1mm 5mm;
+  gap: 1.8mm 5mm;
   margin-top: 0.5mm;
+}
+
+.rp-flux--spacious .rp-inline-grid {
+  row-gap: 2.2mm;
+  margin-top: 0.8mm;
 }
 
 .rp-inline-grid--two {
@@ -203,12 +224,17 @@
 }
 
 .rp-row__value {
+  position: relative;
   flex: 1;
+  margin-left: 3mm;
   min-width: 7mm;
   min-height: 1em;
-  border-bottom: 1px solid #000000;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.rp-row__value::after {
+  display: none;
 }
 
 .rp-row__unit {
@@ -221,15 +247,6 @@
   margin-top: 1mm;
 }
 
-.rp-pericard__label {
-  font-weight: 700;
-}
-
-.rp-pericard__content {
-  margin-left: 3mm;
-  margin-top: 0.5mm;
-}
-
 /* Conclusions */
 
 .rp-conclusions-section {
@@ -237,7 +254,6 @@
 }
 
 .rp-conclusions {
-  border: 1px solid #000000;
   min-height: 12mm;
   padding: 1mm 2mm;
   white-space: pre-wrap;
