@@ -38,17 +38,15 @@ export function ReportPreview({ report }: ReportPreviewProps) {
     <div id="printable-report" className="printable-report">
       <article className="rp-sheet" aria-label="Previzualizare raport ecocardiografie">
         <header className="rp-clinic-header">
-          <strong>CMI DR. CURTA ASINETA</strong>
+          <div className="rp-clinic-header__top">
+            <strong>CMI DR. CURTA ASINETA</strong>
+            <Row label="Nr. curent" value={patient.currentNumber} />
+            <Row label="Data" value={formatDate(patient.examinationDate)} />
+          </div>
           <span>Str. Vișinului nr. 47, Arad</span>
         </header>
 
         <div className="rp-document-meta">
-          <div className="rp-document-meta__number">
-            <Row label="Nr. curent" value={patient.currentNumber} />
-          </div>
-          <div className="rp-document-meta__date">
-            <Row label="Data" value={formatDate(patient.examinationDate)} />
-          </div>
           <h1 className="rp-title">ECOCARDIOGRAFIE</h1>
         </div>
 
@@ -189,9 +187,8 @@ export function ReportPreview({ report }: ReportPreviewProps) {
         </div>
       </section>
 
-      <h2 className="rp-group-title">DOPPLER TISULAR (sept)</h2>
-
-      <section className="rp-section">
+      <section className="rp-section rp-flux">
+        <h3 className="rp-section-title">DOPPLER TISULAR (sept)</h3>
         <div className="rp-inline-grid rp-inline-grid--three">
           <Row label="Unda E'" value={m.septalEPrime} />
           <Row label="Unda A'" value={m.septalAPrime} unit="cm/s" />
@@ -202,7 +199,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
       </section>
 
       <section className="rp-section rp-conclusions-section">
-        <h3 className="rp-section-title">CONCLUZII</h3>
+        <h2 className="rp-group-title">CONCLUZII</h2>
         <div className="rp-conclusions">{conclusions}</div>
       </section>
     </article>
