@@ -88,6 +88,7 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // without a comma between the two words).
       'vs diametrul tele diastolic',
       'vs diametru tele diastolic',
+      'vs diametru telediastolic',
       'vs telediastolic',
       'ventricul stang diametrul telediastolic',
       'ps diametrul telediastolic',
@@ -116,6 +117,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // without a comma between the two words).
       'vs diametrul tele sistolic',
       'vs diametru tele sistolic',
+      'vs diametru telesistolic',
+      'vs diametru telesistoric',
+      'vs diametrul telesistoric',
       'vs telesistolic',
       'ventricul stang diametrul telesistolic',
       'ps diametrul telesistolic',

@@ -146,9 +146,9 @@ export function ReportPreview({ report }: ReportPreviewProps) {
       <section className="rp-section rp-flux rp-flux--spacious">
         <h3 className="rp-section-title">Flux mitral</h3>
         <div className="rp-inline-grid rp-inline-grid--three">
-          <Row label="Unda E" value={m.tricuspidE} unit="cm/s" />
-          <Row label="Unda A" value={m.tricuspidA} unit="cm/s" />
-          <Row label="E/A" value={m.tricuspidEaRatio} />
+          <Row label="Unda E" value={m.mitralE} unit="cm/s" />
+          <Row label="Unda A" value={m.mitralA} unit="cm/s" />
+          <Row label="E/A" value={m.mitralEaRatio} />
         </div>
         <div className="rp-inline-grid rp-inline-grid--three">
           <Row label="TDE" value={m.mitralDecelerationTime} unit="msec" />

@@ -32,6 +32,14 @@ test('parses VS telesistolic diameter with a spoken decimal', () => {
   assert.equal(result.unit, 'cm');
 });
 
+test('parses Whisper VS diametru and telesistoric variants', () => {
+  const data = parseEchoTranscript(
+    'Vs, diametru telediastolic, 5,3. Vs, diametru telesistoric, 4,4.',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'lvEndDiastolicDiameter')?.value, '5.3');
+  assert.equal(data.measurements.find((item) => item.field === 'lvEndSystolicDiameter')?.value, '4.4');
+});
+
 test('parses TAPSE in millimetres and preserves the source text', () => {
   const result = parsed('TAPSE douăzeci și unu de milimetri', 'tapse');
   assert.equal(result.value, '21');
