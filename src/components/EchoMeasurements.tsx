@@ -22,6 +22,7 @@ export function EchoMeasurements({ measurements, onChange }: EchoMeasurementsPro
       onChange={(value) => onChange(key, value)}
       unit={unit}
       type={type}
+      readOnly={key === 'mitralEaRatio' || key === 'tricuspidEaRatio' || key === 'septalEaPrimeRatio' || key === 'eePrimeRatio'}
     />
   );
 

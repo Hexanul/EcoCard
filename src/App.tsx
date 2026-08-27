@@ -17,6 +17,56 @@ import {
   type MeasurementKey,
   type PatientInfo,
 } from './types/echoReport';
+import { calculateDerivedMeasurements } from './utils/derivedMeasurements';
+
+const DERIVED_MEASUREMENT_KEYS: MeasurementKey[] = [
+  'mitralEaRatio',
+  'tricuspidEaRatio',
+  'septalEaPrimeRatio',
+  'eePrimeRatio',
+];
+
+function addCalculatedMeasurements(
+  parsedMeasurements: ParsedMeasurement[],
+  existing: EchoReport['measurements'],
+): ParsedMeasurement[] {
+  const values = { ...existing };
+  const parsedFields = new Set(parsedMeasurements.map((item) => item.field));
+  for (const item of parsedMeasurements) {
+    values[item.field] = item.value;
+  }
+
+  const calculated = calculateDerivedMeasurements(values);
+  const detected = parsedMeasurements.filter(
+    (item) => !DERIVED_MEASUREMENT_KEYS.includes(item.field),
+  );
+  const derivedDefinitions: Array<[
+    MeasurementKey,
+    string,
+    string,
+    MeasurementKey[],
+  ]> = [
+    ['mitralEaRatio', 'Flux mitral — E/A', 'Calculat automat: Undă E / Undă A', ['mitralE', 'mitralA']],
+    ['tricuspidEaRatio', 'Flux tricuspidian — E/A', 'Calculat automat: Undă E / Undă A', ['tricuspidE', 'tricuspidA']],
+    ["septalEaPrimeRatio", "Doppler tisular — E'/A'", "Calculat automat: Undă E' / Undă A'", ['septalEPrime', 'septalAPrime']],
+    ['eePrimeRatio', "Doppler tisular — E/E'", "Calculat automat: Undă E mitrală / Undă E'", ['mitralE', 'septalEPrime']],
+  ];
+
+  for (const [field, label, sourceText, sourceFields] of derivedDefinitions) {
+    if (sourceFields.some((sourceField) => parsedFields.has(sourceField)) && calculated[field] !== '') {
+      detected.push({
+        field,
+        label,
+        value: calculated[field],
+        kind: 'numeric',
+        confidence: 'high',
+        sourceText,
+      });
+    }
+  }
+
+  return detected;
+}
 
 function App() {
   const [report, setReport] = useState<EchoReport>(createEmptyEchoReport);
@@ -30,7 +80,7 @@ function App() {
   const updateMeasurement = (key: MeasurementKey, value: string) => {
     setReport((prev) => ({
       ...prev,
-      measurements: { ...prev.measurements, [key]: value },
+      measurements: calculateDerivedMeasurements({ ...prev.measurements, [key]: value }),
     }));
   };
 
@@ -39,8 +89,8 @@ function App() {
   };
 
   const handleMeasurementsParsed = useCallback((data: ParsedEchoData) => {
-    setPendingMeasurements(data.measurements);
-  }, []);
+    setPendingMeasurements(addCalculatedMeasurements(data.measurements, report.measurements));
+  }, [report.measurements]);
 
   // Only measurements explicitly approved in the review panel reach the form;
   // manually entered values are never overwritten silently.
@@ -53,7 +103,7 @@ function App() {
       for (const item of selected) {
         measurements[item.field] = item.value;
       }
-      return { ...prev, measurements };
+      return { ...prev, measurements: calculateDerivedMeasurements(measurements) };
     });
     setPendingMeasurements([]);
   }, []);

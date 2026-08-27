@@ -5,6 +5,7 @@ type MeasurementFieldProps = {
   onChange: (value: string) => void;
   type?: 'numeric' | 'text' | 'textarea';
   unit?: string;
+  readOnly?: boolean;
 };
 
 export function MeasurementField({
@@ -14,6 +15,7 @@ export function MeasurementField({
   onChange,
   type = 'numeric',
   unit,
+  readOnly = false,
 }: MeasurementFieldProps) {
   if (type === 'textarea') {
     return (
@@ -24,6 +26,7 @@ export function MeasurementField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
+          readOnly={readOnly}
         />
       </div>
     );
@@ -39,6 +42,7 @@ export function MeasurementField({
           inputMode={type === 'numeric' ? 'decimal' : 'text'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          readOnly={readOnly}
         />
         {unit && <span className="field__unit">{unit}</span>}
       </div>

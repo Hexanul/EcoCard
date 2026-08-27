@@ -1123,6 +1123,49 @@ test('parses "Flux tricuspidian unda A9 EA3"', () => {
   );
 });
 
+test('parses the tricuspid EPA Whisper variant as the E/A ratio', () => {
+  const data = parseEchoTranscript('Flux tricuspidian EPA-5, unda A-9');
+  assert.equal(data.measurements.find((item) => item.field === 'tricuspidEaRatio')?.value, '5');
+  assert.equal(data.measurements.find((item) => item.field === 'tricuspidA')?.value, '9');
+  assert.equal(data.measurements.find((item) => item.field === 'tricuspidE'), undefined);
+});
+
+test('parses PSVD from the "Svd" Whisper variant, with or without a heading', () => {
+  const data = parseEchoTranscript('Svd, 5. Flux tricuspidian Svd 6.');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['psvd', '5'],
+      ['psvd', '6'],
+    ],
+  );
+});
+
+test('parses tricuspid regurgitation followed by a bare Vmax in one block', () => {
+  const data = parseEchoTranscript('Recurgitare tricuspidiană, ușoară. Vmax, 5.');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['tricuspidRegurgitation', 'ușoară'],
+      ['tricuspidVmax', '5'],
+    ],
+  );
+});
+
+test('parses the tricuspid flow Whisper variants end to end', () => {
+  const data = parseEchoTranscript(
+    'Flux tricuspidian Svd, 5. Recurgitare tricuspidiană, ușoară. Vmax, 5.',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['psvd', '5'],
+      ['tricuspidRegurgitation', 'ușoară'],
+      ['tricuspidVmax', '5'],
+    ],
+  );
+});
+
 test('parses Doppler tisular unda E/A as E-prime waves', () => {
   assert.equal(parsed('Doppler tisular unda E5', 'septalEPrime').value, '5');
   assert.equal(parsed('Doppler tisular unda A9', 'septalAPrime').value, '9');
@@ -1130,6 +1173,29 @@ test('parses Doppler tisular unda E/A as E-prime waves', () => {
   assert.equal(parsed('Doppler tisular EE4', 'eePrimeRatio').value, '4');
   assert.equal(parsed('Doppler tisular E E 4', 'eePrimeRatio').value, '4');
   assert.equal(parsed('Doppler tisular E A 5', 'septalEaPrimeRatio').value, '5');
+  assert.equal(parsed('Doppler trisular E-pe A 5', 'septalEaPrimeRatio').value, '5');
+  assert.equal(parsed('Doppler trisular E-pe E 4', 'eePrimeRatio').value, '4');
+});
+
+test('parses Doppler trisular as the septal tissue Doppler context', () => {
+  const data = parseEchoTranscript(
+    'Flux tricuspidian EPA-5, Doppler trisular, unda E-1, unda A-5, E-pe A-5, E-pe E-5, unda S-4.',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['tricuspidEaRatio', '5'],
+      ['septalEPrime', '1'],
+      ['septalAPrime', '5'],
+      ['septalEaPrimeRatio', '5'],
+      ['eePrimeRatio', '5'],
+      ['septalS', '4'],
+    ],
+  );
+  assert.equal(
+    data.measurements.some((item) => item.field === 'tricuspidE' || item.field === 'tricuspidA'),
+    false,
+  );
 });
 
 test('does not interpret bare E4 outside mitral context', () => {

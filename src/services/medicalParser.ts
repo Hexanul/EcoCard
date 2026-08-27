@@ -71,9 +71,25 @@ const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
     'caiile de ejectie',
   ],
   mitral: ['flux mitral', 'fluxul mitral'],
-  tricuspid: ['flux tricuspidian', 'fluxul tricuspidian'],
+  tricuspid: [
+    'flux tricuspidian',
+    'fluxul tricuspidian',
+    // A regurgitation phrase stays in the tricuspid section: a following
+    // bare "Vmax"/"PSVD" belongs to it even when the doctor did not dictate
+    // the "Flux tricuspidian" heading.
+    'regurgitare tricuspidiana',
+    'recurgitare tricuspidiana',
+  ],
   pulmonary: ['flux pulmonar', 'fluxul pulmonar'],
-  septal: ['doppler tisular sept', 'doppler tisular', 'dopplerul tisular'],
+  septal: [
+    'doppler tisular sept',
+    'doppler tisular',
+    'dopplerul tisular',
+    // Whisper hearing "ti" as "tri" ("Doppler trisular").
+    'doppler trisular sept',
+    'doppler trisular',
+    'dopplerul trisular',
+  ],
   apical4c: ['apical 4c', 'apical 4 camere', 'apicala 4 camere'],
 };
 
@@ -440,10 +456,13 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Doppler — flux tricuspidian
   { field: 'tricuspidVmax', label: 'Flux tricuspidian — Vmax', aliases: ['vmax', 'v max'], context: 'tricuspid' },
   { field: 'tricuspidPmax', label: 'Flux tricuspidian — Pmax', aliases: ['pmax', 'p max'], context: 'tricuspid' },
-  { field: 'psvd', label: 'Flux tricuspidian — PSVD', aliases: ['psvd'], context: 'tricuspid' },
+  // PSVD is a unique measurement name, so it is not gated behind the
+  // tricuspid flow context: Whisper may drop the initial "P" ("Svd") and the
+  // phrase can be dictated without the "Flux tricuspidian" heading.
+  { field: 'psvd', label: 'Flux tricuspidian — PSVD', aliases: ['psvd', 'svd'] },
   { field: 'tricuspidE', label: 'Flux tricuspidian — Undă E', aliases: ['unda e', 'e'], context: 'tricuspid' },
   { field: 'tricuspidA', label: 'Flux tricuspidian — Undă A', aliases: ['unda a', 'a'], context: 'tricuspid' },
-  { field: 'tricuspidEaRatio', label: 'Flux tricuspidian — E/A', aliases: ['e/a', 'e a', 'ea'], context: 'tricuspid' },
+  { field: 'tricuspidEaRatio', label: 'Flux tricuspidian — E/A', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'tricuspid' },
 
   // Doppler — flux pulmonar
   { field: 'pulmonaryVmax', label: 'Flux pulmonar — Vmax', aliases: ['vmax', 'v max'], context: 'pulmonary' },
@@ -467,13 +486,22 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   {
     field: 'septalEaPrimeRatio',
     label: "Doppler tisular — E'/A'",
-    aliases: ["e'/a'", 'e prim a prim', 'e prim pe a prim', 'e/a', 'e a', 'ea'],
+    aliases: [
+      "e'/a'",
+      'e prim a prim',
+      'e prim pe a prim',
+      'e/a',
+      'e a',
+      'ea',
+      // Spoken "E pe A" ("E peste A"), transcribed by Whisper as "e-pe a".
+      'e pe a',
+    ],
     context: 'septal',
   },
   {
     field: 'eePrimeRatio',
     label: "Doppler tisular — E/E'",
-    aliases: ["e/e'", 'e e prim', 'e pe e prim', 'e/e', 'e e', 'ee'],
+    aliases: ["e/e'", 'e e prim', 'e pe e prim', 'e/e', 'e e', 'ee', 'e pe e'],
     context: 'septal',
   },
   { field: 'septalS', label: 'Doppler tisular — Undă S', aliases: ['unda s'], context: 'septal' },
@@ -486,7 +514,7 @@ const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
     aliases: ['regurgitare aortica', 'recurgitare aortica'],
   },
   { field: 'mitralRegurgitation', label: 'Regurgitare mitrală', aliases: ['regurgitare mitrala'] },
-  { field: 'tricuspidRegurgitation', label: 'Regurgitare tricuspidiană', aliases: ['regurgitare tricuspidiana'] },
+  { field: 'tricuspidRegurgitation', label: 'Regurgitare tricuspidiană', aliases: ['regurgitare tricuspidiana', 'recurgitare tricuspidiana'] },
   { field: 'pulmonaryRegurgitation', label: 'Regurgitare pulmonară', aliases: ['regurgitare pulmonara'] },
   {
     field: 'pericardialFluid',
@@ -805,7 +833,11 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
     const contextMatch = longest.find((m) => m.kind === 'context');
     if (contextMatch) {
       activeContext = contextMatch.context ?? null;
-      continue;
+      // A context alias may coincide with a field alias (e.g.
+      // "regurgitare tricuspidiana" both names the tricuspid section and is
+      // itself a qualitative field). When that happens we fall through and
+      // extract the field as well; a pure section heading has no field
+      // alias at the same span and is skipped below.
     }
 
     const defMatch = longest.find((m) => {
