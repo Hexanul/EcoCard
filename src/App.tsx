@@ -26,6 +26,24 @@ const DERIVED_MEASUREMENT_KEYS: MeasurementKey[] = [
   'eePrimeRatio',
 ];
 
+const CURRENT_NUMBER_STORAGE_KEY = 'ecocard-next-current-number';
+
+function getNextCurrentNumber(): number {
+  const stored = Number(window.localStorage.getItem(CURRENT_NUMBER_STORAGE_KEY));
+  return Number.isInteger(stored) && stored > 0 ? stored : 1;
+}
+
+function getFollowingCurrentNumber(value: string): number | null {
+  const currentNumber = Number(value.trim());
+  return Number.isInteger(currentNumber) && currentNumber > 0 ? currentNumber + 1 : null;
+}
+
+function createReportWithCurrentNumber(): EchoReport {
+  const report = createEmptyEchoReport();
+  report.patient.currentNumber = String(getNextCurrentNumber());
+  return report;
+}
+
 function addCalculatedMeasurements(
   parsedMeasurements: ParsedMeasurement[],
   existing: EchoReport['measurements'],
@@ -69,11 +87,15 @@ function addCalculatedMeasurements(
 }
 
 function App() {
-  const [report, setReport] = useState<EchoReport>(createEmptyEchoReport);
+  const [report, setReport] = useState<EchoReport>(createReportWithCurrentNumber);
   const [pendingMeasurements, setPendingMeasurements] = useState<ParsedMeasurement[]>([]);
   const [view, setView] = useState<'form' | 'preview'>('form');
 
   const updatePatient = (patient: PatientInfo) => {
+    const nextCurrentNumber = getFollowingCurrentNumber(patient.currentNumber);
+    if (nextCurrentNumber !== null) {
+      window.localStorage.setItem(CURRENT_NUMBER_STORAGE_KEY, String(nextCurrentNumber));
+    }
     setReport((prev) => ({ ...prev, patient }));
   };
 
@@ -119,7 +141,16 @@ function App() {
     .join('\n');
 
   const handleClear = () => {
-    setReport(createEmptyEchoReport());
+    setReport(createReportWithCurrentNumber());
+  };
+
+  const handlePdfExported = () => {
+    const nextNumber = getFollowingCurrentNumber(report.patient.currentNumber) ?? getNextCurrentNumber();
+    window.localStorage.setItem(CURRENT_NUMBER_STORAGE_KEY, String(nextNumber));
+    setReport((prev) => ({
+      ...prev,
+      patient: { ...prev.patient, currentNumber: String(nextNumber) },
+    }));
   };
 
   const handleGenerate = () => {
@@ -128,13 +159,15 @@ function App() {
   };
 
   const handleLoadTestReport = () => {
-    setReport(createTestEchoReport());
+    const testReport = createTestEchoReport();
+    testReport.patient.currentNumber = String(getNextCurrentNumber());
+    setReport(testReport);
   };
 
   // The read-only preview renders the same report state — no copy is made,
   // so it always reflects the current form values.
   if (view === 'preview') {
-    return <ReportPreviewPage report={report} onBack={() => setView('form')} />;
+    return <ReportPreviewPage report={report} onBack={() => setView('form')} onExportSuccess={handlePdfExported} />;
   }
 
   return (

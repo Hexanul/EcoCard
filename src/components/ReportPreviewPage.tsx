@@ -6,11 +6,12 @@ import type { EchoReport } from '../types/echoReport';
 type ReportPreviewPageProps = {
   report: EchoReport;
   onBack: () => void;
+  onExportSuccess: () => void;
 };
 
 type ExportStatus = 'idle' | 'generating' | 'success' | 'error';
 
-export function ReportPreviewPage({ report, onBack }: ReportPreviewPageProps) {
+export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPreviewPageProps) {
   // Narrowly scoped preload bridge: the main process generates an A4 PDF via
   // webContents.printToPDF() and the native Windows Save As dialog. Nothing
   // happens without the doctor clicking "Exportă PDF".
@@ -28,6 +29,7 @@ export function ReportPreviewPage({ report, onBack }: ReportPreviewPageProps) {
       const name = report.patient.name.trim();
       const result = await api.exportPdf(name.length > 0 ? name : undefined);
       if (result.success) {
+        onExportSuccess();
         setExportStatus('success');
       } else if (result.errorCode === 'CANCELED') {
         // Cancelling the Save As dialog is a clean no-op, not an error.

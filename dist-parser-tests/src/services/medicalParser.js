@@ -14,6 +14,20 @@ const CONTEXT_ALIASES = {
         'fluxul luvod',
         'flux eluvot',
         'fluxul eluvot',
+        // Whisper hearing "u" as "a" ("lăvod" -> lavod, normalized from "lăvod").
+        // Covers "Flux lăvod" dictation which Whisper transcribes as "lavod/lavot".
+        'flux lavod',
+        'fluxul lavod',
+        'flux lavot',
+        'fluxul lavot',
+        'flux elavod',
+        'fluxul elavod',
+        'flux elavot',
+        'fluxul elavot',
+        'flux la vod',
+        'fluxul la vod',
+        'flux la vot',
+        'fluxul la vot',
         'flux l v o t',
         'flux lu vot',
         // Whisper dropping the "L" entirely ("VOT").
@@ -60,13 +74,17 @@ const NUMERIC_FIELDS = [
         label: 'VS — diametrul telediastolic',
         aliases: [
             'vs diametrul telediastolic',
+            'vs diametrul telediastoric',
             // Whisper splits "telediastolic" into "tele diastolic" (with or
             // without a comma between the two words).
             'vs diametrul tele diastolic',
+            'vs diametrul tele diastoric',
             'vs diametru tele diastolic',
             'vs diametru telediastolic',
             'vs telediastolic',
+            'vs telediastoric',
             'ventricul stang diametrul telediastolic',
+            'ventricul stang diametrul telediastoric',
             'ps diametrul telediastolic',
             'ps telediastolic',
         ],
@@ -77,10 +95,14 @@ const NUMERIC_FIELDS = [
         label: 'VS — diametrul telediastolic',
         aliases: [
             'diametrul telediastolic',
+            'diametrul telediastoric',
             'diametrul tele diastolic',
+            'diametrul tele diastoric',
             'diametru tele diastolic',
             'diametrul diastolic',
+            'diametrul diastoric',
             'diametru diastolic',
+            'diametru diastoric',
         ],
         excludeContexts: ['apical4c'],
     },
@@ -97,9 +119,18 @@ const NUMERIC_FIELDS = [
             'vs diametru telesistoric',
             'vs diametrul telesistoric',
             'vs telesistolic',
+            // Whisper "teletistolic" / "tele tistolic" (s -> t) for telesistolic
+            'vs diametrul teletistolic',
+            'vs diametru teletistolic',
+            'vs diametrul tele tistolic',
+            'vs diametru tele tistolic',
+            'vs teletistolic',
             'ventricul stang diametrul telesistolic',
+            'ventricul stang diametrul teletistolic',
             'ps diametrul telesistolic',
+            'ps diametrul teletistolic',
             'ps telesistolic',
+            'ps teletistolic',
         ],
     },
     // Unprefixed diameters: in parasternal longitudinal dictation the doctor
@@ -109,7 +140,12 @@ const NUMERIC_FIELDS = [
     {
         field: 'lvEndSystolicDiameter',
         label: 'VS — diametrul telesistolic',
-        aliases: ['diametrul telesistolic', 'diametrul tele sistolic'],
+        aliases: [
+            'diametrul telesistolic',
+            'diametrul tele sistolic',
+            'diametrul teletistolic',
+            'diametrul tele tistolic',
+        ],
         excludeContexts: ['apical4c'],
     },
     {
@@ -117,17 +153,21 @@ const NUMERIC_FIELDS = [
         label: 'SIV — diametrul diastolic',
         aliases: [
             'siv diametrul diastolic',
+            'siv diametrul diastoric',
             // Shorter spoken form without the "-l" article.
             'siv diametru diastolic',
+            'siv diametru diastoric',
             'siv diam diastolic',
             'siv diam. diastolic',
             'siv diastolic',
+            'siv diastoric',
             // Known Whisper transcription variants of "diastolic".
             'siv diametrul siastolic',
             'siv diam siastolic',
             'siv diametrul diasolic',
             'siv diam diasolic',
             'sept interventricular diametrul diastolic',
+            'sept interventricular diametrul diastoric',
         ],
     },
     {
@@ -135,10 +175,29 @@ const NUMERIC_FIELDS = [
         label: 'Perete posterior — diametrul diastolic',
         aliases: [
             'perete posterior diametrul diastolic',
+            'perete posterior diametrul diastoric',
             'perete posterior diametru diastolic',
+            'perete posterior diametru diastoric',
             // Known Whisper transcription variant of "diastolic".
             'perete posterior diametrul distolic',
             'perete posterior distolic',
+            // Abbreviated "diam diastolic" dictation — doctor may shorten
+            // "diametrul/diametru" to "diam" ("perete posterior diam diastolic").
+            'perete posterior diam diastolic',
+            'perete posterior diam diastoric',
+            'perete posterior diam. diastolic',
+            'perete posterior diam. diastoric',
+            'perete posterior diam distolic',
+            'perete posterior diam. distolic',
+            'peretele posterior diam diastolic',
+            'peretele posterior diam. diastolic',
+            // Whisper may transcribe "perete" as "priete".
+            'priete posterior diametrul diastolic',
+            'priete posterior diametrul distolic',
+            'priete posterior diam diastolic',
+            'priete posterior diam. diastolic',
+            'priete posterior diam distolic',
+            'priete posterior',
             // Dictated shorthand: the doctor may omit "diametru diastolic"
             // entirely because the form context identifies this field.
             'perete posterior',
@@ -164,8 +223,14 @@ const NUMERIC_FIELDS = [
             'fractiile de ejectie vs',
             'fe vs',
             'fe ventricul stang',
-            'fractie de ejectie',
-            'fractia de ejectie',
+            'fractia de ejectie vs teicholz',
+            'fractia de ejectie teicholz',
+            'fractia de ejectie vs teicholtz',
+            'fractia de ejectie teicholtz',
+            'fractia de ejectie vs tai ciolti',
+            'fractia de ejectie tai ciolti',
+            'fractia de ejectie vs taiciolti',
+            'fractia de ejectie taiciolti',
         ],
     },
     {
@@ -181,12 +246,37 @@ const NUMERIC_FIELDS = [
     {
         field: 'aortaAnnulus',
         label: 'Aortă la inel',
-        aliases: ['aorta la inel', 'aorta la inelul', 'aorta inel'],
+        aliases: [
+            'aorta la inel',
+            'aorta la inelul',
+            'aorta inel',
+            'aortelainel',
+            'aortel a inel',
+            'aortel inel',
+            // Whisper "inere" for "inel"
+            'aorta la inere',
+            'aorta la inare',
+            'aorta inere',
+            'aortel inere',
+            'aortelainere',
+        ],
     },
     {
         field: 'ascendingAorta',
         label: 'Aortă ascendentă',
-        aliases: ['aorta ascendenta'],
+        aliases: [
+            'aorta ascendenta',
+            'aortel ascendente',
+            'aortel ascendenta',
+            'aortel ascendent',
+            // Whisper "ascedente"/"ascedenta" (missing n) for "ascendenta"
+            'aorta ascedente',
+            'aorta ascedenta',
+            'aorta ascendente',
+            'aortel ascedente',
+            'aortel ascedenta',
+            'aortel ascendente',
+        ],
     },
     {
         field: 'laAnteroposteriorDiameter',
@@ -209,7 +299,14 @@ const NUMERIC_FIELDS = [
     {
         field: 'aortaAtArch',
         label: 'Aortă la nivelul croșei',
-        aliases: ['aorta la nivelul crosei', 'aorta la nivelul crossei', 'aorta la crosa'],
+        aliases: [
+            'aorta la nivelul crosei',
+            'aorta la nivelul crossei',
+            'aorta la crosa',
+            'aortel la nivelul crossei',
+            'aortel la nivelul crosei',
+            'aortel la crosa',
+        ],
     },
     {
         field: 'pulmonaryArtery',
@@ -311,7 +408,18 @@ const NUMERIC_FIELDS = [
     {
         field: 'lvEndDiastolicVolume',
         label: 'Volum telediastolic VS',
-        aliases: ['volum telediastolic vs', 'volumul telediastolic vs', 'volum telediastolic'],
+        aliases: [
+            'volum telediastolic vs',
+            'volumul telediastolic vs',
+            'volum telediastolic',
+            'volum tele diastolic vs',
+            'volum tele diastolic. vs',
+            'volum tele diastolic.vs',
+            'volum telediastolic. vs',
+            'volum telediastolic.vs',
+            'vs volum telediastolic',
+            'vs volum tele diastolic',
+        ],
     },
     {
         field: 'lvEndSystolicVolume',
@@ -328,6 +436,12 @@ const NUMERIC_FIELDS = [
             'volum telesistolic. vs',
             'volum telesistolic.vs',
             'vs volum telesistolic',
+            // Whisper "telesistoric" variant (same as diameters) and spaced VS
+            'volum telesistoric vs',
+            'volumul telesistoric vs',
+            'volum telesistoric',
+            'vs volum telesistoric',
+            'vs volum tele sistolic',
         ],
     },
     {
@@ -389,6 +503,13 @@ const NUMERIC_FIELDS = [
             // Whisper "area" instead of "aria".
             'area valvei mitrale',
             'area valvei mitrala',
+            // Whisper drops "valvei" / "valvulei" ("area valve mitrala")
+            'aria valve mitrala',
+            'aria valve mitrale',
+            'area valve mitrala',
+            'area valve mitrale',
+            'aria valva mitrala',
+            'area valva mitrala',
         ],
     },
     // Doppler — flux aortic
@@ -398,7 +519,7 @@ const NUMERIC_FIELDS = [
     // Doppler — flux LVOT
     { field: 'lvotVmax', label: 'Flux LVOT — Vmax', aliases: ['vmax', 'v max'], context: 'lvot' },
     { field: 'lvotPmax', label: 'Flux LVOT — Pmax', aliases: ['pmax', 'p max'], context: 'lvot' },
-    { field: 'lvotVti', label: 'Flux LVOT — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i'], context: 'lvot' },
+    { field: 'lvotVti', label: 'Flux LVOT — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'lvot' },
     // Doppler — flux mitral
     // Bare "e"/"a"/"ea" are only matched while the mitral context is active, so
     // Whisper forms like "E4", "A5", "EA1.2" never leak into other sections.
@@ -413,14 +534,15 @@ const NUMERIC_FIELDS = [
     // PSVD is a unique measurement name, so it is not gated behind the
     // tricuspid flow context: Whisper may drop the initial "P" ("Svd") and the
     // phrase can be dictated without the "Flux tricuspidian" heading.
-    { field: 'psvd', label: 'Flux tricuspidian — PSVD', aliases: ['psvd', 'svd'] },
+    // Whisper phonetic "psevede" for PSVD
+    { field: 'psvd', label: 'Flux tricuspidian — PSVD', aliases: ['psvd', 'svd', 'psevede', 'pseved', 'pseve de'] },
     { field: 'tricuspidE', label: 'Flux tricuspidian — Undă E', aliases: ['unda e', 'e'], context: 'tricuspid' },
     { field: 'tricuspidA', label: 'Flux tricuspidian — Undă A', aliases: ['unda a', 'a'], context: 'tricuspid' },
     { field: 'tricuspidEaRatio', label: 'Flux tricuspidian — E/A', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'tricuspid' },
     // Doppler — flux pulmonar
     { field: 'pulmonaryVmax', label: 'Flux pulmonar — Vmax', aliases: ['vmax', 'v max'], context: 'pulmonary' },
     { field: 'pulmonaryPmax', label: 'Flux pulmonar — Pmax', aliases: ['pmax', 'p max'], context: 'pulmonary' },
-    { field: 'pulmonaryVti', label: 'Flux pulmonar — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i'], context: 'pulmonary' },
+    { field: 'pulmonaryVti', label: 'Flux pulmonar — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'pulmonary' },
     // Doppler tisular (sept) — in this section "Unda E"/"Unda A"/"EA"/"EE" mean
     // E', A', E'/A' and E/E' respectively (not the mitral waves).
     {
@@ -786,7 +908,11 @@ export function parseEchoTranscript(transcript) {
         const confidence = confidenceFor(hedgeText);
         if (defMatch.kind === 'qualitative') {
             const value = qualitativeValue(rawWindow);
-            if (!value)
+            // Bare labels like "Pericard, lichid pericardic" are valid diagnoses by
+            // themselves; in that case the value is the field name itself.
+            const bareLabelValue = def.field === 'pericardialFluid' ? normalize(def.label) : null;
+            const resolvedValue = value ?? (rawWindow.trim() ? null : bareLabelValue);
+            if (!resolvedValue)
                 continue;
             // Drop a trailing field separator before the next known field
             // ("Valve mitralesuple, valve tricuspide..." → source ends at "suple").
@@ -794,7 +920,7 @@ export function parseEchoTranscript(transcript) {
             measurements.push({
                 field: def.field,
                 label: def.label,
-                value,
+                value: resolvedValue,
                 kind: 'qualitative',
                 confidence,
                 sourceText: qualitativeSource || sourceText,

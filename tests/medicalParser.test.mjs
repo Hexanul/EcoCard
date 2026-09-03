@@ -48,7 +48,7 @@ test('parses TAPSE in millimetres and preserves the source text', () => {
 });
 
 test('parses LV ejection fraction with percent unit', () => {
-  const result = parsed('fracția de ejecție șaizeci și doi la sută', 'lvEjectionFractionTeicholz');
+  const result = parsed('fracția de ejecție VS șaizeci și doi la sută', 'lvEjectionFractionTeicholz');
   assert.equal(result.value, '62');
   assert.equal(result.unit, '%');
 });
@@ -146,6 +146,11 @@ test('leaves the field empty when a window contains several values', () => {
 
 test('leaves the field empty when no number follows the alias', () => {
   assert.equal(parseEchoTranscript('fracția de ejecție').measurements.length, 0);
+});
+
+test('does not assign an ambiguous generic ejection fraction', () => {
+  const data = parseEchoTranscript('Fracție de ejecție, 5');
+  assert.equal(data.measurements.length, 0);
 });
 
 test('marks explicitly uncertain values as low parsing certainty', () => {
@@ -251,6 +256,21 @@ test('findRomanianNumber returns offsets into the input', () => {
   assert.equal(found?.sourceText, 'patru virgulă opt');
   assert.equal(found?.start, 0);
   assert.equal(found?.end, 'patru virgulă opt'.length);
+});
+
+test('parses whispered variants of diastolic and aortic fields without spaces', () => {
+  const data = parseEchoTranscript(
+    'Vs, diametrul telediastoric, 5. Siv, diametrul diastoric, 5. Perete posterior, diametrul diastoric, 5. Aortelainel, 4,4. Aortel ascendente, 3,32. Aortel la nivelul crossei, 9,94.',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'lvEndDiastolicDiameter')?.value, '5');
+  assert.equal(data.measurements.find((item) => item.field === 'ivsDiastolicDiameter')?.value, '5');
+  assert.equal(
+    data.measurements.find((item) => item.field === 'posteriorWallDiastolicDiameter')?.value,
+    '5',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'aortaAnnulus')?.value, '4.4');
+  assert.equal(data.measurements.find((item) => item.field === 'ascendingAorta')?.value, '3.32');
+  assert.equal(data.measurements.find((item) => item.field === 'aortaAtArch')?.value, '9.94');
 });
 
 test('parses the realistic comma-rich transcript end to end', () => {
@@ -418,6 +438,12 @@ test('keeps Teicholz separate and never fills Simpson', () => {
     data.measurements.some((item) => item.field === 'lvEjectionFractionSimpson'),
     false,
   );
+});
+
+test('parses "Pericard, lichid pericardic" as the fluid diagnosis itself', () => {
+  const result = parsed('Pericard, lichid pericardic', 'pericardialFluid');
+  assert.equal(result.value, 'lichid pericardic');
+  assert.equal(result.kind, 'qualitative');
 });
 
 test('parses "Pericard, lichid pericardic absent" as a qualitative value', () => {
@@ -732,6 +758,21 @@ test('parses the posterior wall shorthand variants', () => {
       transcript,
     );
   }
+});
+
+test('parses the Whisper "priete posterior" variant with the following ejection fraction', () => {
+  const data = parseEchoTranscript(
+    'Priete posterior, diametrul diastolic, 5. Fracție de ejecție vs, 5',
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'posteriorWallDiastolicDiameter')?.value,
+    '5',
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'lvEjectionFractionTeicholz')?.value,
+    '5',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'lvEndDiastolicDiameter'), undefined);
 });
 
 test('parses "AS, diametru antero-posterior, 43"', () => {
