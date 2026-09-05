@@ -153,11 +153,6 @@ function App() {
     }));
   };
 
-  const handleGenerate = () => {
-    // Placeholder — PDF generation will be implemented later
-    console.log('Generează raport', report);
-  };
-
   const handleLoadTestReport = () => {
     const testReport = createTestEchoReport();
     testReport.patient.currentNumber = String(getNextCurrentNumber());
@@ -203,7 +198,6 @@ function App() {
         <ReportActions
           onClear={handleClear}
           onPreview={() => setView('preview')}
-          onGenerate={handleGenerate}
         />
 
         {import.meta.env.DEV && (

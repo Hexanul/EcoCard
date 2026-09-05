@@ -1,0 +1,25 @@
+appId: ro.raporteco.desktop
+productName: Raport Eco
+directories:
+  output: release
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+extraResources:
+  - from: app
+    to: app
+    filter:
+      - '**/*'
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  artifactName: Raport-Eco-Setup.exe
+portable:
+  artifactName: Raport-Eco-Portable.exe

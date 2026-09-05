@@ -33,6 +33,7 @@ function Row({ label, value, unit }: { label: string; value: string; unit?: stri
 
 export function ReportPreview({ report }: ReportPreviewProps) {
   const { patient, measurements: m, conclusions } = report;
+  const patientName = [patient.lastName, patient.firstName].filter(Boolean).join(' ');
 
   return (
     <div id="printable-report" className="printable-report">
@@ -52,7 +53,7 @@ export function ReportPreview({ report }: ReportPreviewProps) {
 
       <div className="rp-patient">
         <div className="rp-patient__row">
-          <Row label="Nume și Prenume" value={patient.name} />
+          <Row label="Nume și Prenume" value={patientName} />
           <Row label="Vârstă" value={patient.age} unit="ani" />
         </div>
         <div className="rp-patient__row rp-patient__row--three">

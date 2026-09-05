@@ -24,6 +24,20 @@ const CONTEXT_ALIASES = {
         'fluxul elavod',
         'flux elavot',
         'fluxul elavot',
+        // Whisper hearing "u" as "e" ("levot" -> le vot, elevot). The doctor may
+        // dictate "Flux levot" which Whisper transcribes as "levot/levod".
+        'flux levot',
+        'fluxul levot',
+        'flux levod',
+        'fluxul levod',
+        'flux elevot',
+        'fluxul elevot',
+        'flux elevod',
+        'fluxul elevod',
+        'flux le vot',
+        'fluxul le vot',
+        'flux le vod',
+        'fluxul le vod',
         'flux la vod',
         'fluxul la vod',
         'flux la vot',
@@ -53,7 +67,11 @@ const CONTEXT_ALIASES = {
         // bare "Vmax"/"PSVD" belongs to it even when the doctor did not dictate
         // the "Flux tricuspidian" heading.
         'regurgitare tricuspidiana',
+        'regurgitarea tricuspidiana',
         'recurgitare tricuspidiana',
+        'recurgitarea tricuspidiana',
+        'recucitare tricuspidiana',
+        'recucitarea tricuspidiana',
     ],
     pulmonary: ['flux pulmonar', 'fluxul pulmonar'],
     septal: [
@@ -87,6 +105,19 @@ const NUMERIC_FIELDS = [
             'ventricul stang diametrul telediastoric',
             'ps diametrul telediastolic',
             'ps telediastolic',
+            // Whisper "VSE" for "VS" (extra E from dictation).
+            'vse diametrul telediastolic',
+            'vse diametrul telediastoric',
+            'vse diametrul tele diastolic',
+            'vse diametrul tele diastoric',
+            'vse diametru tele diastolic',
+            'vse diametru telediastolic',
+            'vse diametrul telediastolic',
+            'vse telediastolic',
+            'vse telediastoric',
+            'vse diametru telediastolic',
+            'vse diametru telediastoric',
+            'vse diametrul tele diastolic',
         ],
     },
     // Unprefixed telediastolic forms (same parasternal rule as above).
@@ -131,6 +162,20 @@ const NUMERIC_FIELDS = [
             'ps diametrul teletistolic',
             'ps telesistolic',
             'ps teletistolic',
+            // Whisper "VSE" for "VS".
+            'vse diametrul telesistolic',
+            'vse diametrul tele sistolic',
+            'vse diametru tele sistolic',
+            'vse diametru telesistolic',
+            'vse diametru telesistoric',
+            'vse diametrul telesistoric',
+            'vse telesistolic',
+            'vse diametrul teletistolic',
+            'vse diametru teletistolic',
+            'vse diametrul tele tistolic',
+            'vse diametru tele tistolic',
+            'vse teletistolic',
+            'vse diametru telesistolic',
         ],
     },
     // Unprefixed diameters: in parasternal longitudinal dictation the doctor
@@ -231,6 +276,31 @@ const NUMERIC_FIELDS = [
             'fractia de ejectie tai ciolti',
             'fractia de ejectie vs taiciolti',
             'fractia de ejectie taiciolti',
+            // Whisper "VSE" for "VS" and "Thaischolz/Taischolz" for "Teicholz"
+            'fractie de ejectie vse teicholz',
+            'fractie de ejectie vse teicholtz',
+            'fractie de ejectie vse tai ciolti',
+            'fractie de ejectie vse taiciolti',
+            'fractie de ejectie vse thaischolz',
+            'fractie de ejectie thaischolz',
+            'fractie de ejectie vse thaischoltz',
+            'fractie de ejectie thaischoltz',
+            'fractie de ejectie vse taischolz',
+            'fractie de ejectie taischolz',
+            'fractie de ejectie vs thaischolz',
+            'fractie de ejectie vs thaischoltz',
+            'fractie de ejectie vs taischolz',
+            'fractia de ejectie vse teicholz',
+            'fractia de ejectie vse thaischolz',
+            'fractia de ejectie vse thaischoltz',
+            'fractia de ejectie thaischolz',
+            'fractia de ejectie thaischoltz',
+            'fractia de ejectie vs thaischolz',
+            'fractii de ejectie vse',
+            'fractiile de ejectie vse',
+            'fe vse',
+            'fractie de ejectie vse',
+            'fractia de ejectie vse',
         ],
     },
     {
@@ -584,11 +654,55 @@ const QUALITATIVE_FIELDS = [
     {
         field: 'aorticRegurgitation',
         label: 'Regurgitare aortică',
-        aliases: ['regurgitare aortica', 'recurgitare aortica'],
+        aliases: [
+            'regurgitare aortica',
+            'regurgitarea aortica',
+            'recurgitare aortica',
+            'recurgitarea aortica',
+            'recucitare aortica',
+            'recucitarea aortica',
+            'recurcitare aortica',
+            'recurcitarea aortica',
+        ],
     },
-    { field: 'mitralRegurgitation', label: 'Regurgitare mitrală', aliases: ['regurgitare mitrala'] },
-    { field: 'tricuspidRegurgitation', label: 'Regurgitare tricuspidiană', aliases: ['regurgitare tricuspidiana', 'recurgitare tricuspidiana'] },
-    { field: 'pulmonaryRegurgitation', label: 'Regurgitare pulmonară', aliases: ['regurgitare pulmonara'] },
+    {
+        field: 'mitralRegurgitation',
+        label: 'Regurgitare mitrală',
+        aliases: [
+            'regurgitare mitrala',
+            'regurgitarea mitrala',
+            'recurgitare mitrala',
+            'recurgitarea mitrala',
+            'recucitare mitrala',
+            'recucitarea mitrala',
+        ],
+    },
+    {
+        field: 'tricuspidRegurgitation',
+        label: 'Regurgitare tricuspidiană',
+        aliases: [
+            'regurgitare tricuspidiana',
+            'regurgitarea tricuspidiana',
+            'recurgitare tricuspidiana',
+            'recurgitarea tricuspidiana',
+            'recucitare tricuspidiana',
+            'recucitarea tricuspidiana',
+            'recurcitare tricuspidiana',
+            'recurcitarea tricuspidiana',
+        ],
+    },
+    {
+        field: 'pulmonaryRegurgitation',
+        label: 'Regurgitare pulmonară',
+        aliases: [
+            'regurgitare pulmonara',
+            'regurgitarea pulmonara',
+            'recurgitare pulmonara',
+            'recurgitarea pulmonara',
+            'recucitare pulmonara',
+            'recucitarea pulmonara',
+        ],
+    },
     {
         field: 'pericardialFluid',
         label: 'Lichid pericardic',
@@ -638,8 +752,10 @@ const MEDIUM_CONFIDENCE_PATTERNS = [
 const QUALITATIVE_CONNECTORS = /\b(?:este|e|sunt|are|cu|de|se|un|o)\s+/;
 // A punctuation mark ends a value window unless it sits between two digits
 // and is therefore a decimal separator ("4.8"). A sentence-ending period
-// after a number ("2,2. Următoarea…") still ends the window.
-const PUNCTUATION_BOUNDARY = /(?<!\d)[.!?;…\n]|(?<=\d)[.!?;…\n](?!\d)/;
+// after a number ("2,2. Următoarea…") still ends the window. A period
+// directly after a field label ("Aorta la inel. 2") is treated as a
+// field-separator when a number follows, so it must NOT end the window.
+const PUNCTUATION_BOUNDARY = /(?<!\d)[.!?;…\n](?!\s*\d)|(?<=\d)[.!?;…\n](?!\d)/;
 function isSpace(ch) {
     return /\s/.test(ch);
 }
@@ -654,12 +770,39 @@ function normalizeChar(ch) {
     }
     return out.replace(/[șş]/g, 's').replace(/[țţ]/g, 't');
 }
-// Protects decimal commas ("5,3", "4,85") from ever being treated as
-// separators by replacing them with a decimal point. The replacement is
-// 1:1 (comma to dot), so character positions and the rawIndex mapping
-// stay valid. Field-separator commas ("," between words) are untouched.
+// Normalizes dotted abbreviations like "V.S." / "V S" -> "vs" for chamber
+// prefixes that Whisper often splits. Must run on already-lowercased
+// normalized text (a-z only).
+function normalizeAbbreviations(text) {
+    return text
+        .replace(/\bv\s*\.\s*s\s*\.\s*e\.?(?![a-z0-9])/g, 'vse')
+        .replace(/\bv\s*\.\s*s\.?(?![a-z0-9])/g, 'vs')
+        .replace(/\bv\s+s(?![a-z0-9])/g, 'vs')
+        .replace(/\bv\s*\.\s*d\.?(?![a-z0-9])/g, 'vd')
+        .replace(/\bv\s+d(?![a-z0-9])/g, 'vd')
+        .replace(/\ba\s*\.\s*s\.?(?![a-z0-9])/g, 'as')
+        .replace(/\ba\s+s(?![a-z0-9])/g, 'as')
+        .replace(/\ba\s*\.\s*d\.?(?![a-z0-9])/g, 'ad')
+        .replace(/\ba\s+d(?![a-z0-9])/g, 'ad')
+        .replace(/\bp\s*\.\s*s\.?(?![a-z0-9])/g, 'ps')
+        .replace(/\bp\s+s(?![a-z0-9])/g, 'ps')
+        .replace(/\bf\s*\.\s*e\.?(?![a-z0-9])/g, 'fe');
+}
+// Whisper typo "ejencție" (ejenctie) for "ejecție" (ejectie) — extra 'n'.
+function normalizeEjectieTypo(text) {
+    return text
+        .replace(/\bejenctie\b/g, 'ejectie')
+        .replace(/\bejentie\b/g, 'ejectie')
+        .replace(/\bejencie\b/g, 'ejectie');
+}
+// Protects decimal commas ("5,3", "4,85", "4, 5") from ever being treated as
+// separators by replacing them with a decimal point. Whisper often inserts
+// a space after the comma ("4, 5"), so optional whitespace is consumed.
+// The replacement normalizes to "digit.digit" and keeps length differences
+// minimal; rawIndex mapping stays valid because normalizeWithIndex also
+// collapses whitespace.
 function protectDecimalCommas(text) {
-    return text.replace(/(\d),(\d)/g, '$1.$2');
+    return text.replace(/(\d),\s*(\d)/g, '$1.$2');
 }
 function normalize(text) {
     let out = '';
@@ -671,10 +814,12 @@ function normalize(text) {
         }
         out += normalizeChar(ch);
     }
-    return protectDecimalCommas(out.trim());
+    return normalizeEjectieTypo(normalizeAbbreviations(protectDecimalCommas(out.trim())));
 }
 // Collapses whitespace/hyphens and records the raw position of every
 // normalized character so that spans can be mapped back to the transcript.
+// Also protects decimal commas, including Whisper's "4, 5" with a space,
+// while keeping rawIndex accurate (removed spaces don't get an entry).
 function normalizeWithIndex(raw) {
     let text = '';
     const rawIndex = [];
@@ -690,7 +835,133 @@ function normalizeWithIndex(raw) {
         text += normalizeChar(ch);
         rawIndex.push(i);
     }
-    return { text: protectDecimalCommas(text.trim()), rawIndex };
+    let trimmed = text.trim();
+    // Trim start: drop leading rawIndex entries corresponding to leading spaces
+    const leadingSpaces = text.length - text.trimStart().length;
+    let trimmedRawIndex = rawIndex.slice(leadingSpaces);
+    // Trim end: if original had trailing space, last char was ' ' and already trimmed
+    if (trimmed.length < trimmedRawIndex.length) {
+        trimmedRawIndex = trimmedRawIndex.slice(0, trimmed.length);
+    }
+    // Protect decimal commas "4,5" and Whisper "4, 5" -> "4.5"
+    // When a space follows the comma between digits, drop it and its rawIndex.
+    let out = '';
+    let outRawIndex = [];
+    for (let i = 0; i < trimmed.length; i += 1) {
+        const ch = trimmed[i];
+        if (ch === ',' &&
+            i > 0 &&
+            i + 1 < trimmed.length &&
+            /\d/.test(trimmed[i - 1]) &&
+            /\d/.test(trimmed[i + 1])) {
+            out += '.';
+            outRawIndex.push(trimmedRawIndex[i]);
+            continue;
+        }
+        if (ch === ' ' &&
+            i > 1 &&
+            trimmed[i - 1] === ',' &&
+            /\d/.test(trimmed[i - 2]) &&
+            i + 1 < trimmed.length &&
+            /\d/.test(trimmed[i + 1])) {
+            // Space inside decimal "4, 5" -> skip it (already converted comma to dot)
+            continue;
+        }
+        // Also handle case where protectDecimalCommas comma was already converted?
+        // Whisper "4, 5" originally has comma->dot conversion above, space skipped here.
+        out += ch;
+        outRawIndex.push(trimmedRawIndex[i]);
+    }
+    // Normalize dotted abbreviations "V.S." / "V S" -> "vs" etc., keeping rawIndex
+    // aligned by preserving only the letter positions (dots/spaces are dropped).
+    // This ensures "Masa V.S. 5" matches alias "masa vs".
+    const abbrevReplacements = [
+        { pattern: /\bv\s*\.\s*s\s*\.\s*e\.?(?![a-z0-9])/g, target: 'vse' },
+        { pattern: /\bv\s*\.\s*s\.?(?![a-z0-9])/g, target: 'vs' },
+        { pattern: /\bv\s+s(?![a-z0-9])/g, target: 'vs' },
+        { pattern: /\bv\s*\.\s*d\.?(?![a-z0-9])/g, target: 'vd' },
+        { pattern: /\bv\s+d(?![a-z0-9])/g, target: 'vd' },
+        { pattern: /\ba\s*\.\s*s\.?(?![a-z0-9])/g, target: 'as' },
+        { pattern: /\ba\s+s(?![a-z0-9])/g, target: 'as' },
+        { pattern: /\ba\s*\.\s*d\.?(?![a-z0-9])/g, target: 'ad' },
+        { pattern: /\ba\s+d(?![a-z0-9])/g, target: 'ad' },
+        { pattern: /\bp\s*\.\s*s\.?(?![a-z0-9])/g, target: 'ps' },
+        { pattern: /\bp\s+s(?![a-z0-9])/g, target: 'ps' },
+        { pattern: /\bf\s*\.\s*e\.?(?![a-z0-9])/g, target: 'fe' },
+    ];
+    for (const { pattern, target } of abbrevReplacements) {
+        // Reset regex state for each iteration after mutation
+        let match;
+        // Use while loop with manual index tracking because we mutate out
+        pattern.lastIndex = 0;
+        while ((match = pattern.exec(out)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+            // Collect raw indices of letters a-z in the matched substring to map to target
+            const letterIndices = [];
+            for (let k = start; k < end; k += 1) {
+                if (/[a-z]/.test(out[k]))
+                    letterIndices.push(outRawIndex[k]);
+            }
+            // Fallback: if letter extraction failed, just use first N indices
+            const mappedRaw = letterIndices.slice(0, target.length);
+            while (mappedRaw.length < target.length)
+                mappedRaw.push(outRawIndex[start]);
+            const newOut = out.slice(0, start) + target + out.slice(end);
+            const newRaw = [...outRawIndex.slice(0, start), ...mappedRaw, ...outRawIndex.slice(end)];
+            out = newOut;
+            outRawIndex = newRaw;
+            pattern.lastIndex = start + target.length;
+            // For patterns like "v s" that could overlap, restart from start
+            // to avoid missing consecutive abbreviations after replacement.
+            if (pattern.lastIndex > out.length)
+                break;
+        }
+    }
+    // Whisper typo "ejenctie" (ejencție) -> "ejectie" and similar variants.
+    // Length changes (extra 'n') require dropping that rawIndex entry.
+    const typoPatterns = [
+        { pattern: /\bejenctie\b/g, target: 'ejectie' },
+        { pattern: /\bejentie\b/g, target: 'ejectie' },
+        { pattern: /\bejencie\b/g, target: 'ejectie' },
+    ];
+    for (const { pattern, target } of typoPatterns) {
+        pattern.lastIndex = 0;
+        let m;
+        while ((m = pattern.exec(out)) !== null) {
+            const s = m.index;
+            const e = s + m[0].length;
+            let mapped;
+            if (m[0] === 'ejenctie' && target === 'ejectie') {
+                // e j e n c t i e (8) -> e j e c t i e (7) : drop 'n' at offset 3
+                mapped = [
+                    outRawIndex[s],
+                    outRawIndex[s + 1],
+                    outRawIndex[s + 2],
+                    outRawIndex[s + 4],
+                    outRawIndex[s + 5],
+                    outRawIndex[s + 6],
+                    outRawIndex[s + 7],
+                ];
+            }
+            else {
+                // Same length: keep all indices
+                mapped = outRawIndex.slice(s, e);
+                // If target length differs unexpectedly, pad/truncate
+                if (mapped.length !== target.length) {
+                    mapped = mapped.slice(0, target.length);
+                    while (mapped.length < target.length)
+                        mapped.push(outRawIndex[s]);
+                }
+            }
+            out = out.slice(0, s) + target + out.slice(e);
+            outRawIndex = [...outRawIndex.slice(0, s), ...mapped, ...outRawIndex.slice(e)];
+            pattern.lastIndex = s + target.length;
+            if (pattern.lastIndex > out.length)
+                break;
+        }
+    }
+    return { text: out, rawIndex: outRawIndex };
 }
 function escapeRegExp(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

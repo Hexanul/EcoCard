@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { app } from 'electron';
 import type { PipelineStatus } from './shared.cjs';
 
 const projectRoot = path.resolve(__dirname, '..');
-const localPathsFile = path.join(projectRoot, 'echoReport.paths.json');
+const runtimeRoot = app.isPackaged ? process.resourcesPath : projectRoot;
+const localPathsFile = path.join(runtimeRoot, 'echoReport.paths.json');
 type UserPaths = Partial<{ ffmpegPath: string; whisperCliPath: string; modelPath: string; tempDir: string }>;
 
 function readLocalPaths(): UserPaths {
@@ -17,7 +19,7 @@ function readLocalPaths(): UserPaths {
 }
 
 const configured = readLocalPaths();
-const localAppDirectory = path.join(projectRoot, 'app');
+const localAppDirectory = path.join(runtimeRoot, 'app');
 export const runtimePaths = {
   ffmpegPath: process.env.ECHOREPORT_FFMPEG ?? configured.ffmpegPath ?? path.join(localAppDirectory, 'bin', 'ffmpeg.exe'),
   whisperCliPath: process.env.ECHOREPORT_WHISPER_CLI ?? configured.whisperCliPath ?? path.join(localAppDirectory, 'bin', 'whisper-cli.exe'),

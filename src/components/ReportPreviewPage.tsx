@@ -26,7 +26,7 @@ export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPre
 
     setExportStatus('generating');
     try {
-      const name = report.patient.name.trim();
+      const name = [report.patient.lastName, report.patient.firstName].filter(Boolean).join(' ').trim();
       const result = await api.exportPdf(name.length > 0 ? name : undefined);
       if (result.success) {
         onExportSuccess();

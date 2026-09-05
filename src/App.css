@@ -86,14 +86,16 @@
 
 .patient-form__name {
   grid-column: 1 / -1;
-}
-
-.patient-form__date-group {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  max-width: 480px;
+}
+
+.patient-form__demographics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
 }
 
 @media (max-width: 900px) {
@@ -101,8 +103,12 @@
     grid-template-columns: 1fr;
   }
 
-  .patient-form__date-group {
-    max-width: none;
+  .patient-form__demographics {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-form__name {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -352,9 +358,73 @@
 }
 
 .dictation-panel__audio-player {
+  display: none;
+}
+
+.dictation-panel__recording-timeline,
+.dictation-panel__player-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.dictation-panel__player-controls {
+  margin-bottom: 0;
+}
+
+.dictation-panel__play-btn {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  color: var(--surface);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.dictation-panel__play-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.dictation-panel__playback-time {
+  flex: 0 0 auto;
+  min-width: 42px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.dictation-panel__timeline {
+  --timeline-progress: 0%;
   flex: 1;
-  min-width: 240px;
-  height: 40px;
+  min-width: 120px;
+  height: 5px;
+  margin: 0;
+  accent-color: var(--recording);
+  cursor: pointer;
+}
+
+.dictation-panel__timeline--live {
+  position: relative;
+  overflow: hidden;
+  background: #d9dee6;
+  border-radius: 999px;
+}
+
+.dictation-panel__timeline-fill {
+  display: block;
+  height: 100%;
+  background: var(--recording);
+  border-radius: inherit;
+  transition: width 0.2s linear;
 }
 
 .dictation-panel__record-again-btn {

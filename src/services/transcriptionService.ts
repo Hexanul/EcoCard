@@ -26,7 +26,7 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
   const api = getEchoReportApi();
   if (!api) {
     throw new TranscriptionError(
-      'Transcrierea locală necesită aplicația desktop Echo Report (Electron). whisper.cpp nu poate rula în browser.',
+      'Transcrierea locală necesită aplicația desktop Raport Eco (Electron). whisper.cpp nu poate rula în browser.',
     );
   }
 

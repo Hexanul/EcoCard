@@ -1,6 +1,7 @@
 export function createEmptyPatient() {
     return {
-        name: '',
+        lastName: '',
+        firstName: '',
         age: '',
         examinationDate: new Date().toISOString().slice(0, 10),
         currentNumber: '',

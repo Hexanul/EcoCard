@@ -5,7 +5,6 @@ import {
 } from '../services/transcriptionService';
 import { parseEchoTranscript, type ParsedEchoData } from '../services/medicalParser';
 import { isElectronAvailable, getEchoReportApi } from '../services/electronBridge';
-import type { ConvertedAudioInfo, AudioBlobSummary } from '../types/audioPipeline';
 import {
   getPreferredRecordingMimeType,
 } from '../utils/audioInfo';
@@ -110,9 +109,10 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [playbackDuration, setPlaybackDuration] = useState(0);
+  const [playbackSeconds, setPlaybackSeconds] = useState(0);
+  const [isPlaybackPlaying, setIsPlaybackPlaying] = useState(false);
   const [transcription, setTranscription] = useState('');
-  const [originalAudioInfo, setOriginalAudioInfo] = useState<AudioBlobSummary | null>(null);
-  const [convertedAudioInfo, setConvertedAudioInfo] = useState<ConvertedAudioInfo | null>(null);
   const [pipelineHint, setPipelineHint] = useState<string | null>(() =>
     !isElectronAvailable() && import.meta.env.DEV
       ? 'Pentru transcriere locală, rulați aplicația cu Electron: npm run dev'
@@ -133,6 +133,7 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const audioBlobRef = useRef<Blob | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const shouldFinalizeRef = useRef(false);
   const elapsedMsRef = useRef(0);
   const segmentStartRef = useRef<number | null>(null);
@@ -193,14 +194,46 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
       audioUrlRef.current = null;
     }
     setAudioUrl(null);
+    setPlaybackDuration(0);
+    setPlaybackSeconds(0);
+    setIsPlaybackPlaying(false);
   }, []);
+
+  useEffect(() => {
+    const audio = audioElementRef.current;
+    if (!audio || !audioUrl) return;
+
+    const syncDuration = () => setPlaybackDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+    const syncCurrentTime = () => setPlaybackSeconds(audio.currentTime);
+    const handlePlay = () => setIsPlaybackPlaying(true);
+    const handlePause = () => setIsPlaybackPlaying(false);
+    const handleEnded = () => {
+      setIsPlaybackPlaying(false);
+      setPlaybackSeconds(audio.duration);
+    };
+
+    audio.addEventListener('loadedmetadata', syncDuration);
+    audio.addEventListener('durationchange', syncDuration);
+    audio.addEventListener('timeupdate', syncCurrentTime);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+    audio.load();
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', syncDuration);
+      audio.removeEventListener('durationchange', syncDuration);
+      audio.removeEventListener('timeupdate', syncCurrentTime);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [audioUrl]);
 
   const runTranscription = useCallback(async (blob: Blob) => {
     setState('processing');
     setTranscription(TRANSCRIPTION_PROCESSING);
     setErrorMessage(null);
-    setOriginalAudioInfo(null);
-    setConvertedAudioInfo(null);
 
     try {
       const result = await transcribeAudio(blob);
@@ -208,8 +241,6 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
         return;
       }
       setTranscription(result.text);
-      setOriginalAudioInfo(result.originalAudio ?? null);
-      setConvertedAudioInfo(result.convertedAudio ?? null);
       setState('transcribed');
     } catch (error) {
       if (!isMountedRef.current) {
@@ -240,8 +271,6 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
     revokeAudioUrl();
     resetElapsed();
     setTranscription('');
-    setOriginalAudioInfo(null);
-    setConvertedAudioInfo(null);
     setErrorMessage(null);
   }, [clearTimer, resetElapsed, revokeAudioUrl, stopStreamTracks]);
 
@@ -438,6 +467,30 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
     audioUrl !== null &&
     (state === 'processing' || state === 'transcribed' || state === 'error');
   const isTranscriptEditable = state === 'transcribed' || state === 'error';
+  const timelineDuration = Math.max(playbackDuration, elapsedSeconds, 1);
+  const timelineProgress = Math.min(
+    100,
+    (state === 'recording' || state === 'paused'
+      ? elapsedSeconds
+      : playbackSeconds) / timelineDuration * 100,
+  );
+
+  const togglePlayback = () => {
+    const audio = audioElementRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      void audio.play();
+    } else {
+      audio.pause();
+    }
+  };
+
+  const seekPlayback = (value: number) => {
+    const audio = audioElementRef.current;
+    if (!audio) return;
+    audio.currentTime = value;
+    setPlaybackSeconds(value);
+  };
 
   return (
     <section
@@ -531,11 +584,53 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
         </div>
       </div>
 
+      {showTimer && (
+        <div className="dictation-panel__recording-timeline" aria-label="Lungimea înregistrării curente">
+          <span className="dictation-panel__playback-time">00:00</span>
+          <div className="dictation-panel__timeline dictation-panel__timeline--live">
+            <span
+              className="dictation-panel__timeline-fill"
+              style={{ width: `${timelineProgress}%` }}
+            />
+          </div>
+          <span className="dictation-panel__playback-time">
+            {formatElapsed(elapsedSeconds)}
+          </span>
+        </div>
+      )}
+
       {showPlayback && (
         <div className="dictation-panel__playback">
-          <audio controls src={audioUrl} className="dictation-panel__audio-player">
+          <audio ref={audioElementRef} src={audioUrl} className="dictation-panel__audio-player">
             Browserul nu suportă redarea audio.
           </audio>
+          <div className="dictation-panel__player-controls">
+            <button
+              type="button"
+              className="dictation-panel__play-btn"
+              onClick={togglePlayback}
+              aria-label={isPlaybackPlaying ? 'Pune pauză redării' : 'Redă înregistrarea'}
+            >
+              {isPlaybackPlaying ? '⏸' : '▶'}
+            </button>
+            <span className="dictation-panel__playback-time">
+              {formatElapsed(Math.floor(playbackSeconds))}
+            </span>
+            <input
+              type="range"
+              className="dictation-panel__timeline"
+              min="0"
+              max={timelineDuration}
+              step="0.1"
+              value={Math.min(playbackSeconds, timelineDuration)}
+              onChange={(event) => seekPlayback(Number(event.target.value))}
+              aria-label="Poziția înregistrării"
+              style={{ '--timeline-progress': `${timelineProgress}%` } as React.CSSProperties}
+            />
+            <span className="dictation-panel__playback-time">
+              {formatElapsed(Math.ceil(playbackDuration || elapsedSeconds))}
+            </span>
+          </div>
           {(state === 'transcribed' || state === 'error') && (
             <button
               type="button"
@@ -546,33 +641,6 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
               <MicrophoneIcon />
               Înregistrează din nou
             </button>
-          )}
-        </div>
-      )}
-
-      {(originalAudioInfo || convertedAudioInfo) && (
-        <div className="dictation-panel__audio-details">
-          {originalAudioInfo && (
-            <div className="dictation-panel__audio-details-block">
-              <h3 className="dictation-panel__audio-details-title">Audio original</h3>
-              <ul>
-                <li>MIME: {originalAudioInfo.mimeType}</li>
-                <li>Dimensiune: {originalAudioInfo.sizeFormatted}</li>
-              </ul>
-            </div>
-          )}
-          {convertedAudioInfo && (
-            <div className="dictation-panel__audio-details-block">
-              <h3 className="dictation-panel__audio-details-title">Audio convertit</h3>
-              <ul>
-                <li>Format: {convertedAudioInfo.format}</li>
-                <li>Codec: {convertedAudioInfo.codec}</li>
-                <li>Canale: {convertedAudioInfo.channels}</li>
-                <li>Sample rate: {convertedAudioInfo.sampleRate} Hz</li>
-                <li>Bit depth: {convertedAudioInfo.bitDepth} bit</li>
-                <li>Dimensiune: {convertedAudioInfo.sizeFormatted}</li>
-              </ul>
-            </div>
           )}
         </div>
       )}

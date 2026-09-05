@@ -2,7 +2,7 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="app-header__titles">
-        <h1 className="app-header__title">Echo Report</h1>
+        <h1 className="app-header__title">Raport Eco</h1>
         <p className="app-header__subtitle">
           Asistent pentru raportarea ecocardiografică
         </p>

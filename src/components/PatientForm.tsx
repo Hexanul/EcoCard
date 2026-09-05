@@ -38,33 +38,45 @@ export function PatientForm({ patient, onChange }: PatientFormProps) {
     <section className="panel">
       <h2 className="panel__title">Date pacient</h2>
       <div className="patient-form">
-        <div className="field patient-form__name">
-          <label htmlFor="patient-name">Nume pacient</label>
-          <input
-            id="patient-name"
-            type="text"
-            value={patient.name}
-            onChange={(e) => update('name', e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="patient-age">Vârstă</label>
-          <div className="field__input-row">
+        <div className="patient-form__name">
+          <div className="field">
+            <label htmlFor="patient-last-name">Nume</label>
             <input
-              id="patient-age"
+              id="patient-last-name"
               type="text"
-              inputMode="decimal"
-              value={patient.age}
-              onChange={(e) => update('age', e.target.value)}
+              value={patient.lastName}
+              onChange={(e) => update('lastName', e.target.value)}
               autoComplete="off"
             />
-            <span className="field__unit">ani</span>
+          </div>
+          <div className="field">
+            <label htmlFor="patient-first-name">Prenume</label>
+            <input
+              id="patient-first-name"
+              type="text"
+              value={patient.firstName}
+              onChange={(e) => update('firstName', e.target.value)}
+              autoComplete="off"
+            />
           </div>
         </div>
 
-        <div className="patient-form__date-group">
+        <div className="patient-form__demographics">
+          <div className="field">
+            <label htmlFor="patient-age">Vârstă</label>
+            <div className="field__input-row">
+              <input
+                id="patient-age"
+                type="text"
+                inputMode="decimal"
+                value={patient.age}
+                onChange={(e) => update('age', e.target.value)}
+                autoComplete="off"
+              />
+              <span className="field__unit">ani</span>
+            </div>
+          </div>
+
           <div className="field">
             <label htmlFor="examination-date">Data examinării</label>
             <input

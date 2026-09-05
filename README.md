@@ -1,6 +1,6 @@
-# Echo Report desktop
+# Raport Eco desktop
 
-Echo Report is a local Electron + React + TypeScript application. The React UI records audio in the renderer, while only the Electron main process runs local Windows executables. No transcription request, patient audio, or telemetry is sent to the internet.
+Raport Eco is a local Electron + React + TypeScript application. The React UI records audio in the renderer, while only the Electron main process runs local Windows executables. No transcription request, patient audio, or telemetry is sent to the internet.
 
 ## Runtime files
 
@@ -23,8 +23,14 @@ Those files are excluded from Git. For a different development location, copy `e
 ```
 npm run dev       # compiles Electron, starts Vite, and opens the native window
 npm run build     # TypeScript checks, Electron compilation, and React production build
+npm run package:installer  # creates a client-ready Windows installer in release/
+npm run package:portable  # creates a client-ready Windows portable .exe in release/
 npm run lint
 ```
+
+## Client handoff
+
+Run `npm.cmd run package:portable` on Windows. The generated `release/Raport-Eco-Portable.exe` can be copied to the client's laptop and started directly; no Node.js, npm, or installation step is required. The packaged app includes the local `app/bin` and `app/models` runtime files. If using `release/win-unpacked` instead, copy the entire folder, not only its `.exe` file.
 
 `npm run electron:start` opens the compiled React application from `dist/`.
 

@@ -10,6 +10,10 @@ node_modules
 dist
 dist-ssr
 dist-electron
+release/
+release-client/
+client-build-*/
+packaging-output.txt
 *.local
 *.tsbuildinfo
 

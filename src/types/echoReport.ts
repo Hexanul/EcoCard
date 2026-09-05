@@ -1,5 +1,6 @@
 export type PatientInfo = {
-  name: string;
+  lastName: string;
+  firstName: string;
   age: string;
   examinationDate: string;
   currentNumber: string;
@@ -101,7 +102,8 @@ export type MeasurementKey = keyof Measurements;
 
 export function createEmptyPatient(): PatientInfo {
   return {
-    name: '',
+    lastName: '',
+    firstName: '',
     age: '',
     examinationDate: new Date().toISOString().slice(0, 10),
     currentNumber: '',
