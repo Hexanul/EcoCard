@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Measurements } from '../types/echoReport';
-import type { ParsedMeasurement } from '../services/medicalParser';
+import type { ParsedDetectedItem } from '../services/medicalParser';
 
 const CONFIDENCE_LABELS: Record<ParsedMeasurement['confidence'], string> = {
   high: 'Sigur',
@@ -10,14 +10,16 @@ const CONFIDENCE_LABELS: Record<ParsedMeasurement['confidence'], string> = {
 
 type MeasurementReviewProps = {
   measurements: Measurements;
-  parsedMeasurements: ParsedMeasurement[];
-  onApply: (selected: ParsedMeasurement[]) => void;
+  conclusions: string;
+  parsedMeasurements: ParsedDetectedItem[];
+  onApply: (selected: ParsedDetectedItem[]) => void;
   onDismiss: () => void;
 };
 
 export function MeasurementReview({
   measurements,
   parsedMeasurements,
+  conclusions,
   onApply,
   onDismiss,
 }: MeasurementReviewProps) {
@@ -27,8 +29,8 @@ export function MeasurementReview({
   // arrives, so the toggle state resets together with the detected list.
   const [toggled, setToggled] = useState<Set<number>>(() => new Set());
 
-  const isConflict = (item: ParsedMeasurement): boolean => {
-    const existing = measurements[item.field];
+  const isConflict = (item: ParsedDetectedItem): boolean => {
+    const existing = item.field === 'conclusions' ? conclusions : measurements[item.field];
     return existing !== '' && existing !== item.value;
   };
 

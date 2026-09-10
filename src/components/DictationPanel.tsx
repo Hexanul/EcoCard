@@ -3,7 +3,11 @@ import {
   TranscriptionError,
   transcribeAudio,
 } from '../services/transcriptionService';
-import { parseEchoTranscript, type ParsedEchoData } from '../services/medicalParser';
+import {
+  parseEchoTranscript,
+  type ParsedEchoData,
+  type ParsedPatientInfo,
+} from '../services/medicalParser';
 import { isElectronAvailable, getEchoReportApi } from '../services/electronBridge';
 import {
   getPreferredRecordingMimeType,
@@ -102,9 +106,20 @@ function StopIcon() {
 
 type DictationPanelProps = {
   onMeasurementsParsed?: (data: ParsedEchoData) => void;
+  onPatientParsed?: (patient: ParsedPatientInfo) => void;
 };
 
-export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
+function hasParsedPatient(patient: ParsedPatientInfo): boolean {
+  return Boolean(
+    patient.lastName ||
+      patient.firstName ||
+      patient.age ||
+      patient.weight ||
+      patient.height,
+  );
+}
+
+export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: DictationPanelProps) {
   const [state, setState] = useState<DictationState>('idle');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -126,6 +141,12 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
   useEffect(() => {
     onMeasurementsParsed?.(parsedData);
   }, [onMeasurementsParsed, parsedData]);
+
+  useEffect(() => {
+    if (hasParsedPatient(parsedData.patient)) {
+      onPatientParsed?.(parsedData.patient);
+    }
+  }, [onPatientParsed, parsedData.patient]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -664,6 +685,16 @@ export function DictationPanel({ onMeasurementsParsed }: DictationPanelProps) {
             {parsedData.measurements.length === 1
               ? '1 măsurătoare detectată — revizuiește înainte de aplicare.'
               : `${parsedData.measurements.length} măsurători detectate — revizuiește înainte de aplicare.`}
+          </p>
+        )}
+        {parsedData.conclusions && (
+          <p className="dictation-panel__parsed-hint" role="status">
+            Concluzii detectate — revizuiește înainte de aplicare.
+          </p>
+        )}
+        {hasParsedPatient(parsedData.patient) && (
+          <p className="dictation-panel__parsed-hint" role="status">
+            Date pacient detectate și transferate în formular.
           </p>
         )}
       </div>

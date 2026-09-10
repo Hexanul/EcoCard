@@ -77,8 +77,48 @@ test('keeps qualitative mitral regurgitation exactly as dictated', () => {
   assert.equal(result.kind, 'qualitative');
 });
 
+test('switches to conclusions after an aortic regurgitation value', () => {
+  const data = parseEchoTranscript(
+    'regurgitarea aortică 36, concluzii, cavități cardiace în limite normale',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'aorticRegurgitation')?.value, '36');
+  assert.equal(data.conclusions, 'cavități cardiace în limite normale');
+});
+
+test('parses the burgitare transcription variant before conclusions', () => {
+  const data = parseEchoTranscript(
+    'reburgitarea aortică, nu, concluzii, cavități cardiace în limite normale.',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'aorticRegurgitation')?.value, 'nu');
+  assert.equal(data.conclusions, 'cavități cardiace în limite normale.');
+});
+
+test('switches to a singular conclusion after pulmonary regurgitation', () => {
+  const data = parseEchoTranscript(
+    'Flux pulmonar, regurgitare pulmonară, nu, concluzie cavități cardiace în limite normale.',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'pulmonaryRegurgitation')?.value, 'nu');
+  assert.equal(data.conclusions, 'cavități cardiace în limite normale.');
+});
+
 test('does not extract a measurement without a value', () => {
   assert.equal(parseEchoTranscript('TAPSE').measurements.length, 0);
+});
+
+test('extracts dictated conclusions after the Concluzii heading', () => {
+  const data = parseEchoTranscript(
+    'Concluzii: a) Cavități cardiace și cinetică parietală în limite normale\n' +
+      'b) Valve mobile, suple\n' +
+      'stenoză aortică nu, insuficiență mitrală ușoară\n' +
+      'c) Funcție sistolică globală normală',
+  );
+  assert.equal(
+    data.conclusions,
+    'a) Cavități cardiace și cinetică parietală în limite normale\n' +
+      'b) Valve mobile, suple\n' +
+      'stenoză aortică nu, insuficiență mitrală ușoară\n' +
+      'c) Funcție sistolică globală normală',
+  );
 });
 
 test('does not guess a Vmax field without a flow context', () => {
@@ -758,6 +798,15 @@ test('parses the posterior wall shorthand variants', () => {
       transcript,
     );
   }
+});
+
+test('parses the Whisper "pete posterior" variant without assigning LV diameter', () => {
+  const data = parseEchoTranscript('pete posterior, diametrul diastolic 4');
+  assert.equal(
+    data.measurements.find((item) => item.field === 'posteriorWallDiastolicDiameter')?.value,
+    '4',
+  );
+  assert.equal(data.measurements.find((item) => item.field === 'lvEndDiastolicDiameter'), undefined);
 });
 
 test('parses the Whisper "priete posterior" variant with the following ejection fraction', () => {
@@ -1597,4 +1646,68 @@ test('keeps the LVOT luvot context across the full field chain', () => {
       ['aorticRegurgitation', 'absent'],
     ],
   );
+});
+
+test('extracts dictated patient data with digit values', () => {
+  const data = parseEchoTranscript(
+    'Nume Popescu, prenume Ion, vârsta 65 de ani, greutate 80 de kg, înălțime 175 de cm.',
+  );
+  assert.deepEqual(data.patient, {
+    lastName: 'Popescu',
+    firstName: 'Ion',
+    age: '65',
+    weight: '80',
+    height: '175',
+  });
+});
+
+test('capitalizes lowercase dictated patient names', () => {
+  const data = parseEchoTranscript('nume popescu-marinescu, prenume ion');
+  assert.equal(data.patient.lastName, 'Popescu-Marinescu');
+  assert.equal(data.patient.firstName, 'Ion');
+});
+
+test('extracts patient data with spoken-out numbers', () => {
+  const data = parseEchoTranscript(
+    'Vârsta șaizeci și cinci de ani, greutate optzeci și două de kilograme, înălțime o sută șaptezeci și cinci de centimetri.',
+  );
+  assert.equal(data.patient.age, '65');
+  assert.equal(data.patient.weight, '82');
+  assert.equal(data.patient.height, '175');
+});
+
+test('splits combined "nume și prenume" dictation', () => {
+  const data = parseEchoTranscript('nume și prenume Popescu Ion Vasile');
+  assert.equal(data.patient.lastName, 'Popescu');
+  assert.equal(data.patient.firstName, 'Ion Vasile');
+});
+
+test('accepts "nume de familie" and "numele pacientului" phrasing', () => {
+  const data = parseEchoTranscript('Nume de familie Ionescu. Prenumele pacientului Maria.');
+  assert.equal(data.patient.lastName, 'Ionescu');
+  assert.equal(data.patient.firstName, 'Maria');
+});
+
+test('does not extract patient data from the conclusions section', () => {
+  const data = parseEchoTranscript(
+    'Concluzii: pacient în vârstă de 70 de ani, greutate 90 kg.',
+  );
+  assert.deepEqual(data.patient, {
+    lastName: '',
+    firstName: '',
+    age: '',
+    weight: '',
+    height: '',
+  });
+});
+
+test('returns empty patient fields when no patient data is dictated', () => {
+  const data = parseEchoTranscript('TAPSE douăzeci și unu de milimetri');
+  assert.deepEqual(data.patient, {
+    lastName: '',
+    firstName: '',
+    age: '',
+    weight: '',
+    height: '',
+  });
 });

@@ -10,7 +10,12 @@ import { ConclusionsForm } from './components/ConclusionsForm';
 import { ReportActions } from './components/ReportActions';
 import { ReportPreviewPage } from './components/ReportPreviewPage';
 import { createTestEchoReport } from './dev/testReport';
-import type { ParsedEchoData, ParsedMeasurement } from './services/medicalParser';
+import type {
+  ParsedEchoData,
+  ParsedDetectedItem,
+  ParsedMeasurement,
+  ParsedPatientInfo,
+} from './services/medicalParser';
 import {
   createEmptyEchoReport,
   type EchoReport,
@@ -18,6 +23,7 @@ import {
   type PatientInfo,
 } from './types/echoReport';
 import { calculateDerivedMeasurements } from './utils/derivedMeasurements';
+import { calculateBmi } from './utils/bmi';
 
 const DERIVED_MEASUREMENT_KEYS: MeasurementKey[] = [
   'mitralEaRatio',
@@ -88,7 +94,7 @@ function addCalculatedMeasurements(
 
 function App() {
   const [report, setReport] = useState<EchoReport>(createReportWithCurrentNumber);
-  const [pendingMeasurements, setPendingMeasurements] = useState<ParsedMeasurement[]>([]);
+  const [pendingMeasurements, setPendingMeasurements] = useState<ParsedDetectedItem[]>([]);
   const [view, setView] = useState<'form' | 'preview'>('form');
 
   const updatePatient = (patient: PatientInfo) => {
@@ -111,21 +117,60 @@ function App() {
   };
 
   const handleMeasurementsParsed = useCallback((data: ParsedEchoData) => {
-    setPendingMeasurements(addCalculatedMeasurements(data.measurements, report.measurements));
+    const detected: ParsedDetectedItem[] = addCalculatedMeasurements(data.measurements, report.measurements);
+    if (data.conclusions) {
+      detected.push({
+        field: 'conclusions',
+        label: 'Concluzii',
+        value: data.conclusions,
+        kind: 'qualitative',
+        confidence: 'high',
+        sourceText: data.conclusions,
+      });
+    }
+    setPendingMeasurements(detected);
   }, [report.measurements]);
+
+  // Dictated patient data fills the form directly (like conclusions); only
+  // explicitly spoken fields are touched and the BMI is recalculated.
+  const handlePatientParsed = useCallback((parsed: ParsedPatientInfo) => {
+    setReport((prev) => {
+      const current = prev.patient;
+      const weight = parsed.weight || current.weight;
+      const height = parsed.height || current.height;
+      const bmi = calculateBmi(weight, height) || current.bmi;
+      return {
+        ...prev,
+        patient: {
+          ...current,
+          lastName: parsed.lastName || current.lastName,
+          firstName: parsed.firstName || current.firstName,
+          age: parsed.age || current.age,
+          weight,
+          height,
+          bmi,
+        },
+      };
+    });
+  }, []);
 
   // Only measurements explicitly approved in the review panel reach the form;
   // manually entered values are never overwritten silently.
-  const handleApplyMeasurements = useCallback((selected: ParsedMeasurement[]) => {
+  const handleApplyMeasurements = useCallback((selected: ParsedDetectedItem[]) => {
     if (selected.length === 0) {
       return;
     }
     setReport((prev) => {
       const measurements = { ...prev.measurements };
+      let conclusions = prev.conclusions;
       for (const item of selected) {
-        measurements[item.field] = item.value;
+        if (item.field === 'conclusions') {
+          conclusions = item.value;
+        } else {
+          measurements[item.field] = item.value;
+        }
       }
-      return { ...prev, measurements: calculateDerivedMeasurements(measurements) };
+      return { ...prev, measurements: calculateDerivedMeasurements(measurements), conclusions };
     });
     setPendingMeasurements([]);
   }, []);
@@ -170,12 +215,16 @@ function App() {
       <Header />
 
       <main className="app-main">
+        <DictationPanel
+          onMeasurementsParsed={handleMeasurementsParsed}
+          onPatientParsed={handlePatientParsed}
+        />
         <PatientForm patient={report.patient} onChange={updatePatient} />
-        <DictationPanel onMeasurementsParsed={handleMeasurementsParsed} />
         {pendingMeasurements.length > 0 && (
           <MeasurementReview
             key={reviewKey}
             measurements={report.measurements}
+            conclusions={report.conclusions}
             parsedMeasurements={pendingMeasurements}
             onApply={handleApplyMeasurements}
             onDismiss={handleDismissReview}

@@ -16,8 +16,29 @@ export type ParsedMeasurement = {
   sourceText: string;
 };
 
+export type ParsedConclusion = {
+  field: 'conclusions';
+  label: 'Concluzii';
+  value: string;
+  kind: 'qualitative';
+  confidence: 'high';
+  sourceText: string;
+};
+
+export type ParsedDetectedItem = ParsedMeasurement | ParsedConclusion;
+
+export type ParsedPatientInfo = {
+  lastName: string;
+  firstName: string;
+  age: string;
+  weight: string;
+  height: string;
+};
+
 export type ParsedEchoData = {
   measurements: ParsedMeasurement[];
+  conclusions: string;
+  patient: ParsedPatientInfo;
 };
 
 type FlowContext = 'aortic' | 'lvot' | 'mitral' | 'tricuspid' | 'pulmonary' | 'septal' | 'apical4c';
@@ -283,6 +304,12 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'priete posterior diam. diastolic',
       'priete posterior diam distolic',
       'priete posterior',
+      // Whisper may drop the initial "r" in "perete".
+      'pete posterior diametrul diastolic',
+      'pete posterior diametru diastolic',
+      'pete posterior diam diastolic',
+      'pete posterior diam. diastolic',
+      'pete posterior',
       // Dictated shorthand: the doctor may omit "diametru diastolic"
       // entirely because the form context identifies this field.
       'perete posterior',
@@ -706,6 +733,8 @@ const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
     aliases: [
       'regurgitare aortica',
       'regurgitarea aortica',
+      'reburgitare aortica',
+      'reburgitarea aortica',
       'recurgitare aortica',
       'recurgitarea aortica',
       'recucitare aortica',
@@ -826,23 +855,19 @@ function normalizeChar(ch: string): string {
   return out.replace(/[șş]/g, 's').replace(/[țţ]/g, 't');
 }
 
-// Normalizes dotted abbreviations like "V.S." / "V S" -> "vs" for chamber
+// Normalizes dotted abbreviations like "V.S." / "V S" / "V, S" -> "vs" for chamber
 // prefixes that Whisper often splits. Must run on already-lowercased
-// normalized text (a-z only).
+// normalized text (a-z only). Commas/semicolons between letters are also
+// normalized because Whisper often dictates "V, S," with commas.
 function normalizeAbbreviations(text: string): string {
   return text
-    .replace(/\bv\s*\.\s*s\s*\.\s*e\.?(?![a-z0-9])/g, 'vse')
-    .replace(/\bv\s*\.\s*s\.?(?![a-z0-9])/g, 'vs')
-    .replace(/\bv\s+s(?![a-z0-9])/g, 'vs')
-    .replace(/\bv\s*\.\s*d\.?(?![a-z0-9])/g, 'vd')
-    .replace(/\bv\s+d(?![a-z0-9])/g, 'vd')
-    .replace(/\ba\s*\.\s*s\.?(?![a-z0-9])/g, 'as')
-    .replace(/\ba\s+s(?![a-z0-9])/g, 'as')
-    .replace(/\ba\s*\.\s*d\.?(?![a-z0-9])/g, 'ad')
-    .replace(/\ba\s+d(?![a-z0-9])/g, 'ad')
-    .replace(/\bp\s*\.\s*s\.?(?![a-z0-9])/g, 'ps')
-    .replace(/\bp\s+s(?![a-z0-9])/g, 'ps')
-    .replace(/\bf\s*\.\s*e\.?(?![a-z0-9])/g, 'fe');
+    .replace(/\bv\s*[.,;]?\s*s\s*[.,;]?\s*e\.?(?![a-z0-9])/g, 'vse')
+    .replace(/\bv\s*[.,;]?\s*s\.?(?![a-z0-9])/g, 'vs')
+    .replace(/\bv\s*[.,;]?\s*d\.?(?![a-z0-9])/g, 'vd')
+    .replace(/\ba\s*[.,;]?\s*s\.?(?![a-z0-9])/g, 'as')
+    .replace(/\ba\s*[.,;]?\s*d\.?(?![a-z0-9])/g, 'ad')
+    .replace(/\bp\s*[.,;]?\s*s\.?(?![a-z0-9])/g, 'ps')
+    .replace(/\bf\s*[.,;]?\s*e\.?(?![a-z0-9])/g, 'fe');
 }
 
 // Whisper typo "ejencție" (ejenctie) for "ejecție" (ejectie) — extra 'n'.
@@ -851,6 +876,26 @@ function normalizeEjectieTypo(text: string): string {
     .replace(/\bejenctie\b/g, 'ejectie')
     .replace(/\bejentie\b/g, 'ejectie')
     .replace(/\bejencie\b/g, 'ejectie');
+}
+
+// Whisper typo "daimetru" for "diametru" — swapped vowel (a-i vs i-a).
+function normalizeDaimetruTypo(text: string): string {
+  return text.replace(/daimetr/g, 'diametr');
+}
+
+// Whisper transcribes "VSE" letter-by-letter as "vese" (ve+se) and
+// "telesistolic/telediastolic" with Romanian inflection "telesistelor".
+function normalizeVseAndTelesistelorTypo(text: string): string {
+  return text
+    .replace(/\bvese\b/g, 'vse')
+    .replace(/telesistelor/g, 'telesistolic')
+    .replace(/telesistolor/g, 'telesistolic')
+    .replace(/telediastelor/g, 'telediastolic')
+    .replace(/telediastolor/g, 'telediastolic')
+    .replace(/\bsistelor\b/g, 'sistolic')
+    .replace(/\bsistolor\b/g, 'sistolic')
+    .replace(/\bdiastelor\b/g, 'diastolic')
+    .replace(/\bdiastolor\b/g, 'diastolic');
 }
 
 // Protects decimal commas ("5,3", "4,85", "4, 5") from ever being treated as
@@ -872,7 +917,11 @@ function normalize(text: string): string {
     }
     out += normalizeChar(ch);
   }
-  return normalizeEjectieTypo(normalizeAbbreviations(protectDecimalCommas(out.trim())));
+  return normalizeVseAndTelesistelorTypo(
+    normalizeDaimetruTypo(
+      normalizeEjectieTypo(normalizeAbbreviations(protectDecimalCommas(out.trim()))),
+    ),
+  );
 }
 
 // Collapses whitespace/hyphens and records the raw position of every
@@ -894,7 +943,7 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
     text += normalizeChar(ch);
     rawIndex.push(i);
   }
-  let trimmed = text.trim();
+  const trimmed = text.trim();
   // Trim start: drop leading rawIndex entries corresponding to leading spaces
   const leadingSpaces = text.length - text.trimStart().length;
   let trimmedRawIndex = rawIndex.slice(leadingSpaces);
@@ -935,22 +984,17 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
     out += ch;
     outRawIndex.push(trimmedRawIndex[i]);
   }
-  // Normalize dotted abbreviations "V.S." / "V S" -> "vs" etc., keeping rawIndex
-  // aligned by preserving only the letter positions (dots/spaces are dropped).
-  // This ensures "Masa V.S. 5" matches alias "masa vs".
+  // Normalize dotted abbreviations "V.S." / "V S" / "V, S" -> "vs" etc., keeping rawIndex
+  // aligned by preserving only the letter positions (dots/spaces/commas are dropped).
+  // This ensures "Masa V.S. 5" and "V, S, daimetru ..." match alias "masa vs" / "vs diametru".
   const abbrevReplacements: Array<{ pattern: RegExp; target: string }> = [
-    { pattern: /\bv\s*\.\s*s\s*\.\s*e\.?(?![a-z0-9])/g, target: 'vse' },
-    { pattern: /\bv\s*\.\s*s\.?(?![a-z0-9])/g, target: 'vs' },
-    { pattern: /\bv\s+s(?![a-z0-9])/g, target: 'vs' },
-    { pattern: /\bv\s*\.\s*d\.?(?![a-z0-9])/g, target: 'vd' },
-    { pattern: /\bv\s+d(?![a-z0-9])/g, target: 'vd' },
-    { pattern: /\ba\s*\.\s*s\.?(?![a-z0-9])/g, target: 'as' },
-    { pattern: /\ba\s+s(?![a-z0-9])/g, target: 'as' },
-    { pattern: /\ba\s*\.\s*d\.?(?![a-z0-9])/g, target: 'ad' },
-    { pattern: /\ba\s+d(?![a-z0-9])/g, target: 'ad' },
-    { pattern: /\bp\s*\.\s*s\.?(?![a-z0-9])/g, target: 'ps' },
-    { pattern: /\bp\s+s(?![a-z0-9])/g, target: 'ps' },
-    { pattern: /\bf\s*\.\s*e\.?(?![a-z0-9])/g, target: 'fe' },
+    { pattern: /\bv\s*[.,;]?\s*s\s*[.,;]?\s*e\.?(?![a-z0-9])/g, target: 'vse' },
+    { pattern: /\bv\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'vs' },
+    { pattern: /\bv\s*[.,;]?\s*d\.?(?![a-z0-9])/g, target: 'vd' },
+    { pattern: /\ba\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'as' },
+    { pattern: /\ba\s*[.,;]?\s*d\.?(?![a-z0-9])/g, target: 'ad' },
+    { pattern: /\bp\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'ps' },
+    { pattern: /\bf\s*[.,;]?\s*e\.?(?![a-z0-9])/g, target: 'fe' },
   ];
   for (const { pattern, target } of abbrevReplacements) {
     // Reset regex state for each iteration after mutation
@@ -978,12 +1022,24 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
       if (pattern.lastIndex > out.length) break;
     }
   }
-  // Whisper typo "ejenctie" (ejencție) -> "ejectie" and similar variants.
-  // Length changes (extra 'n') require dropping that rawIndex entry.
+  // Whisper typos: "ejenctie" (ejencție) -> "ejectie" (extra 'n'),
+  // "daimetru" -> "diametru" (swapped vowel), "vese" (ve+se) -> "vse" and
+  // "telesistelor" -> "telesistolic" (inflection). Length changes require
+  // dropping a rawIndex entry; same-length replacements keep all indices.
   const typoPatterns: Array<{ pattern: RegExp; target: string }> = [
     { pattern: /\bejenctie\b/g, target: 'ejectie' },
     { pattern: /\bejentie\b/g, target: 'ejectie' },
     { pattern: /\bejencie\b/g, target: 'ejectie' },
+    { pattern: /daimetr/g, target: 'diametr' },
+    { pattern: /\bvese\b/g, target: 'vse' },
+    { pattern: /telesistelor/g, target: 'telesistolic' },
+    { pattern: /telesistolor/g, target: 'telesistolic' },
+    { pattern: /telediastelor/g, target: 'telediastolic' },
+    { pattern: /telediastolor/g, target: 'telediastolic' },
+    { pattern: /\bsistelor\b/g, target: 'sistolic' },
+    { pattern: /\bsistolor\b/g, target: 'sistolic' },
+    { pattern: /\bdiastelor\b/g, target: 'diastolic' },
+    { pattern: /\bdiastolor\b/g, target: 'diastolic' },
   ];
   for (const { pattern, target } of typoPatterns) {
     pattern.lastIndex = 0;
@@ -1003,6 +1059,9 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
           outRawIndex[s + 6],
           outRawIndex[s + 7],
         ];
+      } else if (m[0] === 'vese' && target === 'vse') {
+        // v e s e (4) -> v s e (3) : drop 'e' at offset 1
+        mapped = [outRawIndex[s], outRawIndex[s + 2], outRawIndex[s + 3]];
       } else {
         // Same length: keep all indices
         mapped = outRawIndex.slice(s, e);
@@ -1173,6 +1232,142 @@ function findNextPunctuation(raw: string, from: number, limit: number): number |
   return match ? from + (match.index ?? 0) : null;
 }
 
+const CONCLUSIONS_MARKER = /\bconcluzi(?:i|e)\s*[:.,-]?\s*/i;
+
+function extractConclusions(transcript: string): string {
+  const match = CONCLUSIONS_MARKER.exec(transcript);
+  if (!match) return '';
+  return transcript.slice(match.index + match[0].length).trim();
+}
+
+function beforeConclusions(transcript: string): string {
+  const match = CONCLUSIONS_MARKER.exec(transcript);
+  return match ? transcript.slice(0, match.index) : transcript;
+}
+
+// ---------------------------------------------------------------------------
+// Patient data extraction ("Nume Popescu, prenume Ion, vârsta 65 de ani, ...")
+// ---------------------------------------------------------------------------
+
+const ROMANIAN_LETTER_CLASS = 'a-zA-ZăâîșțşţĂÂÎȘȚŞŢ';
+const NO_LETTER_BEFORE = `(?<![${ROMANIAN_LETTER_CLASS}])`;
+const NO_LETTER_AFTER = `(?![${ROMANIAN_LETTER_CLASS}])`;
+
+// Words that terminate a dictated name: the next field label, a unit, or a
+// connector. They are never part of a patient's name.
+const PATIENT_NAME_STOP_WORDS = new Set([
+  'si', 'și', 'de', 'cu', 'la',
+  'nume', 'numele', 'prenume', 'prenumele', 'familie',
+  'pacient', 'pacientul', 'pacienta', 'pacientului', 'pacientei',
+  'varsta', 'vârsta', 'vârstă', 'varstă', 'an', 'ani',
+  'greutate', 'greutatea', 'kg', 'kilograme', 'kilogramele',
+  'inaltime', 'inaltimea', 'înălțime', 'înălțimea', 'cm', 'centimetri',
+  'data', 'examinare', 'examinarea', 'examinarii', 'examinării',
+  'numar', 'număr', 'numărul', 'curent', 'curentul', 'concluzii',
+]);
+
+function patientLabelRegex(source: string): RegExp {
+  return new RegExp(
+    `${NO_LETTER_BEFORE}${source}${NO_LETTER_AFTER}\\s*[:.,-]?\\s*(?:de\\s+)?`,
+    'i',
+  );
+}
+
+const COMBINED_NAME_LABEL = new RegExp(
+  `${NO_LETTER_BEFORE}nume[\\s,]+(?:și|si)[\\s,]+prenume${NO_LETTER_AFTER}\\s*[:.,-]?\\s*`,
+  'i',
+);
+const LAST_NAME_LABEL = patientLabelRegex(
+  'nume(?:le)?(?:\\s+de\\s+familie)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?',
+);
+const FIRST_NAME_LABEL = patientLabelRegex(
+  'prenume(?:le)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?',
+);
+const AGE_LABEL = patientLabelRegex('v[âa]rst[aă]');
+const WEIGHT_LABEL = patientLabelRegex('greutate[aă]?');
+const HEIGHT_LABEL = patientLabelRegex('[îi]n[ăa]l[tțţ]ime[aă]?');
+
+function captureNameWords(raw: string, from: number, maxWords: number): string[] {
+  const wordPattern = new RegExp(
+    `[${ROMANIAN_LETTER_CLASS}]+(?:-[${ROMANIAN_LETTER_CLASS}]+)*`,
+    'g',
+  );
+  wordPattern.lastIndex = from;
+  const words: string[] = [];
+  const limit = Math.min(raw.length, from + 80);
+  while (words.length < maxWords) {
+    const match = wordPattern.exec(raw);
+    if (!match || match.index >= limit) break;
+    if (PATIENT_NAME_STOP_WORDS.has(match[0].toLocaleLowerCase('ro-RO'))) break;
+    words.push(match[0]);
+  }
+  return words;
+}
+
+function capitalizeName(name: string): string {
+  return name.replace(
+    new RegExp(`(^|[\\s-])([${ROMANIAN_LETTER_CLASS}])`, 'g'),
+    (_match, sep: string, letter: string) => sep + letter.toLocaleUpperCase('ro-RO'),
+  );
+}
+
+/**
+ * Extracts explicitly dictated patient data. Only the text before the
+ * "Concluzii" marker is scanned: conclusions routinely mention the patient's
+ * age ("pacient în vârstă de ...") and must not overwrite the form fields.
+ */
+function extractPatientInfo(transcript: string): ParsedPatientInfo {
+  const patient: ParsedPatientInfo = {
+    lastName: '',
+    firstName: '',
+    age: '',
+    weight: '',
+    height: '',
+  };
+
+  const conclusionsMatch = CONCLUSIONS_MARKER.exec(transcript);
+  const scope = conclusionsMatch ? transcript.slice(0, conclusionsMatch.index) : transcript;
+  if (!scope.trim()) return patient;
+
+  // "Nume și prenume Popescu Ion" — first word is the family name.
+  const combined = COMBINED_NAME_LABEL.exec(scope);
+  if (combined) {
+    const words = captureNameWords(scope, combined.index + combined[0].length, 3);
+    if (words.length > 0) patient.lastName = capitalizeName(words[0]);
+    if (words.length > 1) patient.firstName = capitalizeName(words.slice(1).join(' '));
+  }
+
+  if (!patient.lastName) {
+    const match = LAST_NAME_LABEL.exec(scope);
+    if (match) {
+      const words = captureNameWords(scope, match.index + match[0].length, 2);
+      if (words.length > 0) patient.lastName = capitalizeName(words.join(' '));
+    }
+  }
+
+  if (!patient.firstName) {
+    const match = FIRST_NAME_LABEL.exec(scope);
+    if (match) {
+      const words = captureNameWords(scope, match.index + match[0].length, 2);
+      if (words.length > 0) patient.firstName = capitalizeName(words.join(' '));
+    }
+  }
+
+  const assignNumber = (label: RegExp, key: 'age' | 'weight' | 'height') => {
+    const match = label.exec(scope);
+    if (!match) return;
+    const start = match.index + match[0].length;
+    const found = findRomanianNumber(scope.slice(start, start + 60));
+    if (found) patient[key] = found.value;
+  };
+
+  assignNumber(AGE_LABEL, 'age');
+  assignNumber(WEIGHT_LABEL, 'weight');
+  assignNumber(HEIGHT_LABEL, 'height');
+
+  return patient;
+}
+
 /**
  * Deterministically extracts only explicitly spoken Echo measurements.
  *
@@ -1183,11 +1378,13 @@ function findNextPunctuation(raw: string, from: number, limit: number): number |
  */
 export function parseEchoTranscript(transcript: string): ParsedEchoData {
   const measurements: ParsedMeasurement[] = [];
-  const raw = transcript;
+  const conclusions = extractConclusions(transcript);
+  const patient = extractPatientInfo(transcript);
+  const raw = beforeConclusions(transcript);
   const { text, rawIndex } = normalizeWithIndex(raw);
 
   if (text.length === 0) {
-    return { measurements };
+    return { measurements, conclusions, patient };
   }
 
   const matches = collectMatches(text);
@@ -1313,5 +1510,5 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
     });
   }
 
-  return { measurements };
+  return { measurements, conclusions, patient };
 }

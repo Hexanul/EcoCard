@@ -1,17 +1,10 @@
 import type { PatientInfo } from '../types/echoReport';
+import { calculateBmi } from '../utils/bmi';
 
 type PatientFormProps = {
   patient: PatientInfo;
   onChange: (patient: PatientInfo) => void;
 };
-
-function calculateBmi(weightKg: string, heightCm: string): string {
-  const weight = parseFloat(weightKg.replace(',', '.'));
-  const height = parseFloat(heightCm.replace(',', '.'));
-  if (!weight || !height || height <= 0) return '';
-  const heightM = height / 100;
-  return (weight / (heightM * heightM)).toFixed(1);
-}
 
 export function PatientForm({ patient, onChange }: PatientFormProps) {
   const update = (field: keyof PatientInfo, value: string) => {
