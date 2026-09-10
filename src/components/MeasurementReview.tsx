@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Measurements } from '../types/echoReport';
 import type { ParsedDetectedItem } from '../services/medicalParser';
 
-const CONFIDENCE_LABELS: Record<ParsedMeasurement['confidence'], string> = {
+const CONFIDENCE_LABELS: Record<ParsedDetectedItem['confidence'], string> = {
   high: 'Sigur',
   medium: 'Aproximativ',
   low: 'Incert',
@@ -34,7 +34,7 @@ export function MeasurementReview({
     return existing !== '' && existing !== item.value;
   };
 
-  const isSelected = (item: ParsedMeasurement, index: number): boolean => {
+  const isSelected = (item: ParsedDetectedItem, index: number): boolean => {
     const defaultSelected = !isConflict(item);
     return toggled.has(index) ? !defaultSelected : defaultSelected;
   };
@@ -64,6 +64,8 @@ export function MeasurementReview({
         {parsedMeasurements.map((item, index) => {
           const conflict = isConflict(item);
           const selected = isSelected(item, index);
+          const unit = 'unit' in item ? item.unit : undefined;
+          const existingValue = item.field === 'conclusions' ? conclusions : measurements[item.field];
           const rowClass = [
             'measurement-review__row',
             conflict ? 'measurement-review__row--conflict' : '',
@@ -79,12 +81,12 @@ export function MeasurementReview({
                   className="measurement-review__checkbox"
                   checked={selected}
                   onChange={() => toggle(index)}
-                  aria-label={`${conflict ? 'Înlocuiește' : 'Aplică'} ${item.label}: ${item.value}${item.unit ? ` ${item.unit}` : ''}`}
+                  aria-label={`${conflict ? 'Înlocuiește' : 'Aplică'} ${item.label}: ${item.value}${unit ? ` ${unit}` : ''}`}
                 />
                 <span className="measurement-review__field">{item.label}</span>
                 <span className="measurement-review__value">
                   {item.value}
-                  {item.unit && <span className="measurement-review__unit">{item.unit}</span>}
+                  {unit && <span className="measurement-review__unit">{unit}</span>}
                 </span>
                 {item.kind === 'qualitative' && (
                   <span className="measurement-review__kind">text</span>
@@ -98,7 +100,7 @@ export function MeasurementReview({
               <p className="measurement-review__source">{item.sourceText}</p>
               {conflict && (
                 <p className="measurement-review__conflict">
-                  Formularul conține deja: {measurements[item.field]}. Bifează pentru a înlocui.
+                  Formularul conține deja: {existingValue}. Bifează pentru a înlocui.
                 </p>
               )}
             </li>
