@@ -342,6 +342,11 @@ test('parses the realistic comma-rich transcript end to end', () => {
   );
 });
 
+test('parses the spoken VSE variant of left ventricular mass', () => {
+  const data = parseEchoTranscript('Masa Vese, 7,88.');
+  assert.equal(data.measurements.find((item) => item.field === 'lvMass')?.value, '7.88');
+});
+
 test('parses decimal commas as decimal separators', () => {
   assert.equal(parseRomanianNumber('5,3'), '5.3');
   assert.equal(parseRomanianNumber('4,85'), '4.85');
@@ -1039,6 +1044,24 @@ test('parses the Whisper ateromedian variant for each chamber', () => {
   }
 });
 
+test('parses Whisper chamber names and anterior-median variants', () => {
+  const data = parseEchoTranscript(
+    'Ase, diametrul anterior-postior 10,3. Vese, diametrul anterior-median 13. ' +
+      'Vese, diametrul anterior-median 14,3. ' +
+      'Ase, diametrul anterior-median 14,8. A de diametrul anterior-median 16,5.',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['laAnteroposteriorDiameter', '10.3'],
+      ['lvLateromedialDiameter', '13'],
+      ['lvLateromedialDiameter', '14.3'],
+      ['laLateromedialDiameter', '14.8'],
+      ['raLateromedialDiameter', '16.5'],
+    ],
+  );
+});
+
 test('parses "Area As, 9" as the AS area', () => {
   const result = parsed('Area As, 9', 'laArea');
   assert.equal(result.value, '9');
@@ -1085,6 +1108,20 @@ test('parses "Volum tele sistolic.Vs, 9" as the telesistolic volume', () => {
   const result = parsed('Volum tele sistolic.Vs, 9', 'lvEndSystolicVolume');
   assert.equal(result.value, '9');
   assert.ok(result.sourceText.includes('Volum tele sistolic.Vs, 9'));
+});
+
+test('parses Whisper volume and Simpson variants', () => {
+  const data = parseEchoTranscript(
+    'Volum tele-diastolic 26,9. Volum tele-sistolic Vese, 27,9. Fație de ejecție Simpsong 28,4',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvEndDiastolicVolume', '26.9'],
+      ['lvEndSystolicVolume', '27.9'],
+      ['lvEjectionFractionSimpson', '28.4'],
+    ],
+  );
 });
 
 test('parses the telesistolic volume dictation variants', () => {

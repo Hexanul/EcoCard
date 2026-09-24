@@ -317,7 +317,7 @@ const NUMERIC_FIELDS = [
     {
         field: 'lvMass',
         label: 'Masă VS',
-        aliases: ['masa vs', 'masa ventricul stang'],
+        aliases: ['masa vs', 'masa vse', 'masa ventricul stang'],
     },
     {
         field: 'aortaAnnulus',
@@ -366,6 +366,8 @@ const NUMERIC_FIELDS = [
             // "anterior posterior" is a known spoken variant of "antero-posterior".
             'as diametrul anterior posterior',
             'as diametru anterior posterior',
+            'ase diametrul anterior postior',
+            'ase diametru anterior postior',
             'atriul stang diametrul antero posterior',
             // Dictated without the "AS" prefix ("Diametrul anteroposterior, 3 cm").
             'diametrul anteroposterior',
@@ -387,7 +389,7 @@ const NUMERIC_FIELDS = [
     {
         field: 'pulmonaryArtery',
         label: 'Arteră pulmonară',
-        aliases: ['artera pulmonara', 'atera pulmonara'],
+        aliases: ['artera pulmonara', 'atera pulmonara', 'aorta la pulmonara'],
     },
     // Apical 4C
     {
@@ -403,6 +405,8 @@ const NUMERIC_FIELDS = [
             'vs diametrul ateromedian',
             'vs diametru ateromedian',
             'vs diam ateromedian',
+            'vse diametrul anterior median',
+            'vse diametru anterior median',
         ],
     },
     {
@@ -418,6 +422,8 @@ const NUMERIC_FIELDS = [
             'vd diametrul ateromedian',
             'vd diametru ateromedian',
             'vd diam ateromedian',
+            'vde diametrul anterior median',
+            'vde diametru anterior median',
         ],
     },
     {
@@ -433,6 +439,8 @@ const NUMERIC_FIELDS = [
             'as diametrul ateromedian',
             'as diametru ateromedian',
             'as diam ateromedian',
+            'ase diametrul anterior median',
+            'ase diametru anterior median',
         ],
     },
     {
@@ -448,6 +456,8 @@ const NUMERIC_FIELDS = [
             'ad diametrul ateromedian',
             'ad diametru ateromedian',
             'ad diam ateromedian',
+            'a de diametrul anterior median',
+            'a de diametru anterior median',
         ],
     },
     // In APICAL 4C dictation the first bare "diametrul latero-median" is
@@ -491,6 +501,7 @@ const NUMERIC_FIELDS = [
             'volum tele diastolic vs',
             'volum tele diastolic. vs',
             'volum tele diastolic.vs',
+            'volum tele diastolic',
             'volum telediastolic. vs',
             'volum telediastolic.vs',
             'vs volum telediastolic',
@@ -509,8 +520,11 @@ const NUMERIC_FIELDS = [
             'volum tele sistolic vs',
             'volum tele sistolic. vs',
             'volum tele sistolic.vs',
+            'volum tele sistolic',
             'volum telesistolic. vs',
             'volum telesistolic.vs',
+            'volum tele sistolic vse',
+            'volum telesistolic vse',
             'vs volum telesistolic',
             // Whisper "telesistoric" variant (same as diameters) and spaced VS
             'volum telesistoric vs',
@@ -531,6 +545,8 @@ const NUMERIC_FIELDS = [
             'fractiile de ejectie simpson',
             'fractie ejectie simpson',
             'fractia ejectie simpson',
+            'fatie de ejectie simpsong',
+            'fatia de ejectie simpsong',
             'fe simpson',
         ],
     },
@@ -1155,7 +1171,7 @@ const PATIENT_NAME_STOP_WORDS = new Set([
     'nume', 'numele', 'prenume', 'prenumele', 'familie',
     'pacient', 'pacientul', 'pacienta', 'pacientului', 'pacientei',
     'varsta', 'vârsta', 'vârstă', 'varstă', 'an', 'ani',
-    'greutate', 'greutatea', 'kg', 'kilograme', 'kilogramele',
+    'greutate', 'greutatea', 'reutate', 'reutatea', 'kg', 'kilograme', 'kilogramele',
     'inaltime', 'inaltimea', 'înălțime', 'înălțimea', 'cm', 'centimetri',
     'data', 'examinare', 'examinarea', 'examinarii', 'examinării',
     'numar', 'număr', 'numărul', 'curent', 'curentul', 'concluzii',
@@ -1167,7 +1183,7 @@ const COMBINED_NAME_LABEL = new RegExp(`${NO_LETTER_BEFORE}nume[\\s,]+(?:și|si)
 const LAST_NAME_LABEL = patientLabelRegex('nume(?:le)?(?:\\s+de\\s+familie)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
 const FIRST_NAME_LABEL = patientLabelRegex('prenume(?:le)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
 const AGE_LABEL = patientLabelRegex('v[âa]rst[aă]');
-const WEIGHT_LABEL = patientLabelRegex('greutate[aă]?');
+const WEIGHT_LABEL = patientLabelRegex('(?:g)?reutate[aă]?');
 const HEIGHT_LABEL = patientLabelRegex('[îi]n[ăa]l[tțţ]ime[aă]?');
 function captureNameWords(raw, from, maxWords) {
     const wordPattern = new RegExp(`[${ROMANIAN_LETTER_CLASS}]+(?:-[${ROMANIAN_LETTER_CLASS}]+)*`, 'g');

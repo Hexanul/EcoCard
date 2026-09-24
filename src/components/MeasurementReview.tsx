@@ -39,10 +39,11 @@ export function MeasurementReview({
     return toggled.has(index) ? !defaultSelected : defaultSelected;
   };
 
-  const toggle = (index: number) => {
+  const setSelected = (index: number, selected: boolean) => {
     setToggled((prev) => {
+      const defaultSelected = !isConflict(parsedMeasurements[index]);
       const next = new Set(prev);
-      if (next.has(index)) {
+      if (selected === defaultSelected) {
         next.delete(index);
       } else {
         next.add(index);
@@ -80,7 +81,7 @@ export function MeasurementReview({
                   type="checkbox"
                   className="measurement-review__checkbox"
                   checked={selected}
-                  onChange={() => toggle(index)}
+                  onChange={(event) => setSelected(index, event.currentTarget.checked)}
                   aria-label={`${conflict ? 'Înlocuiește' : 'Aplică'} ${item.label}: ${item.value}${unit ? ` ${unit}` : ''}`}
                 />
                 <span className="measurement-review__field">{item.label}</span>
