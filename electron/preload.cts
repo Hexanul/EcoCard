@@ -1,28 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron';
+// Type-only import: erased at compile time, so the sandboxed preload still
+// requires nothing but Electron's built-ins at runtime.
+import type { ExportPdfResponse, PipelineStatus, TranscriptionResponse } from './shared.cjs';
 
 // Sandboxed Electron preloads may only require Electron's limited built-ins.
-// Keep the bridge self-contained: no local Node/CommonJS imports are allowed.
+// Keep the bridge self-contained: no local Node/CommonJS runtime imports are
+// allowed, which is why the channel names are repeated from shared.cts.
 const IPC = {
   getPipelineStatus: 'echo-report:get-pipeline-status',
   transcribeAudio: 'echo-report:transcribe-audio',
   exportPdf: 'echo-report:export-pdf',
 } as const;
-
-type PipelineStatus = {
-  ffmpegFound: boolean;
-  whisperCliFound: boolean;
-  modelFound: boolean;
-  model: 'large-v3-turbo';
-  language: 'ro';
-};
-
-type TranscriptionResponse =
-  | { success: true; transcript: string; original: unknown; converted: unknown }
-  | { success: false; errorCode: string; message: string };
-
-type ExportPdfResponse =
-  | { success: true }
-  | { success: false; errorCode: string; message: string };
 
 type SafeEchoReportApi = {
   readonly isAvailable: true;

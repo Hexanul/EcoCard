@@ -6,36 +6,6 @@
   "author": "Raport Eco",
   "type": "module",
   "main": "dist-electron/main.cjs",
-  "build": {
-    "appId": "ro.raporteco.desktop",
-    "productName": "Raport Eco",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "app",
-        "to": "app",
-        "filter": ["**/*"]
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": ["x64"]
-        }
-      ]
-    },
-    "portable": {
-      "artifactName": "Raport-Eco-Portable.exe"
-    }
-  },
   "scripts": {
     "dev": "npm run build:electron && node scripts/dev.mjs",
     "dev:vite": "vite",

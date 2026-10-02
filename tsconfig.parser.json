@@ -15,9 +15,14 @@
     "types": []
   },
   "include": [
+    "src/config/measurementFields.ts",
+    "src/config/measurementUnits.ts",
     "src/services/medicalParser.ts",
+    "src/services/reportState.ts",
     "src/services/romanianNumberParser.ts",
     "src/services/unitNormalizer.ts",
-    "src/types/echoReport.ts"
+    "src/types/echoReport.ts",
+    "src/utils/bmi.ts",
+    "src/utils/derivedMeasurements.ts"
   ]
 }

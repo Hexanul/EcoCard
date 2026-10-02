@@ -1,11 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import './App.css';
 import { Header } from './components/Header';
 import { PatientForm } from './components/PatientForm';
 import { DictationPanel } from './components/DictationPanel';
 import { MeasurementReview } from './components/MeasurementReview';
-import { EchoMeasurements } from './components/EchoMeasurements';
-import { DopplerMeasurements } from './components/DopplerMeasurements';
+import { MeasurementGroup } from './components/MeasurementGroup';
 import { ConclusionsForm } from './components/ConclusionsForm';
 import { ReportActions } from './components/ReportActions';
 import { ReportPreviewPage } from './components/ReportPreviewPage';
@@ -13,9 +12,14 @@ import { createTestEchoReport } from './dev/testReport';
 import type {
   ParsedEchoData,
   ParsedDetectedItem,
-  ParsedMeasurement,
   ParsedPatientInfo,
 } from './services/medicalParser';
+import {
+  applyDetectedItems,
+  buildDetectedItems,
+  getFollowingCurrentNumber,
+  mergeParsedPatient,
+} from './services/reportState';
 import {
   createEmptyEchoReport,
   type EchoReport,
@@ -23,14 +27,6 @@ import {
   type PatientInfo,
 } from './types/echoReport';
 import { calculateDerivedMeasurements } from './utils/derivedMeasurements';
-import { calculateBmi } from './utils/bmi';
-
-const DERIVED_MEASUREMENT_KEYS: MeasurementKey[] = [
-  'mitralEaRatio',
-  'tricuspidEaRatio',
-  'septalEaPrimeRatio',
-  'eePrimeRatio',
-];
 
 const CURRENT_NUMBER_STORAGE_KEY = 'ecocard-next-current-number';
 
@@ -39,69 +35,22 @@ function getNextCurrentNumber(): number {
   return Number.isInteger(stored) && stored > 0 ? stored : 1;
 }
 
-function getFollowingCurrentNumber(value: string): number | null {
-  const currentNumber = Number(value.trim());
-  return Number.isInteger(currentNumber) && currentNumber > 0 ? currentNumber + 1 : null;
-}
-
 function createReportWithCurrentNumber(): EchoReport {
   const report = createEmptyEchoReport();
   report.patient.currentNumber = String(getNextCurrentNumber());
   return report;
 }
 
-function addCalculatedMeasurements(
-  parsedMeasurements: ParsedMeasurement[],
-  existing: EchoReport['measurements'],
-): ParsedMeasurement[] {
-  const values = { ...existing };
-  const parsedFields = new Set(parsedMeasurements.map((item) => item.field));
-  for (const item of parsedMeasurements) {
-    values[item.field] = item.value;
-  }
-
-  const calculated = calculateDerivedMeasurements(values);
-  const detected = parsedMeasurements.filter(
-    (item) => !DERIVED_MEASUREMENT_KEYS.includes(item.field),
-  );
-  const derivedDefinitions: Array<[
-    MeasurementKey,
-    string,
-    string,
-    MeasurementKey[],
-  ]> = [
-    ['mitralEaRatio', 'Flux mitral — E/A', 'Calculat automat: Undă E / Undă A', ['mitralE', 'mitralA']],
-    ['tricuspidEaRatio', 'Flux tricuspidian — E/A', 'Calculat automat: Undă E / Undă A', ['tricuspidE', 'tricuspidA']],
-    ["septalEaPrimeRatio", "Doppler tisular — E'/A'", "Calculat automat: Undă E' / Undă A'", ['septalEPrime', 'septalAPrime']],
-    ['eePrimeRatio', "Doppler tisular — E/E'", "Calculat automat: Undă E mitrală / Undă E'", ['mitralE', 'septalEPrime']],
-  ];
-
-  for (const [field, label, sourceText, sourceFields] of derivedDefinitions) {
-    if (sourceFields.some((sourceField) => parsedFields.has(sourceField)) && calculated[field] !== '') {
-      detected.push({
-        field,
-        label,
-        value: calculated[field],
-        kind: 'numeric',
-        confidence: 'high',
-        sourceText,
-      });
-    }
-  }
-
-  return detected;
-}
-
 function App() {
   const [report, setReport] = useState<EchoReport>(createReportWithCurrentNumber);
-  const [pendingMeasurements, setPendingMeasurements] = useState<ParsedDetectedItem[]>([]);
+  // The latest transcript parse awaiting review; null once applied or dismissed.
+  const [pendingParse, setPendingParse] = useState<ParsedEchoData | null>(null);
   const [view, setView] = useState<'form' | 'preview'>('form');
+  // Bumped on "Șterge formularul" to remount the dictation panel, so the
+  // previous patient's transcript and recording are discarded with the form.
+  const [dictationKey, setDictationKey] = useState(0);
 
   const updatePatient = (patient: PatientInfo) => {
-    const nextCurrentNumber = getFollowingCurrentNumber(patient.currentNumber);
-    if (nextCurrentNumber !== null) {
-      window.localStorage.setItem(CURRENT_NUMBER_STORAGE_KEY, String(nextCurrentNumber));
-    }
     setReport((prev) => ({ ...prev, patient }));
   };
 
@@ -116,43 +65,22 @@ function App() {
     setReport((prev) => ({ ...prev, conclusions }));
   };
 
+  // Stable callbacks: the dictation panel reports a parse only when the
+  // transcript changes, never because the form state changed.
   const handleMeasurementsParsed = useCallback((data: ParsedEchoData) => {
-    const detected: ParsedDetectedItem[] = addCalculatedMeasurements(data.measurements, report.measurements);
-    if (data.conclusions) {
-      detected.push({
-        field: 'conclusions',
-        label: 'Concluzii',
-        value: data.conclusions,
-        kind: 'qualitative',
-        confidence: 'high',
-        sourceText: data.conclusions,
-      });
-    }
-    setPendingMeasurements(detected);
-  }, [report.measurements]);
+    setPendingParse(data);
+  }, []);
 
   // Dictated patient data fills the form directly (like conclusions); only
   // explicitly spoken fields are touched and the BMI is recalculated.
   const handlePatientParsed = useCallback((parsed: ParsedPatientInfo) => {
-    setReport((prev) => {
-      const current = prev.patient;
-      const weight = parsed.weight || current.weight;
-      const height = parsed.height || current.height;
-      const bmi = calculateBmi(weight, height) || current.bmi;
-      return {
-        ...prev,
-        patient: {
-          ...current,
-          lastName: parsed.lastName || current.lastName,
-          firstName: parsed.firstName || current.firstName,
-          age: parsed.age || current.age,
-          weight,
-          height,
-          bmi,
-        },
-      };
-    });
+    setReport((prev) => ({ ...prev, patient: mergeParsedPatient(prev.patient, parsed) }));
   }, []);
+
+  const pendingMeasurements = useMemo<ParsedDetectedItem[]>(
+    () => (pendingParse ? buildDetectedItems(pendingParse, report.measurements) : []),
+    [pendingParse, report.measurements],
+  );
 
   // Only measurements explicitly approved in the review panel reach the form;
   // manually entered values are never overwritten silently.
@@ -160,23 +88,12 @@ function App() {
     if (selected.length === 0) {
       return;
     }
-    setReport((prev) => {
-      const measurements = { ...prev.measurements };
-      let conclusions = prev.conclusions;
-      for (const item of selected) {
-        if (item.field === 'conclusions') {
-          conclusions = item.value;
-        } else {
-          measurements[item.field] = item.value;
-        }
-      }
-      return { ...prev, measurements: calculateDerivedMeasurements(measurements), conclusions };
-    });
-    setPendingMeasurements([]);
+    setReport((prev) => applyDetectedItems(prev, selected));
+    setPendingParse(null);
   }, []);
 
   const handleDismissReview = useCallback(() => {
-    setPendingMeasurements([]);
+    setPendingParse(null);
   }, []);
 
   // Remounts the review panel whenever a new transcript parse arrives, so
@@ -187,15 +104,18 @@ function App() {
 
   const handleClear = () => {
     setReport(createReportWithCurrentNumber());
+    setPendingParse(null);
+    setDictationKey((key) => key + 1);
   };
 
+  // The register number is consumed only by a successful export. The report
+  // keeps its number, so re-exporting the same patient never skips one; the
+  // next number is shown when a new report is started.
   const handlePdfExported = () => {
-    const nextNumber = getFollowingCurrentNumber(report.patient.currentNumber) ?? getNextCurrentNumber();
-    window.localStorage.setItem(CURRENT_NUMBER_STORAGE_KEY, String(nextNumber));
-    setReport((prev) => ({
-      ...prev,
-      patient: { ...prev.patient, currentNumber: String(nextNumber) },
-    }));
+    const nextNumber = getFollowingCurrentNumber(report.patient.currentNumber);
+    if (nextNumber !== null) {
+      window.localStorage.setItem(CURRENT_NUMBER_STORAGE_KEY, String(nextNumber));
+    }
   };
 
   const handleLoadTestReport = () => {
@@ -206,16 +126,19 @@ function App() {
 
   // The read-only preview renders the same report state — no copy is made,
   // so it always reflects the current form values.
-  if (view === 'preview') {
-    return <ReportPreviewPage report={report} onBack={() => setView('form')} onExportSuccess={handlePdfExported} />;
-  }
-
+  // The form stays mounted (only hidden) while previewing, so the dictation
+  // panel keeps its transcript and recording when the doctor comes back.
   return (
-    <div className="app">
+    <>
+    {view === 'preview' && (
+      <ReportPreviewPage report={report} onBack={() => setView('form')} onExportSuccess={handlePdfExported} />
+    )}
+    <div className="app" style={view === 'preview' ? { display: 'none' } : undefined}>
       <Header />
 
       <main className="app-main">
         <DictationPanel
+          key={dictationKey}
           onMeasurementsParsed={handleMeasurementsParsed}
           onPatientParsed={handlePatientParsed}
         />
@@ -232,11 +155,15 @@ function App() {
         )}
 
         <section className="panel measurements-panel">
-          <EchoMeasurements
+          <MeasurementGroup
+            group="echo"
+            title="M ECHO + 2D ECHO"
             measurements={report.measurements}
             onChange={updateMeasurement}
           />
-          <DopplerMeasurements
+          <MeasurementGroup
+            group="doppler"
+            title="ECHO DOPPLER"
             measurements={report.measurements}
             onChange={updateMeasurement}
           />
@@ -258,6 +185,7 @@ function App() {
         )}
       </main>
     </div>
+    </>
   );
 }
 

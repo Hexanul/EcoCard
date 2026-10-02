@@ -17,6 +17,7 @@ export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPre
   // happens without the doctor clicking "Exportă PDF".
   const pdfAvailable = getEchoReportApi() !== null;
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const exporting = exportStatus === 'generating';
 
@@ -36,10 +37,12 @@ export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPre
         setExportStatus('idle');
       } else {
         console.error('[Echo Report] PDF export failed:', result.errorCode);
+        setErrorMessage(result.message);
         setExportStatus('error');
       }
     } catch (error) {
       console.error('[Echo Report] PDF export failed:', error);
+      setErrorMessage('');
       setExportStatus('error');
     }
   };
@@ -58,7 +61,7 @@ export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPre
           <p className={`preview-toolbar__status preview-toolbar__status--${exportStatus}`} role="status">
             {exportStatus === 'generating' && 'Se generează PDF...'}
             {exportStatus === 'success' && 'PDF generat cu succes.'}
-            {exportStatus === 'error' && 'Generarea PDF-ului a eșuat.'}
+            {exportStatus === 'error' && (errorMessage || 'Generarea PDF-ului a eșuat.')}
           </p>
         )}
         <button

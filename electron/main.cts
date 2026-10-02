@@ -1,12 +1,22 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { pipelineStatus } from './config.cjs';
 import { exportReportPdf } from './pdf.cjs';
 import { IPC, type ExportPdfResponse, type TranscriptionFailure, type TranscriptionResponse } from './shared.cjs';
 import { transcribeAudio } from './transcription.cjs';
 
 const devServerUrl = process.env.ECHOREPORT_DEV_SERVER_URL;
-const isTrustedRendererUrl = (url: string): boolean => url.startsWith('file:') || (devServerUrl !== undefined && url.startsWith(devServerUrl));
+const rendererIndexPath = path.join(__dirname, '../dist/index.html');
+const rendererFileUrl = pathToFileURL(rendererIndexPath).href;
+// Only the bundled index.html (or the Vite dev server origin) is trusted; any
+// other file:// page, e.g. an HTML file dropped onto the window, is not.
+const isTrustedRendererUrl = (url: string): boolean => {
+  if (devServerUrl !== undefined) {
+    try { return new URL(url).origin === new URL(devServerUrl).origin; } catch { return false; }
+  }
+  return url.split(/[?#]/)[0] === rendererFileUrl;
+};
 const failure = (errorCode: TranscriptionFailure['errorCode'], message: string): TranscriptionFailure => ({ success: false, errorCode, message });
 
 function createWindow(): void {
@@ -18,7 +28,7 @@ function createWindow(): void {
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, url) => { if (!isTrustedRendererUrl(url)) event.preventDefault(); });
-  if (devServerUrl) void mainWindow.loadURL(devServerUrl); else void mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  if (devServerUrl) void mainWindow.loadURL(devServerUrl); else void mainWindow.loadFile(rendererIndexPath);
 }
 
 function registerIpc(): void {

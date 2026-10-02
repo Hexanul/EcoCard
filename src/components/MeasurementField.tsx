@@ -38,7 +38,7 @@ export function MeasurementField({
       <div className="field__input-row">
         <input
           id={id}
-          type={type === 'numeric' ? 'text' : 'text'}
+          type="text"
           inputMode={type === 'numeric' ? 'decimal' : 'text'}
           value={value}
           onChange={(e) => onChange(e.target.value)}

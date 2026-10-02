@@ -1,4 +1,4 @@
-import type { Measurements } from '../types/echoReport';
+import type { Measurements } from '../types/echoReport.js';
 
 function divideValues(numerator: string, denominator: string): string {
   const parsedNumerator = Number(numerator.trim().replace(',', '.'));

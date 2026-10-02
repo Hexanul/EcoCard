@@ -1,3 +1,5 @@
+import { MEASUREMENT_FIELDS } from '../config/measurementFields.js';
+import { convertUnit, MEASUREMENT_UNITS } from '../config/measurementUnits.js';
 import type { MeasurementKey } from '../types/echoReport.js';
 import { findRomanianNumber } from './romanianNumberParser.js';
 import { findUnit } from './unitNormalizer.js';
@@ -14,6 +16,11 @@ export type ParsedMeasurement = {
   kind: ParsedMeasurementKind;
   confidence: ConfidenceLevel;
   sourceText: string;
+  // Spoken unit when the value was converted to the field's unit ("mm").
+  convertedFrom?: string;
+  // The spoken unit differs from the field's unit and cannot be converted;
+  // the value must never be applied without an explicit doctor decision.
+  unitMismatch?: boolean;
 };
 
 export type ParsedConclusion = {
@@ -45,7 +52,6 @@ type FlowContext = 'aortic' | 'lvot' | 'mitral' | 'tricuspid' | 'pulmonary' | 's
 
 type NumericFieldDef = {
   field: MeasurementKey;
-  label: string;
   aliases: string[];
   context?: FlowContext;
   // Section contexts in which this definition must NOT be applied, even
@@ -56,7 +62,6 @@ type NumericFieldDef = {
 
 type QualitativeFieldDef = {
   field: MeasurementKey;
-  label: string;
   aliases: string[];
 };
 
@@ -150,10 +155,18 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Secțiune longitudinală parasternală
   {
     field: 'lvEndDiastolicDiameter',
-    label: 'VS — diametrul telediastolic',
     aliases: [
       'vs diametrul telediastolic',
       'vs diametrul telediastoric',
+      // Spoken "diametru la telediastolic" (with "la" between the words).
+      'vs diametru la telediastolic',
+      'vs diametrul la telediastolic',
+      'vs diametru la telediastoric',
+      'vs diametrul la telediastoric',
+      'vs diametru la tele diastolic',
+      'vs diametrul la tele diastolic',
+      'vs diametru la tele diastoric',
+      'vs diametrul la tele diastoric',
       // Whisper splits "telediastolic" into "tele diastolic" (with or
       // without a comma between the two words).
       'vs diametrul tele diastolic',
@@ -173,9 +186,22 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vse diametrul tele diastoric',
       'vse diametru tele diastolic',
       'vse diametru telediastolic',
+      'vse diametrul la telediastolic',
+      'vse diametru la telediastolic',
+      'vse diametrul la tele diastolic',
+      'vse diametru la tele diastolic',
+      'vse diametrul la telediastoric',
+      'vse diametru la telediastoric',
+      'vse diametrul la tele diastoric',
+      'vse diametru la tele diastoric',
       'vse diametrul telediastolic',
       'vse telediastolic',
       'vse telediastoric',
+      // Whisper hears "tele" as the digit 3 ("diametru 3 diastolic").
+      'vs diametru 3 diastolic',
+      'vs diametrul 3 diastolic',
+      'vse diametru 3 diastolic',
+      'vse diametrul 3 diastolic',
       'vse diametru telediastolic',
       'vse diametru telediastoric',
       'vse diametrul tele diastolic',
@@ -184,13 +210,24 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Unprefixed telediastolic forms (same parasternal rule as above).
   {
     field: 'lvEndDiastolicDiameter',
-    label: 'VS — diametrul telediastolic',
     aliases: [
       'diametrul telediastolic',
       'diametrul telediastoric',
+      'diametru la telediastolic',
+      'diametrul la telediastolic',
+      'diametru la telediastoric',
+      'diametrul la telediastoric',
+      'diametru la tele diastolic',
+      'diametrul la tele diastolic',
+      'diametru la tele diastoric',
+      'diametrul la tele diastoric',
       'diametrul tele diastolic',
       'diametrul tele diastoric',
       'diametru tele diastolic',
+      'diametrul la diastolic',
+      'diametru la diastolic',
+      'diametrul la diastoric',
+      'diametru la diastoric',
       'diametrul diastolic',
       'diametrul diastoric',
       'diametru diastolic',
@@ -200,9 +237,15 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'lvEndSystolicDiameter',
-    label: 'VS — diametrul telesistolic',
     aliases: [
       'vs diametrul telesistolic',
+      // Spoken "diametru la telesistolic" (with "la" between the words).
+      'vs diametru la telesistolic',
+      'vs diametrul la telesistolic',
+      'vs diametru la telesistoric',
+      'vs diametrul la telesistoric',
+      'vs diametru la tele sistolic',
+      'vs diametrul la tele sistolic',
       // Whisper splits "telesistolic" into "tele sistolic" (with or
       // without a comma between the two words).
       'vs diametrul tele sistolic',
@@ -212,6 +255,10 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vs diametrul telesistoric',
       'vs telesistolic',
       // Whisper "teletistolic" / "tele tistolic" (s -> t) for telesistolic
+      'vs diametrul la teletistolic',
+      'vs diametru la teletistolic',
+      'vs diametrul la tele tistolic',
+      'vs diametru la tele tistolic',
       'vs diametrul teletistolic',
       'vs diametru teletistolic',
       'vs diametrul tele tistolic',
@@ -225,17 +272,30 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'ps teletistolic',
       // Whisper "VSE" for "VS".
       'vse diametrul telesistolic',
+      'vse diametru la telesistolic',
+      'vse diametrul la telesistolic',
+      'vse diametru la tele sistolic',
+      'vse diametrul la tele sistolic',
       'vse diametrul tele sistolic',
       'vse diametru tele sistolic',
       'vse diametru telesistolic',
       'vse diametru telesistoric',
       'vse diametrul telesistoric',
       'vse telesistolic',
+      'vse diametrul la teletistolic',
+      'vse diametru la teletistolic',
+      'vse diametrul la tele tistolic',
+      'vse diametru la tele tistolic',
       'vse diametrul teletistolic',
       'vse diametru teletistolic',
       'vse diametrul tele tistolic',
       'vse diametru tele tistolic',
       'vse teletistolic',
+      // Whisper hears "tele" as the digit 3: "VSE, diametru 3 sistolic 2".
+      'vs diametru 3 sistolic',
+      'vs diametrul 3 sistolic',
+      'vse diametru 3 sistolic',
+      'vse diametrul 3 sistolic',
       'vse diametru telesistolic',
     ],
   },
@@ -245,9 +305,12 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   // (e.g. APICAL 4C, where diameters are latero-median) is active.
   {
     field: 'lvEndSystolicDiameter',
-    label: 'VS — diametrul telesistolic',
     aliases: [
       'diametrul telesistolic',
+      'diametru la telesistolic',
+      'diametrul la telesistolic',
+      'diametru la tele sistolic',
+      'diametrul la tele sistolic',
       'diametrul tele sistolic',
       'diametrul teletistolic',
       'diametrul tele tistolic',
@@ -256,7 +319,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'ivsDiastolicDiameter',
-    label: 'SIV — diametrul diastolic',
     aliases: [
       'siv diametrul diastolic',
       'siv diametrul diastoric',
@@ -272,13 +334,17 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'siv diam siastolic',
       'siv diametrul diasolic',
       'siv diam diasolic',
+      // Whisper hears "SIV" as "SIF".
+      'sif diametrul diastolic',
+      'sif diametru diastolic',
+      'sif diam diastolic',
+      'sif diastolic',
       'sept interventricular diametrul diastolic',
       'sept interventricular diametrul diastoric',
     ],
   },
   {
     field: 'posteriorWallDiastolicDiameter',
-    label: 'Perete posterior — diametrul diastolic',
     aliases: [
       'perete posterior diametrul diastolic',
       'perete posterior diametrul diastoric',
@@ -318,7 +384,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'lvEjectionFractionTeicholz',
-    label: 'Fracție de ejecție VS (Teicholz)',
     aliases: [
       'fractie de ejectie vs teicholz',
       'fractie de ejectie teicholz',
@@ -372,17 +437,14 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'shorteningFraction',
-    label: 'Fracție de scurtare',
     aliases: ['fractie de scurtare', 'fractia de scurtare'],
   },
   {
     field: 'lvMass',
-    label: 'Masă VS',
     aliases: ['masa vs', 'masa vse', 'masa ventricul stang'],
   },
   {
     field: 'aortaAnnulus',
-    label: 'Aortă la inel',
     aliases: [
       'aorta la inel',
       'aorta la inelul',
@@ -400,7 +462,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'ascendingAorta',
-    label: 'Aortă ascendentă',
     aliases: [
       'aorta ascendenta',
       'aortel ascendente',
@@ -417,7 +478,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'laAnteroposteriorDiameter',
-    label: 'AS — diametrul antero-posterior',
     aliases: [
       'as diametrul antero posterior',
       'as diametrul anteroposterior',
@@ -429,15 +489,20 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'as diametru anterior posterior',
       'ase diametrul anterior postior',
       'ase diametru anterior postior',
+      'ase diametrul anteroposterior',
+      'ase diametru anteroposterior',
+      'ase diametrul antero posterior',
+      'ase diametru antero posterior',
       'atriul stang diametrul antero posterior',
       // Dictated without the "AS" prefix ("Diametrul anteroposterior, 3 cm").
       'diametrul anteroposterior',
       'diametrul antero posterior',
+      'diametru anteroposterior',
+      'diametru antero posterior',
     ],
   },
   {
     field: 'aortaAtArch',
-    label: 'Aortă la nivelul croșei',
     aliases: [
       'aorta la nivelul crosei',
       'aorta la nivelul crossei',
@@ -449,14 +514,12 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'pulmonaryArtery',
-    label: 'Arteră pulmonară',
     aliases: ['artera pulmonara', 'atera pulmonara', 'aorta la pulmonara'],
   },
 
   // Apical 4C
   {
     field: 'lvLateromedialDiameter',
-    label: 'VS — diametrul latero-median',
     aliases: [
       'vs diametrul latero median',
       'vs diametrul lateromedian',
@@ -473,7 +536,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'rvLateromedialDiameter',
-    label: 'VD — diametrul latero-median',
     aliases: [
       'vd diametrul latero median',
       'vd diametrul lateromedian',
@@ -490,7 +552,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'laLateromedialDiameter',
-    label: 'AS — diametrul latero-median',
     aliases: [
       'as diametrul latero median',
       'as diametrul lateromedian',
@@ -507,7 +568,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'raLateromedialDiameter',
-    label: 'AD — diametrul latero-median',
     aliases: [
       'ad diametrul latero median',
       'ad diametrul lateromedian',
@@ -528,35 +588,29 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   // phrase stays unparsed rather than guessed.
   {
     field: 'lvLateromedialDiameter',
-    label: 'VS — diametrul latero-median',
     aliases: ['diametrul latero median', 'diametrul lateromedian', 'diam latero median', 'diam lateromedian'],
     context: 'apical4c',
   },
   {
     field: 'mapse',
-    label: 'MAPSE',
     aliases: ['mapse'],
   },
   {
     field: 'tapse',
-    label: 'TAPSE',
     aliases: ['tapse'],
   },
 
   // Alte măsurători
   {
     field: 'laArea',
-    label: 'Aria AS',
     aliases: ['aria as', 'area as', 'aria atriului stang'],
   },
   {
     field: 'raArea',
-    label: 'Aria AD',
     aliases: ['aria ad', 'area ad', 'aria atriului drept'],
   },
   {
     field: 'lvEndDiastolicVolume',
-    label: 'Volum telediastolic VS',
     aliases: [
       'volum telediastolic vs',
       'volumul telediastolic vs',
@@ -573,7 +627,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'lvEndSystolicVolume',
-    label: 'Volum telesistolic VS',
     aliases: [
       'volum telesistolic vs',
       'volumul telesistolic vs',
@@ -599,7 +652,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'lvEjectionFractionSimpson',
-    label: 'Fracție de ejecție Simpson',
     aliases: [
       'fractie de ejectie simpson',
       'fractia de ejectie simpson',
@@ -615,7 +667,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'aorticValveArea',
-    label: 'Aria valvei aortice (EC)',
     aliases: [
       // The "EC" suffix is dictated by Whisper with or without parentheses;
       // "area" instead of "aria" is a known Whisper variant.
@@ -649,7 +700,6 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'mitralValveArea',
-    label: 'Aria valvei mitrale',
     aliases: [
       'aria valvei mitrale',
       'aria valvei mitrala',
@@ -669,58 +719,55 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
 
   // Doppler — flux aortic
-  { field: 'aorticVmax', label: 'Flux aortic — Vmax', aliases: ['vmax', 'v max'], context: 'aortic' },
-  { field: 'aorticPmax', label: 'Flux aortic — Pmax', aliases: ['pmax', 'p max'], context: 'aortic' },
-  { field: 'aorticPmean', label: 'Flux aortic — Pmediu', aliases: ['pmediu', 'p mediu'], context: 'aortic' },
+  { field: 'aorticVmax', aliases: ['vmax', 'v max'], context: 'aortic' },
+  { field: 'aorticPmax', aliases: ['pmax', 'p max'], context: 'aortic' },
+  { field: 'aorticPmean', aliases: ['pmediu', 'p mediu'], context: 'aortic' },
 
   // Doppler — flux LVOT
-  { field: 'lvotVmax', label: 'Flux LVOT — Vmax', aliases: ['vmax', 'v max'], context: 'lvot' },
-  { field: 'lvotPmax', label: 'Flux LVOT — Pmax', aliases: ['pmax', 'p max'], context: 'lvot' },
-  { field: 'lvotVti', label: 'Flux LVOT — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'lvot' },
+  { field: 'lvotVmax', aliases: ['vmax', 'v max'], context: 'lvot' },
+  { field: 'lvotPmax', aliases: ['pmax', 'p max'], context: 'lvot' },
+  { field: 'lvotVti', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'lvot' },
 
   // Doppler — flux mitral
   // Bare "e"/"a"/"ea" are only matched while the mitral context is active, so
   // Whisper forms like "E4", "A5", "EA1.2" never leak into other sections.
-  { field: 'mitralE', label: 'Flux mitral — Undă E', aliases: ['unda e', 'onda e', 'e'], context: 'mitral' },
-  { field: 'mitralA', label: 'Flux mitral — Undă A', aliases: ['unda a', 'onda a', 'a'], context: 'mitral' },
-  { field: 'mitralEaRatio', label: 'Flux mitral — E/A', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'mitral' },
-  { field: 'mitralDecelerationTime', label: 'Flux mitral — TDE', aliases: ['tde', 'timp de deceleratie'], context: 'mitral' },
-  { field: 'mitralTriv', label: 'Flux mitral — TRIV', aliases: ['triv'], context: 'mitral' },
+  { field: 'mitralE', aliases: ['unda e', 'onda e', 'e'], context: 'mitral' },
+  { field: 'mitralA', aliases: ['unda a', 'onda a', 'a'], context: 'mitral' },
+  { field: 'mitralEaRatio', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'mitral' },
+  { field: 'mitralDecelerationTime', aliases: ['tde', 'timp de deceleratie'], context: 'mitral' },
+  { field: 'mitralTriv', aliases: ['triv'], context: 'mitral' },
 
   // Doppler — flux tricuspidian
-  { field: 'tricuspidVmax', label: 'Flux tricuspidian — Vmax', aliases: ['vmax', 'v max'], context: 'tricuspid' },
-  { field: 'tricuspidPmax', label: 'Flux tricuspidian — Pmax', aliases: ['pmax', 'p max'], context: 'tricuspid' },
+  { field: 'tricuspidVmax', aliases: ['vmax', 'v max'], context: 'tricuspid' },
+  { field: 'tricuspidPmax', aliases: ['pmax', 'p max'], context: 'tricuspid' },
   // PSVD is a unique measurement name, so it is not gated behind the
   // tricuspid flow context: Whisper may drop the initial "P" ("Svd") and the
   // phrase can be dictated without the "Flux tricuspidian" heading.
   // Whisper phonetic "psevede" for PSVD
-  { field: 'psvd', label: 'Flux tricuspidian — PSVD', aliases: ['psvd', 'svd', 'psevede', 'pseved', 'pseve de'] },
-  { field: 'tricuspidE', label: 'Flux tricuspidian — Undă E', aliases: ['unda e', 'e'], context: 'tricuspid' },
-  { field: 'tricuspidA', label: 'Flux tricuspidian — Undă A', aliases: ['unda a', 'a'], context: 'tricuspid' },
-  { field: 'tricuspidEaRatio', label: 'Flux tricuspidian — E/A', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'tricuspid' },
+  { field: 'psvd', aliases: ['psvd', 'svd', 'psevede', 'pseved', 'pseve de'] },
+  { field: 'tricuspidE', aliases: ['unda e', 'e'], context: 'tricuspid' },
+  { field: 'tricuspidA', aliases: ['unda a', 'a'], context: 'tricuspid' },
+  { field: 'tricuspidEaRatio', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'tricuspid' },
 
   // Doppler — flux pulmonar
-  { field: 'pulmonaryVmax', label: 'Flux pulmonar — Vmax', aliases: ['vmax', 'v max'], context: 'pulmonary' },
-  { field: 'pulmonaryPmax', label: 'Flux pulmonar — Pmax', aliases: ['pmax', 'p max'], context: 'pulmonary' },
-  { field: 'pulmonaryVti', label: 'Flux pulmonar — VTI', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'pulmonary' },
+  { field: 'pulmonaryVmax', aliases: ['vmax', 'v max'], context: 'pulmonary' },
+  { field: 'pulmonaryPmax', aliases: ['pmax', 'p max'], context: 'pulmonary' },
+  { field: 'pulmonaryVti', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'pulmonary' },
 
   // Doppler tisular (sept) — in this section "Unda E"/"Unda A"/"EA"/"EE" mean
   // E', A', E'/A' and E/E' respectively (not the mitral waves).
   {
     field: 'septalEPrime',
-    label: "Doppler tisular — Undă E'",
     aliases: ["unda e'", 'unda e prim', 'unda e prime', 'unda e', 'e'],
     context: 'septal',
   },
   {
     field: 'septalAPrime',
-    label: "Doppler tisular — Undă A'",
     aliases: ["unda a'", 'unda a prim', 'unda a prime', 'unda a', 'a'],
     context: 'septal',
   },
   {
     field: 'septalEaPrimeRatio',
-    label: "Doppler tisular — E'/A'",
     aliases: [
       "e'/a'",
       'e prim a prim',
@@ -735,17 +782,15 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'eePrimeRatio',
-    label: "Doppler tisular — E/E'",
     aliases: ["e/e'", 'e e prim', 'e pe e prim', 'e/e', 'e e', 'ee', 'e pe e'],
     context: 'septal',
   },
-  { field: 'septalS', label: 'Doppler tisular — Undă S', aliases: ['unda s'], context: 'septal' },
+  { field: 'septalS', aliases: ['unda s'], context: 'septal' },
 ];
 
 const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
   {
     field: 'aorticRegurgitation',
-    label: 'Regurgitare aortică',
     aliases: [
       'regurgitare aortica',
       'regurgitarea aortica',
@@ -761,7 +806,6 @@ const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
   },
   {
     field: 'mitralRegurgitation',
-    label: 'Regurgitare mitrală',
     aliases: [
       'regurgitare mitrala',
       'regurgitarea mitrala',
@@ -773,7 +817,6 @@ const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
   },
   {
     field: 'tricuspidRegurgitation',
-    label: 'Regurgitare tricuspidiană',
     aliases: [
       'regurgitare tricuspidiana',
       'regurgitarea tricuspidiana',
@@ -787,7 +830,6 @@ const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
   },
   {
     field: 'pulmonaryRegurgitation',
-    label: 'Regurgitare pulmonară',
     aliases: [
       'regurgitare pulmonara',
       'regurgitarea pulmonara',
@@ -799,18 +841,17 @@ const QUALITATIVE_FIELDS: QualitativeFieldDef[] = [
   },
   {
     field: 'pericardialFluid',
-    label: 'Lichid pericardic',
     aliases: [
       'lichid pericardic',
       // Whisper concatenation of "pericard, lichid pericardic".
       'pericardichid pericardic',
     ],
   },
-  { field: 'wallMotion', label: 'Cinetică parietală', aliases: ['cinetica parietala'] },
-  { field: 'aorticValves', label: 'Valve aortice', aliases: ['valve aortice'] },
-  { field: 'mitralValves', label: 'Valve mitrale', aliases: ['valve mitrale'] },
-  { field: 'tricuspidValves', label: 'Valve tricuspide', aliases: ['valve tricuspide'] },
-  { field: 'pulmonaryValves', label: 'Valve pulmonare', aliases: ['valve pulmonare'] },
+  { field: 'wallMotion', aliases: ['cinetica parietala'] },
+  { field: 'aorticValves', aliases: ['valve aortice'] },
+  { field: 'mitralValves', aliases: ['valve mitrale'] },
+  { field: 'tricuspidValves', aliases: ['valve tricuspide'] },
+  { field: 'pulmonaryValves', aliases: ['valve pulmonare'] },
 ];
 
 // Known qualitative value words used to recover Whisper concatenations such as
@@ -871,73 +912,47 @@ function normalizeChar(ch: string): string {
   return out.replace(/[șş]/g, 's').replace(/[țţ]/g, 't');
 }
 
-// Normalizes dotted abbreviations like "V.S." / "V S" / "V, S" -> "vs" for chamber
-// prefixes that Whisper often splits. Must run on already-lowercased
+type TextReplacement = { pattern: RegExp; target: string };
+
+// Single source of truth for the text rewrites applied before matching; used
+// by normalizeWithIndex() and therefore by normalize() as well, so alias
+// matching and value extraction always see the same normalized text.
+//
+// Dotted abbreviations like "V.S." / "V S" / "V, S" -> "vs" for chamber
+// prefixes that Whisper often splits. They run on already-lowercased
 // normalized text (a-z only). Commas/semicolons between letters are also
 // normalized because Whisper often dictates "V, S," with commas.
-function normalizeAbbreviations(text: string): string {
-  return text
-    .replace(/\bv\s*[.,;]?\s*s\s*[.,;]?\s*e\.?(?![a-z0-9])/g, 'vse')
-    .replace(/\bv\s*[.,;]?\s*s\.?(?![a-z0-9])/g, 'vs')
-    .replace(/\bv\s*[.,;]?\s*d\.?(?![a-z0-9])/g, 'vd')
-    .replace(/\ba\s*[.,;]?\s*s\.?(?![a-z0-9])/g, 'as')
-    .replace(/\ba\s*[.,;]?\s*d\.?(?![a-z0-9])/g, 'ad')
-    .replace(/\bp\s*[.,;]?\s*s\.?(?![a-z0-9])/g, 'ps')
-    .replace(/\bf\s*[.,;]?\s*e\.?(?![a-z0-9])/g, 'fe');
-}
+const ABBREVIATION_REPLACEMENTS: TextReplacement[] = [
+  { pattern: /\bv\s*[.,;]?\s*s\s*[.,;]?\s*e\.?(?![a-z0-9])/g, target: 'vse' },
+  { pattern: /\bv\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'vs' },
+  { pattern: /\bv\s*[.,;]?\s*d\.?(?![a-z0-9])/g, target: 'vd' },
+  { pattern: /\ba\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'as' },
+  { pattern: /\ba\s*[.,;]?\s*d\.?(?![a-z0-9])/g, target: 'ad' },
+  { pattern: /\bp\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'ps' },
+  { pattern: /\bf\s*[.,;]?\s*e\.?(?![a-z0-9])/g, target: 'fe' },
+];
 
-// Whisper typo "ejencție" (ejenctie) for "ejecție" (ejectie) — extra 'n'.
-function normalizeEjectieTypo(text: string): string {
-  return text
-    .replace(/\bejenctie\b/g, 'ejectie')
-    .replace(/\bejentie\b/g, 'ejectie')
-    .replace(/\bejencie\b/g, 'ejectie');
-}
-
-// Whisper typo "daimetru" for "diametru" — swapped vowel (a-i vs i-a).
-function normalizeDaimetruTypo(text: string): string {
-  return text.replace(/daimetr/g, 'diametr');
-}
-
-// Whisper transcribes "VSE" letter-by-letter as "vese" (ve+se) and
-// "telesistolic/telediastolic" with Romanian inflection "telesistelor".
-function normalizeVseAndTelesistelorTypo(text: string): string {
-  return text
-    .replace(/\bvese\b/g, 'vse')
-    .replace(/telesistelor/g, 'telesistolic')
-    .replace(/telesistolor/g, 'telesistolic')
-    .replace(/telediastelor/g, 'telediastolic')
-    .replace(/telediastolor/g, 'telediastolic')
-    .replace(/\bsistelor\b/g, 'sistolic')
-    .replace(/\bsistolor\b/g, 'sistolic')
-    .replace(/\bdiastelor\b/g, 'diastolic')
-    .replace(/\bdiastolor\b/g, 'diastolic');
-}
-
-// Protects decimal commas ("5,3", "4,85", "4, 5") from ever being treated as
-// separators by replacing them with a decimal point. Whisper often inserts
-// a space after the comma ("4, 5"), so optional whitespace is consumed.
-// The replacement normalizes to "digit.digit" and keeps length differences
-// minimal; rawIndex mapping stays valid because normalizeWithIndex also
-// collapses whitespace.
-function protectDecimalCommas(text: string): string {
-  return text.replace(/(\d),\s*(\d)/g, '$1.$2');
-}
+// Whisper typos: "ejencție" (ejenctie) for "ejecție" (extra 'n'), "daimetru"
+// for "diametru" (swapped vowel), "VSE" spelled "vese" (ve+se), and the
+// Romanian inflection "telesistelor" for "telesistolic/telediastolic".
+const TYPO_REPLACEMENTS: TextReplacement[] = [
+  { pattern: /\bejenctie\b/g, target: 'ejectie' },
+  { pattern: /\bejentie\b/g, target: 'ejectie' },
+  { pattern: /\bejencie\b/g, target: 'ejectie' },
+  { pattern: /daimetr/g, target: 'diametr' },
+  { pattern: /\bvese\b/g, target: 'vse' },
+  { pattern: /telesistelor/g, target: 'telesistolic' },
+  { pattern: /telesistolor/g, target: 'telesistolic' },
+  { pattern: /telediastelor/g, target: 'telediastolic' },
+  { pattern: /telediastolor/g, target: 'telediastolic' },
+  { pattern: /\bsistelor\b/g, target: 'sistolic' },
+  { pattern: /\bsistolor\b/g, target: 'sistolic' },
+  { pattern: /\bdiastelor\b/g, target: 'diastolic' },
+  { pattern: /\bdiastolor\b/g, target: 'diastolic' },
+];
 
 function normalize(text: string): string {
-  let out = '';
-  for (const ch of text) {
-    if (isSpace(ch) || ch === '-') {
-      if (out.length > 0 && out[out.length - 1] !== ' ') out += ' ';
-      continue;
-    }
-    out += normalizeChar(ch);
-  }
-  return normalizeVseAndTelesistelorTypo(
-    normalizeDaimetruTypo(
-      normalizeEjectieTypo(normalizeAbbreviations(protectDecimalCommas(out.trim()))),
-    ),
-  );
+  return normalizeWithIndex(text).text;
 }
 
 // Collapses whitespace/hyphens and records the raw position of every
@@ -956,8 +971,9 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
       }
       continue;
     }
-    text += normalizeChar(ch);
-    rawIndex.push(i);
+    const normalized = normalizeChar(ch);
+    text += normalized;
+    for (let k = 0; k < normalized.length; k += 1) rawIndex.push(i);
   }
   const trimmed = text.trim();
   // Trim start: drop leading rawIndex entries corresponding to leading spaces
@@ -995,24 +1011,13 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
       // Space inside decimal "4, 5" -> skip it (already converted comma to dot)
       continue;
     }
-    // Also handle case where protectDecimalCommas comma was already converted?
-    // Whisper "4, 5" originally has comma->dot conversion above, space skipped here.
     out += ch;
     outRawIndex.push(trimmedRawIndex[i]);
   }
   // Normalize dotted abbreviations "V.S." / "V S" / "V, S" -> "vs" etc., keeping rawIndex
   // aligned by preserving only the letter positions (dots/spaces/commas are dropped).
   // This ensures "Masa V.S. 5" and "V, S, daimetru ..." match alias "masa vs" / "vs diametru".
-  const abbrevReplacements: Array<{ pattern: RegExp; target: string }> = [
-    { pattern: /\bv\s*[.,;]?\s*s\s*[.,;]?\s*e\.?(?![a-z0-9])/g, target: 'vse' },
-    { pattern: /\bv\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'vs' },
-    { pattern: /\bv\s*[.,;]?\s*d\.?(?![a-z0-9])/g, target: 'vd' },
-    { pattern: /\ba\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'as' },
-    { pattern: /\ba\s*[.,;]?\s*d\.?(?![a-z0-9])/g, target: 'ad' },
-    { pattern: /\bp\s*[.,;]?\s*s\.?(?![a-z0-9])/g, target: 'ps' },
-    { pattern: /\bf\s*[.,;]?\s*e\.?(?![a-z0-9])/g, target: 'fe' },
-  ];
-  for (const { pattern, target } of abbrevReplacements) {
+  for (const { pattern, target } of ABBREVIATION_REPLACEMENTS) {
     // Reset regex state for each iteration after mutation
     let match: RegExpExecArray | null;
     // Use while loop with manual index tracking because we mutate out
@@ -1038,26 +1043,9 @@ function normalizeWithIndex(raw: string): { text: string; rawIndex: number[] } {
       if (pattern.lastIndex > out.length) break;
     }
   }
-  // Whisper typos: "ejenctie" (ejencție) -> "ejectie" (extra 'n'),
-  // "daimetru" -> "diametru" (swapped vowel), "vese" (ve+se) -> "vse" and
-  // "telesistelor" -> "telesistolic" (inflection). Length changes require
-  // dropping a rawIndex entry; same-length replacements keep all indices.
-  const typoPatterns: Array<{ pattern: RegExp; target: string }> = [
-    { pattern: /\bejenctie\b/g, target: 'ejectie' },
-    { pattern: /\bejentie\b/g, target: 'ejectie' },
-    { pattern: /\bejencie\b/g, target: 'ejectie' },
-    { pattern: /daimetr/g, target: 'diametr' },
-    { pattern: /\bvese\b/g, target: 'vse' },
-    { pattern: /telesistelor/g, target: 'telesistolic' },
-    { pattern: /telesistolor/g, target: 'telesistolic' },
-    { pattern: /telediastelor/g, target: 'telediastolic' },
-    { pattern: /telediastolor/g, target: 'telediastolic' },
-    { pattern: /\bsistelor\b/g, target: 'sistolic' },
-    { pattern: /\bsistolor\b/g, target: 'sistolic' },
-    { pattern: /\bdiastelor\b/g, target: 'diastolic' },
-    { pattern: /\bdiastolor\b/g, target: 'diastolic' },
-  ];
-  for (const { pattern, target } of typoPatterns) {
+  // Length-changing typo fixes drop the rawIndex entry of the removed letter;
+  // same-length replacements keep all indices.
+  for (const { pattern, target } of TYPO_REPLACEMENTS) {
     pattern.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = pattern.exec(out)) !== null) {
@@ -1132,48 +1120,41 @@ type AnyMatch = {
   def?: NumericFieldDef | QualitativeFieldDef;
 };
 
-function collectMatches(normalizedText: string): AnyMatch[] {
-  const matches: AnyMatch[] = [];
+type AliasMatcher = Omit<AnyMatch, 'start' | 'end'> & { pattern: RegExp };
 
+// Compiled once: the transcript is re-parsed on every keystroke.
+let aliasMatchers: AliasMatcher[] | null = null;
+
+function getAliasMatchers(): AliasMatcher[] {
+  if (aliasMatchers) return aliasMatchers;
+  const matchers: AliasMatcher[] = [];
   for (const [context, aliases] of Object.entries(CONTEXT_ALIASES) as [FlowContext, string[]][]) {
     for (const alias of aliases) {
-      const pattern = aliasPattern(alias);
-      for (const match of normalizedText.matchAll(pattern)) {
-        matches.push({
-          kind: 'context',
-          start: match.index ?? 0,
-          end: (match.index ?? 0) + match[0].length,
-          context,
-        });
-      }
+      matchers.push({ kind: 'context', context, pattern: aliasPattern(alias) });
     }
   }
-
   for (const def of NUMERIC_FIELDS) {
     for (const alias of def.aliases) {
-      const pattern = aliasPattern(alias);
-      for (const match of normalizedText.matchAll(pattern)) {
-        matches.push({
-          kind: 'field',
-          start: match.index ?? 0,
-          end: (match.index ?? 0) + match[0].length,
-          def,
-        });
-      }
+      matchers.push({ kind: 'field', def, pattern: aliasPattern(alias) });
     }
   }
-
   for (const def of QUALITATIVE_FIELDS) {
     for (const alias of def.aliases) {
-      const pattern = qualitativeAliasPattern(alias);
-      for (const match of normalizedText.matchAll(pattern)) {
-        matches.push({
-          kind: 'qualitative',
-          start: match.index ?? 0,
-          end: (match.index ?? 0) + match[0].length,
-          def,
-        });
-      }
+      matchers.push({ kind: 'qualitative', def, pattern: qualitativeAliasPattern(alias) });
+    }
+  }
+  aliasMatchers = matchers;
+  return matchers;
+}
+
+function collectMatches(normalizedText: string): AnyMatch[] {
+  const matches: AnyMatch[] = [];
+  for (const { pattern, ...matcher } of getAliasMatchers()) {
+    // matchAll() iterates a copy of the regex, so the shared pattern's
+    // lastIndex is never touched.
+    for (const match of normalizedText.matchAll(pattern)) {
+      const start = match.index ?? 0;
+      matches.push({ ...matcher, start, end: start + match[0].length });
     }
   }
 
@@ -1374,7 +1355,12 @@ function extractPatientInfo(transcript: string): ParsedPatientInfo {
     if (!match) return;
     const start = match.index + match[0].length;
     const found = findRomanianNumber(scope.slice(start, start + 60));
-    if (found) patient[key] = found.value;
+    if (!found) return;
+    // Height is stored in centimeters; "1,75" (meters) becomes "175".
+    const meters = Number(found.value);
+    patient[key] = key === 'height' && meters > 0 && meters < 3
+      ? String(Math.round(meters * 100))
+      : found.value;
   };
 
   assignNumber(AGE_LABEL, 'age');
@@ -1477,7 +1463,7 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
       const value = qualitativeValue(rawWindow);
       // Bare labels like "Pericard, lichid pericardic" are valid diagnoses by
       // themselves; in that case the value is the field name itself.
-      const bareLabelValue = def.field === 'pericardialFluid' ? normalize(def.label) : null;
+      const bareLabelValue = def.field === 'pericardialFluid' ? normalize(MEASUREMENT_FIELDS.pericardialFluid.label) : null;
       const resolvedValue = value ?? (rawWindow.trim() ? null : bareLabelValue);
       if (!resolvedValue) continue;
       // Drop a trailing field separator before the next known field
@@ -1485,7 +1471,7 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
       const qualitativeSource = sourceText.replace(/[\s,;]+$/g, '');
       measurements.push({
         field: def.field,
-        label: def.label,
+        label: MEASUREMENT_FIELDS[def.field].reviewLabel,
         value: resolvedValue,
         kind: 'qualitative',
         confidence,
@@ -1513,16 +1499,33 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
 
     if (numericDef.field === 'lvEjectionFractionTeicholz' && normWindow.includes('simpson')) continue;
 
-    const unitMatch = findUnit(normWindow.slice(number.end));
+    const spokenUnit = findUnit(normWindow.slice(number.end))?.unit;
+    const expectedUnit = MEASUREMENT_UNITS[numericDef.field];
+    let value = number.value;
+    let unit = spokenUnit;
+    let convertedFrom: string | undefined;
+    let unitMismatch: boolean | undefined;
+    if (spokenUnit && expectedUnit && spokenUnit !== expectedUnit) {
+      const converted = convertUnit(number.value, spokenUnit, expectedUnit);
+      if (converted !== null) {
+        value = converted;
+        unit = expectedUnit;
+        convertedFrom = spokenUnit;
+      } else {
+        unitMismatch = true;
+      }
+    }
 
     measurements.push({
       field: numericDef.field,
-      label: numericDef.label,
-      value: number.value,
-      unit: unitMatch?.unit,
+      label: MEASUREMENT_FIELDS[numericDef.field].reviewLabel,
+      value,
+      unit,
       kind: 'numeric',
       confidence,
       sourceText,
+      ...(convertedFrom ? { convertedFrom } : {}),
+      ...(unitMismatch ? { unitMismatch } : {}),
     });
   }
 

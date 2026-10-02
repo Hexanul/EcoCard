@@ -62,7 +62,8 @@ export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string):
     if (whisper.exitCode !== 0) {
       console.error(
         `[Echo Report] whisper-cli failed with exit code ${whisper.exitCode}:`,
-        whisper.stderr || whisper.stdout || 'No diagnostic output was produced.',
+        // stdout is never logged: it can contain transcript text (patient data).
+        whisper.stderr || 'No diagnostic output was produced.',
       );
       return failure('WHISPER_PROCESS_FAILED', 'Transcrierea locală a eșuat.');
     }

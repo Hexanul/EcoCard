@@ -29,7 +29,11 @@ export function MeasurementReview({
   // arrives, so the toggle state resets together with the detected list.
   const [toggled, setToggled] = useState<Set<number>>(() => new Set());
 
+  const hasUnitMismatch = (item: ParsedDetectedItem): boolean =>
+    'unitMismatch' in item && item.unitMismatch === true;
+
   const isConflict = (item: ParsedDetectedItem): boolean => {
+    if (hasUnitMismatch(item)) return true;
     const existing = item.field === 'conclusions' ? conclusions : measurements[item.field];
     return existing !== '' && existing !== item.value;
   };
@@ -99,7 +103,16 @@ export function MeasurementReview({
                 </span>
               </label>
               <p className="measurement-review__source">{item.sourceText}</p>
-              {conflict && (
+              {'convertedFrom' in item && item.convertedFrom && (
+                <p className="measurement-review__source">
+                  Convertit automat din {item.convertedFrom} în {unit}.
+                </p>
+              )}
+              {hasUnitMismatch(item) ? (
+                <p className="measurement-review__conflict">
+                  Unitate dictată diferită de unitatea câmpului — verificați valoarea. Bifează pentru a aplica.
+                </p>
+              ) : conflict && (
                 <p className="measurement-review__conflict">
                   Formularul conține deja: {existingValue}. Bifează pentru a înlocui.
                 </p>

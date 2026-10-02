@@ -44,7 +44,6 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
 
     return {
       text: result.transcript,
-      isMock: false,
       originalAudio: result.original,
       convertedAudio: result.converted,
     };

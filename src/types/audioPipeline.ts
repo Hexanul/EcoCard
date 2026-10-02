@@ -16,7 +16,6 @@ export type ConvertedAudioInfo = {
 
 export type TranscriptionResult = {
   text: string;
-  isMock: boolean;
   originalAudio?: AudioBlobSummary;
   convertedAudio?: ConvertedAudioInfo;
 };

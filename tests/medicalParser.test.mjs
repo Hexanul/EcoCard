@@ -1748,3 +1748,78 @@ test('returns empty patient fields when no patient data is dictated', () => {
     height: '',
   });
 });
+
+test('converts a diameter dictated in millimeters to the centimeter field', () => {
+  const result = parsed('VS diametrul telediastolic 48 milimetri', 'lvEndDiastolicDiameter');
+  assert.deepEqual(
+    { value: result.value, unit: result.unit, convertedFrom: result.convertedFrom },
+    { value: '4.8', unit: 'cm', convertedFrom: 'mm' },
+  );
+  assert.equal(result.unitMismatch, undefined);
+});
+
+test('converts MAPSE dictated in centimeters to the millimeter field', () => {
+  const result = parsed('MAPSE 1,8 centimetri', 'mapse');
+  assert.deepEqual(
+    { value: result.value, unit: result.unit, convertedFrom: result.convertedFrom },
+    { value: '18', unit: 'mm', convertedFrom: 'cm' },
+  );
+});
+
+test('converts a velocity dictated in meters per second to cm/s', () => {
+  const result = parsed('flux aortic Vmax 1,5 metri pe secundă', 'aorticVmax');
+  assert.deepEqual(
+    { value: result.value, unit: result.unit, convertedFrom: result.convertedFrom },
+    { value: '150', unit: 'cm/s', convertedFrom: 'm/s' },
+  );
+});
+
+test('flags a unit that cannot be converted to the field unit', () => {
+  const result = parsed('VS diametrul telediastolic 48 la sută', 'lvEndDiastolicDiameter');
+  assert.equal(result.value, '48');
+  assert.equal(result.unit, '%');
+  assert.equal(result.unitMismatch, true);
+});
+
+test('keeps a value already dictated in the field unit unchanged', () => {
+  const result = parsed('TAPSE, 21 de milimetri', 'tapse');
+  assert.equal(result.convertedFrom, undefined);
+  assert.equal(result.unitMismatch, undefined);
+});
+
+test('keeps raw-text alignment when the transcript uses decomposed diacritics', () => {
+  const transcript = 'Valve mitrale îngroșate. VS diametrul telediastolic 4,8 cm'.normalize('NFD');
+  const result = parsed(transcript, 'lvEndDiastolicDiameter');
+  assert.equal(result.value, '4.8');
+  assert.ok(result.sourceText.startsWith('VS diametrul telediastolic'), result.sourceText);
+});
+test('parses a parasternal dictation with Whisper variants (VSE, "3 sistolic", SIF, ASE)', () => {
+  const data = parseEchoTranscript(
+    'VSE, diametru telediastolic 1, VSE, diametru 3 sistolic 2, SIF, diametru diastolic 3. Perete posterior, diametru diastolic 4, fracție de ejecție VSE, tai șolți 5, fracție de scurtare 6, masa VSE 7, aorta la inel 8, aorta ascendentă 9, ASE, diametru anteroposterior 10',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvEndDiastolicDiameter', '1'],
+      ['lvEndSystolicDiameter', '2'],
+      ['ivsDiastolicDiameter', '3'],
+      ['posteriorWallDiastolicDiameter', '4'],
+      ['lvEjectionFractionTeicholz', '5'],
+      ['shorteningFraction', '6'],
+      ['lvMass', '7'],
+      ['aortaAnnulus', '8'],
+      ['ascendingAorta', '9'],
+      ['laAnteroposteriorDiameter', '10'],
+    ],
+  );
+});
+
+test('converts a patient height dictated in meters to centimeters', () => {
+  assert.equal(parseEchoTranscript('Înălțime 1,75 metri.').patient.height, '175');
+  assert.equal(parseEchoTranscript('Înălțime 168 cm.').patient.height, '168');
+});
+
+test('review labels come from the field registry', () => {
+  assert.equal(parsed('flux aortic Vmax 150 cm/s', 'aorticVmax').label, 'Flux aortic — Vmax');
+  assert.equal(parsed('SIV diametrul diastolic 1 cm', 'ivsDiastolicDiameter').label, 'SIV — diam. diastolic');
+});

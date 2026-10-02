@@ -9,6 +9,7 @@ import {
   type ParsedPatientInfo,
 } from '../services/medicalParser';
 import { isElectronAvailable, getEchoReportApi } from '../services/electronBridge';
+import { changedPatientFields } from '../services/reportState';
 import {
   getPreferredRecordingMimeType,
 } from '../utils/audioInfo';
@@ -20,11 +21,6 @@ type DictationState =
   | 'processing'
   | 'transcribed'
   | 'error';
-
-const TRANSCRIPTION_READY =
-  'Înregistrarea este pregătită pentru transcriere.';
-const TRANSCRIPTION_PROCESSING =
-  'Se procesează local...';
 
 // Recorded audio is kept in memory only (React state + Blob).
 // It will later be passed to local whisper.cpp for offline transcription.
@@ -142,9 +138,15 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
     onMeasurementsParsed?.(parsedData);
   }, [onMeasurementsParsed, parsedData]);
 
+  // Only dictated patient fields that changed since the previous parse are
+  // sent, so a correction made in the patient form survives later edits to
+  // unrelated parts of the transcript.
+  const lastPatientRef = useRef<ParsedPatientInfo | null>(null);
   useEffect(() => {
-    if (hasParsedPatient(parsedData.patient)) {
-      onPatientParsed?.(parsedData.patient);
+    const changed = changedPatientFields(lastPatientRef.current, parsedData.patient);
+    lastPatientRef.current = parsedData.patient;
+    if (changed) {
+      onPatientParsed?.(changed);
     }
   }, [onPatientParsed, parsedData.patient]);
 
@@ -253,7 +255,7 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
 
   const runTranscription = useCallback(async (blob: Blob) => {
     setState('processing');
-    setTranscription(TRANSCRIPTION_PROCESSING);
+    setTranscription('');
     setErrorMessage(null);
 
     try {
@@ -272,7 +274,6 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
           ? error.message
           : 'Transcrierea a eșuat. Încearcă din nou.';
       setErrorMessage(message);
-      setTranscription(TRANSCRIPTION_READY);
       setState('error');
     }
   }, []);
@@ -676,7 +677,13 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
           value={transcription}
           onChange={(e) => setTranscription(e.target.value)}
           readOnly={!isTranscriptEditable}
-          placeholder="Transcrierea va apărea aici după procesare."
+          placeholder={
+            state === 'processing'
+              ? 'Se procesează local...'
+              : state === 'error'
+                ? 'Transcrierea a eșuat — puteți scrie textul dictării aici.'
+                : 'Transcrierea va apărea aici după procesare.'
+          }
           rows={5}
           aria-busy={state === 'processing'}
         />

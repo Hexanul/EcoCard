@@ -4,7 +4,9 @@ import { app } from 'electron';
 import type { PipelineStatus } from './shared.cjs';
 
 const projectRoot = path.resolve(__dirname, '..');
-const runtimeRoot = app.isPackaged ? process.resourcesPath : projectRoot;
+// `app` is undefined when this module runs under plain Node.js
+// (scripts/test-pipeline.mjs), which always uses the project layout.
+const runtimeRoot = (app as typeof app | undefined)?.isPackaged ? process.resourcesPath : projectRoot;
 const localPathsFile = path.join(runtimeRoot, 'echoReport.paths.json');
 type UserPaths = Partial<{ ffmpegPath: string; whisperCliPath: string; modelPath: string; tempDir: string }>;
 

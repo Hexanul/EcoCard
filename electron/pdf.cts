@@ -39,9 +39,6 @@ function buildPdfFileName(patientName: string | undefined): string {
   return `Ecocardiografie_${cleaned.slice(0, 120)}.pdf`;
 }
 
-function ensurePdfExtension(filePath: string): string {
-  return filePath.toLocaleLowerCase().endsWith('.pdf') ? filePath : `${filePath}.pdf`;
-}
 
 // Waits for the report DOM to be fully laid out: fonts settled, document
 // complete, #printable-report present with real dimensions. The check runs
@@ -106,6 +103,10 @@ export async function exportReportPdf(contents: WebContents, suggestedName?: str
   };
   const saveResult = window ? await dialog.showSaveDialog(window, saveOptions) : await dialog.showSaveDialog(saveOptions);
   if (saveResult.canceled || !saveResult.filePath) return fail('CANCELED', '');
+  // The path chosen in the dialog is used as-is: appending ".pdf" here would
+  // write to a file the dialog's overwrite confirmation never covered. The
+  // dialog's PDF filter already adds the extension when it is omitted.
+  const filePath = saveResult.filePath;
 
   // 3. A4 portrait PDF via Chromium — vector text, not rasterized.
   let pdfData: Uint8Array;
@@ -128,7 +129,7 @@ export async function exportReportPdf(contents: WebContents, suggestedName?: str
 
   // 4. Write the file locally.
   try {
-    await fs.writeFile(ensurePdfExtension(saveResult.filePath), Buffer.from(pdfData));
+    await fs.writeFile(filePath, Buffer.from(pdfData));
   } catch (error) {
     console.error('[Echo Report] PDF save failed:', error instanceof Error ? error.message : 'unknown');
     return fail('PDF_SAVE_FAILED', 'Salvarea fișierului PDF a eșuat.');
@@ -138,7 +139,7 @@ export async function exportReportPdf(contents: WebContents, suggestedName?: str
   // 5. Best effort: open with the default Windows PDF application. A failure
   // here never fails the export — the file is already saved.
   try {
-    const openError = await shell.openPath(ensurePdfExtension(saveResult.filePath));
+    const openError = await shell.openPath(filePath);
     if (openError) console.error('[Echo Report] PDF open failed');
   } catch {
     console.error('[Echo Report] PDF open failed');
