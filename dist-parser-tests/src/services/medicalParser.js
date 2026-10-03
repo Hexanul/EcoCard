@@ -423,12 +423,8 @@ const NUMERIC_FIELDS = [
             // "anterior posterior" is a known spoken variant of "antero-posterior".
             'as diametrul anterior posterior',
             'as diametru anterior posterior',
-            'ase diametrul anterior postior',
-            'ase diametru anterior postior',
-            'ase diametrul anteroposterior',
-            'ase diametru anteroposterior',
-            'ase diametrul antero posterior',
-            'ase diametru antero posterior',
+            'as diametrul anterior postior',
+            'as diametru anterior postior',
             'atriul stang diametrul antero posterior',
             // Dictated without the "AS" prefix ("Diametrul anteroposterior, 3 cm").
             'diametrul anteroposterior',
@@ -442,6 +438,11 @@ const NUMERIC_FIELDS = [
         aliases: [
             'aorta la nivelul crosei',
             'aorta la nivelul crossei',
+            // Whisper "crossie" / "crosii" for "croșei".
+            'aorta la nivelul crossie',
+            'aorta la nivelul crosie',
+            'aorta la nivelul crosii',
+            'aorta la nivelul crossii',
             'aorta la crosa',
             'aortel la nivelul crossei',
             'aortel la nivelul crosei',
@@ -497,8 +498,8 @@ const NUMERIC_FIELDS = [
             'as diametrul ateromedian',
             'as diametru ateromedian',
             'as diam ateromedian',
-            'ase diametrul anterior median',
-            'ase diametru anterior median',
+            'as diametrul anterior median',
+            'as diametru anterior median',
         ],
     },
     {
@@ -770,6 +771,10 @@ const QUALITATIVE_FIELDS = [
         field: 'pericardialFluid',
         aliases: [
             'lichid pericardic',
+            // "Pericard, lichid pericardic, absent": the section word belongs to
+            // this field, so it must not end up in the previous field's value.
+            'pericard lichid pericardic',
+            'pericard',
             // Whisper concatenation of "pericard, lichid pericardic".
             'pericardichid pericardic',
         ],
@@ -866,6 +871,11 @@ const TYPO_REPLACEMENTS = [
     { pattern: /\bsistolor\b/g, target: 'sistolic' },
     { pattern: /\bdiastelor\b/g, target: 'diastolic' },
     { pattern: /\bdiastolor\b/g, target: 'diastolic' },
+    // Whisper spells the atria "ASE" / "ADE" and fuses "Aria AS" into "Arease".
+    { pattern: /\barease\b/g, target: 'aria as' },
+    { pattern: /\bareade\b/g, target: 'aria ad' },
+    { pattern: /\base\b/g, target: 'as' },
+    { pattern: /\bade\b/g, target: 'ad' },
 ];
 function normalize(text) {
     return normalizeWithIndex(text).text;
@@ -1332,7 +1342,7 @@ export function parseEchoTranscript(transcript) {
             const value = qualitativeValue(rawWindow);
             // Bare labels like "Pericard, lichid pericardic" are valid diagnoses by
             // themselves; in that case the value is the field name itself.
-            const bareLabelValue = def.field === 'pericardialFluid' ? normalize(MEASUREMENT_FIELDS.pericardialFluid.label) : null;
+            const bareLabelValue = def.field === 'pericardialFluid' ? 'lichid pericardic' : null;
             const resolvedValue = value ?? (rawWindow.trim() ? null : bareLabelValue);
             if (!resolvedValue)
                 continue;
@@ -1360,8 +1370,7 @@ export function parseEchoTranscript(transcript) {
         const valueCount = countNumericValues(normWindow);
         if (valueCount === 0)
             continue;
-        if (valueCount > 1)
-            continue;
+        const ambiguous = valueCount > 1;
         const number = findRomanianNumber(normWindow);
         if (!number)
             continue;
@@ -1390,8 +1399,9 @@ export function parseEchoTranscript(transcript) {
             value,
             unit,
             kind: 'numeric',
-            confidence,
+            confidence: ambiguous ? 'low' : confidence,
             sourceText,
+            ...(ambiguous ? { ambiguousValue: true } : {}),
             ...(convertedFrom ? { convertedFrom } : {}),
             ...(unitMismatch ? { unitMismatch } : {}),
         });

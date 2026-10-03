@@ -179,9 +179,29 @@ test('separates tricuspid Vmax from aortic Vmax by context', () => {
   assert.equal(data.measurements.find((item) => item.field === 'tricuspidVmax')?.value, '200');
 });
 
-test('leaves the field empty when a window contains several values', () => {
+test('proposes the first number as uncertain when a window contains several values', () => {
   const data = parseEchoTranscript('TAPSE 21 35 de milimetri');
-  assert.equal(data.measurements.length, 0);
+  assert.equal(data.measurements.length, 1);
+  const [result] = data.measurements;
+  assert.deepEqual(
+    { field: result.field, value: result.value, confidence: result.confidence, ambiguousValue: result.ambiguousValue },
+    { field: 'tapse', value: '21', confidence: 'low', ambiguousValue: true },
+  );
+});
+
+test('keeps a value before a misheard label instead of dropping it', () => {
+  const result = parsed('aorta ascendentă 9, ASX, diametru 10', 'ascendingAorta');
+  assert.deepEqual(
+    { value: result.value, confidence: result.confidence, ambiguousValue: result.ambiguousValue },
+    { value: '9', confidence: 'low', ambiguousValue: true },
+  );
+});
+
+test('does not flag a window with a single value as ambiguous', () => {
+  const result = parsed('aorta ascendentă 3,2 centimetri', 'ascendingAorta');
+  assert.equal(result.value, '3.2');
+  assert.equal(result.ambiguousValue, undefined);
+  assert.equal(result.confidence, 'high');
 });
 
 test('leaves the field empty when no number follows the alias', () => {
@@ -1822,4 +1842,40 @@ test('converts a patient height dictated in meters to centimeters', () => {
 test('review labels come from the field registry', () => {
   assert.equal(parsed('flux aortic Vmax 150 cm/s', 'aorticVmax').label, 'Flux aortic — Vmax');
   assert.equal(parsed('SIV diametrul diastolic 1 cm', 'ivsDiastolicDiameter').label, 'SIV — diam. diastolic');
+});
+
+test('parses Whisper "Ase" and "crossie" variants in the parasternal section', () => {
+  const data = parseEchoTranscript(
+    'masa Vs 7, aorta la inel 8, aorta ascendentă 9, Ase, diametrul anterior posterior 10, aorta la nivelul crossie 11, artera pulmonară 12',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value, item.confidence]),
+    [
+      ['lvMass', '7', 'high'],
+      ['aortaAnnulus', '8', 'high'],
+      ['ascendingAorta', '9', 'high'],
+      ['laAnteroposteriorDiameter', '10', 'high'],
+      ['aortaAtArch', '11', 'high'],
+      ['pulmonaryArtery', '12', 'high'],
+    ],
+  );
+});
+
+test('keeps "pericard" out of the previous value and parses fused "Arease" / "Areade"', () => {
+  const data = parseEchoTranscript(
+    'valve pulmonare 22, pericard, lichid pericardic, absent, Arease 24, Areade 25',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['pulmonaryValves', '22'],
+      ['pericardialFluid', 'absent'],
+      ['laArea', '24'],
+      ['raArea', '25'],
+    ],
+  );
+  assert.equal(
+    data.measurements.find((item) => item.field === 'pericardialFluid')?.label,
+    'Pericard: lichid pericardic',
+  );
 });

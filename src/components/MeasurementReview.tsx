@@ -32,8 +32,11 @@ export function MeasurementReview({
   const hasUnitMismatch = (item: ParsedDetectedItem): boolean =>
     'unitMismatch' in item && item.unitMismatch === true;
 
+  const hasAmbiguousValue = (item: ParsedDetectedItem): boolean =>
+    'ambiguousValue' in item && item.ambiguousValue === true;
+
   const isConflict = (item: ParsedDetectedItem): boolean => {
-    if (hasUnitMismatch(item)) return true;
+    if (hasUnitMismatch(item) || hasAmbiguousValue(item)) return true;
     const existing = item.field === 'conclusions' ? conclusions : measurements[item.field];
     return existing !== '' && existing !== item.value;
   };
@@ -108,11 +111,16 @@ export function MeasurementReview({
                   Convertit automat din {item.convertedFrom} în {unit}.
                 </p>
               )}
+              {hasAmbiguousValue(item) && (
+                <p className="measurement-review__conflict">
+                  Mai multe valori dictate pentru acest câmp — a fost propusă prima. Verificați și bifați pentru a aplica.
+                </p>
+              )}
               {hasUnitMismatch(item) ? (
                 <p className="measurement-review__conflict">
                   Unitate dictată diferită de unitatea câmpului — verificați valoarea. Bifează pentru a aplica.
                 </p>
-              ) : conflict && (
+              ) : existingValue !== '' && existingValue !== item.value && (
                 <p className="measurement-review__conflict">
                   Formularul conține deja: {existingValue}. Bifează pentru a înlocui.
                 </p>

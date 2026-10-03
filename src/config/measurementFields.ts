@@ -77,7 +77,7 @@ export const MEASUREMENT_SECTIONS: MeasurementSectionDef[] = [
     group: 'echo',
     title: 'Pericard',
     fields: [
-      { key: 'pericardialFluid', label: 'Lichid pericardic', type: 'textarea', reportLabel: 'Pericard: Lichid pericardic' },
+      { key: 'pericardialFluid', label: 'Pericard: lichid pericardic', type: 'textarea' },
     ],
   },
   {
