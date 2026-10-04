@@ -55,3 +55,10 @@ The core and most-edited logic. Key mechanics:
 - Text after "concluzii" is extracted as conclusions and excluded from measurement parsing; patient name/age/weight/height are pulled by label regexes.
 
 When fixing a parser bug, add a regression test in `tests/medicalParser.test.mjs` using a realistic Whisper-style transcript.
+
+## Dictation test loop (`dictation/`)
+
+- `dictation/scripts/<name>.txt` is a text the doctor reads aloud; `<name>.expected.json` holds its expected patient data, every dictated measurement (all numeric values unique, so misplaced values are identifiable) and conclusions. Derived ratios are computed, not listed. `"scope": "numeric"` marks a labels-and-numbers-only script (e.g. `numeric`) that covers just the measurements with a unit.
+- Recordings go in `dictation/recordings/<script>-<anything>.m4a|wav|webm|ogg|mp3` (git-ignored, stays local). `npm run eval:dictation [-- <filter>] [--retranscribe] [--all] [--json]` transcribes new recordings with the app's own ffmpeg + whisper into `dictation/transcripts/<name>.txt` (committed, cached), then reports per field `OK` / `OK*` (right value, review row unchecked) / `WRONG` / `MISPLACED` / `MISSING` with transcript excerpts. Logic lives in `scripts/dictation-check.mjs`.
+- `tests/dictation.test.mjs` (part of `test:parser`) requires each script's text to parse perfectly and every committed transcript to keep passing, except entries in `dictation/known-issues.json` (unrecoverable whisper output, with a reason).
+- `/fix-dictation` (`.claude/skills/fix-dictation/SKILL.md`) is the procedure for turning a new recording's failures into parser fixes. Never edit transcripts or expected values to make a check pass.

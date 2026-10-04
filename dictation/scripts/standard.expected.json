@@ -1,0 +1,76 @@
+{
+  "patient": {
+    "lastName": "Ionescu",
+    "firstName": "Maria",
+    "age": "58",
+    "weight": "72",
+    "height": "165"
+  },
+  "measurements": {
+    "lvEndDiastolicDiameter": "4.8",
+    "lvEndSystolicDiameter": "3.1",
+    "ivsDiastolicDiameter": "0.9",
+    "posteriorWallDiastolicDiameter": "1.1",
+    "lvEjectionFractionTeicholz": "62",
+    "shorteningFraction": "34",
+    "lvMass": "88",
+    "aortaAnnulus": "2.2",
+    "ascendingAorta": "3.3",
+    "laAnteroposteriorDiameter": "3.7",
+    "aortaAtArch": "2.6",
+    "pulmonaryArtery": "2.4",
+
+    "lvLateromedialDiameter": "4.4",
+    "rvLateromedialDiameter": "3.5",
+    "laLateromedialDiameter": "3.9",
+    "raLateromedialDiameter": "3.6",
+    "mapse": "15",
+    "tapse": "21",
+    "laArea": "18",
+    "raArea": "16",
+    "lvEndDiastolicVolume": "110",
+    "lvEndSystolicVolume": "45",
+    "lvEjectionFractionSimpson": "59",
+
+    "wallMotion": "normală",
+    "aorticValves": "suple",
+    "mitralValves": "suple",
+    "tricuspidValves": "normale",
+    "pulmonaryValves": "normale",
+    "pericardialFluid": "absent",
+
+    "aorticVmax": "130",
+    "aorticPmax": "7",
+    "aorticPmean": "4",
+
+    "lvotVmax": "95",
+    "lvotPmax": "3",
+    "lvotVti": "20",
+    "aorticValveArea": "2.9",
+    "aorticRegurgitation": "absentă",
+
+    "mitralE": "80",
+    "mitralA": "64",
+    "mitralDecelerationTime": "190",
+    "mitralTriv": "85",
+    "mitralValveArea": "4.2",
+    "mitralRegurgitation": "minimă",
+
+    "tricuspidVmax": "240",
+    "tricuspidPmax": "23",
+    "psvd": "28",
+    "tricuspidE": "52",
+    "tricuspidA": "41",
+    "tricuspidRegurgitation": "ușoară",
+
+    "pulmonaryVmax": "90",
+    "pulmonaryPmax": "2",
+    "pulmonaryVti": "17",
+    "pulmonaryRegurgitation": "fiziologică",
+
+    "septalEPrime": "11",
+    "septalAPrime": "13",
+    "septalS": "9"
+  },
+  "conclusions": "ventricul stâng cu dimensiuni și funcție sistolică normale."
+}

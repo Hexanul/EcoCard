@@ -19,7 +19,8 @@
     "electron:dev": "npm run dev",
     "electron:start": "npm run build && electron .",
     "test:pipeline": "node scripts/test-pipeline.mjs",
-    "test:parser": "tsc -p tsconfig.parser.json && node --test tests/*.test.mjs"
+    "test:parser": "tsc -p tsconfig.parser.json && node --test tests/*.test.mjs",
+    "eval:dictation": "tsc -p tsconfig.parser.json && tsc -p tsconfig.electron.json && node scripts/eval-dictation.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

@@ -1,0 +1,5 @@
+Secțiune lungitudinală parasternală.
+Denta, 3,2. Ase, diametru antero-posterior, 4,1. Aorta la nivelul crossei, 2,7. Artera pulmonară, 2,3. Apical, 4 camere. Vse, diametru latero-median, 4,6. Vd, diametru latero-median, 3,8. Ase, diametru latero-median, 4,3. Ad, diametru latero-median, 3,9. Mapse, 14. Tapse, 22. Area, Ase, 19.
+Area, AD, 17. Vol. T, diastoric, WS, 120. Vol. T, diastoric, WS, 50. Fracție de ejecție, Simpson, 57. Flux aortic, Vmax, 14. 140. Pmax, 8. P mediu, 5. Flux lăvot, Vmax, 98. Pmax, 6. VTI, 21. Area, valve aortice, 3,1. Flux mitral, unda E, 76.
+Unda A, 62. Tde, 200. Triv, 88. Area, valve aortice, 4,5. Flux, tricuspidian, Vmax, 230. Pmax, 24. PSVD, 29. Unda E, 54. Unda A, 43. Flux pulmonar, Vmax, 86. Pmax, 3. VTI, 16. Doppler, tisular. Unda E, primitru.
+Unda E, primitru. Unda S, 7.

@@ -213,6 +213,22 @@ test('does not assign an ambiguous generic ejection fraction', () => {
   assert.equal(data.measurements.length, 0);
 });
 
+test('does not mark telesystolic volume ambiguous before a generic ejection fraction', () => {
+  for (const label of ['Frație de ejecție', 'Fracție de ejecție', 'fractia de ejectie']) {
+    const data = parseEchoTranscript(`Volum tele sistolic 27, ${label} 28`);
+    assert.deepEqual(
+      data.measurements.map(({ field, value, confidence, ambiguousValue }) => ({
+        field,
+        value,
+        confidence,
+        ambiguousValue,
+      })),
+      [{ field: 'lvEndSystolicVolume', value: '27', confidence: 'high', ambiguousValue: undefined }],
+      label,
+    );
+  }
+});
+
 test('marks explicitly uncertain values as low parsing certainty', () => {
   const result = parsed('probabil TAPSE douăzeci', 'tapse');
   assert.equal(result.value, '20');
@@ -1877,5 +1893,40 @@ test('keeps "pericard" out of the previous value and parses fused "Arease" / "Ar
   assert.equal(
     data.measurements.find((item) => item.field === 'pericardialFluid')?.label,
     'Pericard: lichid pericardic',
+  );
+});
+
+test('handles Whisper "prânume", "Cartera", "Are ase", "Genetică", "Regulcitare" and "cm2" units', () => {
+  const data = parseEchoTranscript(
+    'Nume Ionescu, prânume Maria, vârsta 58 de ani. Cartera pulmonară, 2,4 cm. ' +
+      'Are ase, 18 cm2. Area AD, 16 cm2. Genetică parietală normală, valve aortice suple. ' +
+      'Regulcitare aortică absentă. Flux mitral. Unda E, 80 cm2. Regulcitare pulmonară fiziologică.',
+  );
+  assert.equal(data.patient.lastName, 'Ionescu');
+  assert.equal(data.patient.firstName, 'Maria');
+  const byField = Object.fromEntries(data.measurements.map((item) => [item.field, item]));
+  assert.equal(byField.pulmonaryArtery?.value, '2.4');
+  assert.equal(byField.laArea?.value, '18');
+  assert.equal(byField.laArea?.confidence, 'high');
+  assert.equal(byField.raArea?.value, '16');
+  assert.equal(byField.raArea?.ambiguousValue, undefined);
+  assert.equal(byField.wallMotion?.value, 'normală');
+  assert.equal(byField.aorticRegurgitation?.value, 'absentă');
+  assert.equal(byField.pulmonaryRegurgitation?.value, 'fiziologică');
+  // "cm2" for a velocity stays a unit mismatch, but its "2" is not a second value.
+  assert.equal(byField.mitralE?.value, '80');
+  assert.equal(byField.mitralE?.ambiguousValue, undefined);
+});
+
+test('maps Whisper "Vse, diametru latero-median" to the VS lateromedial diameter', () => {
+  const data = parseEchoTranscript(
+    'Apical, 4 camere. Vse, diametru latero-median, 4,6. Vd, diametru latero-median, 3,8.',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['lvLateromedialDiameter', '4.6'],
+      ['rvLateromedialDiameter', '3.8'],
+    ],
   );
 });

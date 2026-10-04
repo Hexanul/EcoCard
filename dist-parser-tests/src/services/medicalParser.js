@@ -74,6 +74,8 @@ const CONTEXT_ALIASES = {
         'recurgitarea tricuspidiana',
         'recucitare tricuspidiana',
         'recucitarea tricuspidiana',
+        'regulcitare tricuspidiana',
+        'regulcitarea tricuspidiana',
     ],
     pulmonary: ['flux pulmonar', 'fluxul pulmonar'],
     septal: [
@@ -87,6 +89,11 @@ const CONTEXT_ALIASES = {
     ],
     apical4c: ['apical 4c', 'apical 4 camere', 'apicala 4 camere'],
 };
+const UNASSIGNED_FIELD_ALIASES = [
+    'fractie de ejectie',
+    'fractia de ejectie',
+    'fratie de ejectie',
+];
 const NUMERIC_FIELDS = [
     // Secțiune longitudinală parasternală
     {
@@ -451,7 +458,7 @@ const NUMERIC_FIELDS = [
     },
     {
         field: 'pulmonaryArtery',
-        aliases: ['artera pulmonara', 'atera pulmonara', 'aorta la pulmonara'],
+        aliases: ['artera pulmonara', 'atera pulmonara', 'cartera pulmonara', 'aorta la pulmonara'],
     },
     // Apical 4C
     {
@@ -463,6 +470,11 @@ const NUMERIC_FIELDS = [
             'vs diametru lateromedian',
             'vs diam latero median',
             'vs diam lateromedian',
+            // Whisper spells VS as "VSE" ("Vse, diametru latero-median").
+            'vse diametrul latero median',
+            'vse diametrul lateromedian',
+            'vse diametru latero median',
+            'vse diametru lateromedian',
             'vs diametrul ateromedian',
             'vs diametru ateromedian',
             'vs diam ateromedian',
@@ -538,11 +550,11 @@ const NUMERIC_FIELDS = [
     // Alte măsurători
     {
         field: 'laArea',
-        aliases: ['aria as', 'area as', 'aria atriului stang'],
+        aliases: ['aria as', 'area as', 'are as', 'aria atriului stang'],
     },
     {
         field: 'raArea',
-        aliases: ['aria ad', 'area ad', 'aria atriului drept'],
+        aliases: ['aria ad', 'area ad', 'are ad', 'aria atriului drept'],
     },
     {
         field: 'lvEndDiastolicVolume',
@@ -728,6 +740,8 @@ const QUALITATIVE_FIELDS = [
             'recurgitarea aortica',
             'recucitare aortica',
             'recucitarea aortica',
+            'regulcitare aortica',
+            'regulcitarea aortica',
             'recurcitare aortica',
             'recurcitarea aortica',
         ],
@@ -741,6 +755,8 @@ const QUALITATIVE_FIELDS = [
             'recurgitarea mitrala',
             'recucitare mitrala',
             'recucitarea mitrala',
+            'regulcitare mitrala',
+            'regulcitarea mitrala',
         ],
     },
     {
@@ -752,6 +768,8 @@ const QUALITATIVE_FIELDS = [
             'recurgitarea tricuspidiana',
             'recucitare tricuspidiana',
             'recucitarea tricuspidiana',
+            'regulcitare tricuspidiana',
+            'regulcitarea tricuspidiana',
             'recurcitare tricuspidiana',
             'recurcitarea tricuspidiana',
         ],
@@ -765,6 +783,8 @@ const QUALITATIVE_FIELDS = [
             'recurgitarea pulmonara',
             'recucitare pulmonara',
             'recucitarea pulmonara',
+            'regulcitare pulmonara',
+            'regulcitarea pulmonara',
         ],
     },
     {
@@ -779,7 +799,8 @@ const QUALITATIVE_FIELDS = [
             'pericardichid pericardic',
         ],
     },
-    { field: 'wallMotion', aliases: ['cinetica parietala'] },
+    // Whisper hears "cinetica" as "genetica".
+    { field: 'wallMotion', aliases: ['cinetica parietala', 'genetica parietala'] },
     { field: 'aorticValves', aliases: ['valve aortice'] },
     { field: 'mitralValves', aliases: ['valve mitrale'] },
     { field: 'tricuspidValves', aliases: ['valve tricuspide'] },
@@ -1050,6 +1071,9 @@ function getAliasMatchers() {
             matchers.push({ kind: 'field', def, pattern: aliasPattern(alias) });
         }
     }
+    for (const alias of UNASSIGNED_FIELD_ALIASES) {
+        matchers.push({ kind: 'boundary', pattern: aliasPattern(alias) });
+    }
     for (const def of QUALITATIVE_FIELDS) {
         for (const alias of def.aliases) {
             matchers.push({ kind: 'qualitative', def, pattern: qualitativeAliasPattern(alias) });
@@ -1079,7 +1103,8 @@ function countNumericValues(text) {
         if (!found)
             break;
         count += 1;
-        rest = rest.slice(found.end);
+        // The "2" of Whisper's "cm2" belongs to the unit, not to a second value.
+        rest = rest.slice(found.end).replace(/^\s*c?m2(?![a-z0-9])/, '');
     }
     return count;
 }
@@ -1161,7 +1186,7 @@ const NO_LETTER_AFTER = `(?![${ROMANIAN_LETTER_CLASS}])`;
 // connector. They are never part of a patient's name.
 const PATIENT_NAME_STOP_WORDS = new Set([
     'si', 'și', 'de', 'cu', 'la',
-    'nume', 'numele', 'prenume', 'prenumele', 'familie',
+    'nume', 'numele', 'prenume', 'prenumele', 'pranume', 'prânume', 'familie',
     'pacient', 'pacientul', 'pacienta', 'pacientului', 'pacientei',
     'varsta', 'vârsta', 'vârstă', 'varstă', 'an', 'ani',
     'greutate', 'greutatea', 'reutate', 'reutatea', 'kg', 'kilograme', 'kilogramele',
@@ -1174,7 +1199,8 @@ function patientLabelRegex(source) {
 }
 const COMBINED_NAME_LABEL = new RegExp(`${NO_LETTER_BEFORE}nume[\\s,]+(?:și|si)[\\s,]+prenume${NO_LETTER_AFTER}\\s*[:.,-]?\\s*`, 'i');
 const LAST_NAME_LABEL = patientLabelRegex('nume(?:le)?(?:\\s+de\\s+familie)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
-const FIRST_NAME_LABEL = patientLabelRegex('prenume(?:le)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
+// Whisper sometimes writes "prânume".
+const FIRST_NAME_LABEL = patientLabelRegex('pr[eâa]nume(?:le)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
 const AGE_LABEL = patientLabelRegex('v[âa]rst[aă]');
 const WEIGHT_LABEL = patientLabelRegex('(?:g)?reutate[aă]?');
 const HEIGHT_LABEL = patientLabelRegex('[îi]n[ăa]l[tțţ]ime[aă]?');
@@ -1313,7 +1339,7 @@ export function parseEchoTranscript(transcript) {
             // alias at the same span and is skipped below.
         }
         const defMatch = longest.find((m) => {
-            if (m.kind === 'context' || m.def === undefined)
+            if (m.kind === 'context' || m.kind === 'boundary' || m.def === undefined)
                 return false;
             if ('context' in m.def) {
                 if (m.def.context !== undefined && m.def.context !== activeContext)

@@ -33,3 +33,7 @@ echoReport.paths.json
 app/bin/*.exe
 app/bin/*.dll
 app/models/*.bin
+
+# Dictation test recordings (audio stays local; transcripts are committed)
+dictation/recordings/*
+!dictation/recordings/.gitkeep
