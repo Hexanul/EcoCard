@@ -458,7 +458,7 @@ const NUMERIC_FIELDS = [
     },
     {
         field: 'pulmonaryArtery',
-        aliases: ['artera pulmonara', 'atera pulmonara', 'cartera pulmonara', 'aorta la pulmonara'],
+        aliases: ['artera pulmonara', 'artera pulmonare', 'atera pulmonara', 'cartera pulmonara', 'aorta la pulmonara'],
     },
     // Apical 4C
     {
@@ -494,6 +494,11 @@ const NUMERIC_FIELDS = [
             'vd diametrul ateromedian',
             'vd diametru ateromedian',
             'vd diam ateromedian',
+            // Whisper hears VD as "vede".
+            'vede diametrul latero median',
+            'vede diametrul lateromedian',
+            'vede diametru latero median',
+            'vede diametru lateromedian',
             'vde diametrul anterior median',
             'vde diametru anterior median',
         ],
@@ -550,11 +555,11 @@ const NUMERIC_FIELDS = [
     // Alte măsurători
     {
         field: 'laArea',
-        aliases: ['aria as', 'area as', 'are as', 'aria atriului stang'],
+        aliases: ['aria as', 'aria s', 'area as', 'are as', 'aria atriului stang'],
     },
     {
         field: 'raArea',
-        aliases: ['aria ad', 'area ad', 'are ad', 'aria atriului drept'],
+        aliases: ['aria ad', 'aria d', 'area ad', 'are ad', 'aria atriului drept'],
     },
     {
         field: 'lvEndDiastolicVolume',
@@ -802,7 +807,7 @@ const QUALITATIVE_FIELDS = [
     // Whisper hears "cinetica" as "genetica".
     { field: 'wallMotion', aliases: ['cinetica parietala', 'genetica parietala'] },
     { field: 'aorticValves', aliases: ['valve aortice'] },
-    { field: 'mitralValves', aliases: ['valve mitrale'] },
+    { field: 'mitralValves', aliases: ['valve mitrale', 'valve mitale'] },
     { field: 'tricuspidValves', aliases: ['valve tricuspide'] },
     { field: 'pulmonaryValves', aliases: ['valve pulmonare'] },
 ];

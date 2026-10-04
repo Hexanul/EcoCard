@@ -1930,3 +1930,19 @@ test('maps Whisper "Vse, diametru latero-median" to the VS lateromedial diameter
     ],
   );
 });
+
+test('parses Whisper "Vede", "Artera pulmonare", "valve mitale", "Aria S" and "Aria D"', () => {
+  const data = parseEchoTranscript(
+    'Vede, diametru lateromedian, 3,5. Artera pulmonare, 2,4. valve mitale suple  Aria S, 18. Aria D, 16.',
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['rvLateromedialDiameter', '3.5'],
+      ['pulmonaryArtery', '2.4'],
+      ['mitralValves', 'suple'],
+      ['laArea', '18'],
+      ['raArea', '16'],
+    ],
+  );
+});
