@@ -1,0 +1,67 @@
+{
+  "scope": "numeric",
+  "repeatedValues": "the recorded text repeats values and cannot be changed afterwards; MISPLACED reports for 3.4, 16, 63, 2.8, 2 and 6 can name the wrong field",
+  "patient": {
+    "lastName": "Ionescu",
+    "firstName": "Clementina",
+    "age": "71",
+    "weight": "64",
+    "height": "160"
+  },
+  "measurements": {
+    "lvEndDiastolicDiameter": "4.8",
+    "lvEndSystolicDiameter": "3.1",
+    "ivsDiastolicDiameter": "1.1",
+    "posteriorWallDiastolicDiameter": "1.0",
+    "lvEjectionFractionTeicholz": "63",
+    "shorteningFraction": "35",
+    "lvMass": "88",
+    "aortaAnnulus": "2.0",
+    "ascendingAorta": "3.4",
+    "laAnteroposteriorDiameter": "4.0",
+    "aortaAtArch": "2.8",
+    "pulmonaryArtery": "2.5",
+
+    "lvLateromedialDiameter": "4.9",
+    "rvLateromedialDiameter": "3.4",
+    "laLateromedialDiameter": "4.5",
+    "raLateromedialDiameter": "3.6",
+    "mapse": "16",
+    "tapse": "20",
+    "laArea": "22",
+    "raArea": "16",
+    "lvEndDiastolicVolume": "108",
+    "lvEndSystolicVolume": "40",
+    "lvEjectionFractionSimpson": "63",
+
+    "aorticVmax": "125",
+    "aorticPmax": "6",
+    "aorticPmean": "3",
+
+    "lvotVmax": "92",
+    "lvotPmax": "5",
+    "lvotVti": "19",
+    "aorticValveArea": "2.8",
+
+    "mitralE": "68",
+    "mitralA": "82",
+    "mitralDecelerationTime": "240",
+    "mitralTriv": "104",
+    "mitralValveArea": "4.2",
+
+    "tricuspidVmax": "210",
+    "tricuspidPmax": "18",
+    "psvd": "26",
+    "tricuspidE": "48",
+    "tricuspidA": "57",
+
+    "pulmonaryVmax": "78",
+    "pulmonaryPmax": "2",
+    "pulmonaryVti": "14",
+
+    "septalEPrime": "8",
+    "septalAPrime": "11",
+    "septalS": "6"
+  },
+  "conclusions": "funcția sistolică a ventriculului stâng este păstrată. Relaxare diastolică încetinită. Fără valvulopatii semnificative."
+}

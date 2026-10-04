@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Measurements } from '../types/echoReport';
 import type { ParsedDetectedItem } from '../services/medicalParser';
+import { conflictingDuplicateFields } from '../services/reportState';
 
 const CONFIDENCE_LABELS: Record<ParsedDetectedItem['confidence'], string> = {
   high: 'Sigur',
@@ -28,6 +29,9 @@ export function MeasurementReview({
   // The parent remounts this panel (via key) whenever a new transcript parse
   // arrives, so the toggle state resets together with the detected list.
   const [toggled, setToggled] = useState<Set<number>>(() => new Set());
+  // Fields dictated twice with different values: every such row starts
+  // unchecked and at most one of them can be selected.
+  const duplicates = useMemo(() => conflictingDuplicateFields(parsedMeasurements), [parsedMeasurements]);
 
   const hasUnitMismatch = (item: ParsedDetectedItem): boolean =>
     'unitMismatch' in item && item.unitMismatch === true;
@@ -35,8 +39,10 @@ export function MeasurementReview({
   const hasAmbiguousValue = (item: ParsedDetectedItem): boolean =>
     'ambiguousValue' in item && item.ambiguousValue === true;
 
+  const isDuplicate = (item: ParsedDetectedItem): boolean => duplicates.has(item.field);
+
   const isConflict = (item: ParsedDetectedItem): boolean => {
-    if (hasUnitMismatch(item) || hasAmbiguousValue(item)) return true;
+    if (hasUnitMismatch(item) || hasAmbiguousValue(item) || isDuplicate(item)) return true;
     const existing = item.field === 'conclusions' ? conclusions : measurements[item.field];
     return existing !== '' && existing !== item.value;
   };
@@ -48,12 +54,20 @@ export function MeasurementReview({
 
   const setSelected = (index: number, selected: boolean) => {
     setToggled((prev) => {
-      const defaultSelected = !isConflict(parsedMeasurements[index]);
+      const item = parsedMeasurements[index];
+      const defaultSelected = !isConflict(item);
       const next = new Set(prev);
       if (selected === defaultSelected) {
         next.delete(index);
       } else {
         next.add(index);
+      }
+      // Selecting one value of a duplicated field deselects the others
+      // (their default is unselected, so dropping the toggle unchecks them).
+      if (selected && isDuplicate(item)) {
+        parsedMeasurements.forEach((other, otherIndex) => {
+          if (otherIndex !== index && other.field === item.field) next.delete(otherIndex);
+        });
       }
       return next;
     });
@@ -109,6 +123,11 @@ export function MeasurementReview({
               {'convertedFrom' in item && item.convertedFrom && (
                 <p className="measurement-review__source">
                   Convertit automat din {item.convertedFrom} în {unit}.
+                </p>
+              )}
+              {isDuplicate(item) && (
+                <p className="measurement-review__conflict">
+                  Câmp dictat de mai multe ori cu valori diferite — alegeți valoarea corectă.
                 </p>
               )}
               {hasAmbiguousValue(item) && (

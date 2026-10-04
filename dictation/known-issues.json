@@ -1,10 +1,8 @@
 {
   "standard-2026-10-04": {
     "posteriorWallDiastolicDiameter": "whisper dropped the whole 'Perete posterior 1,1 cm' sentence",
-    "lvLateromedialDiameter": "'VD' transcribed as 'Vese' (= VS), so VS/VD are indistinguishable",
-    "rvLateromedialDiameter": "'VD' transcribed as 'Vese' (= VS), so VS/VD are indistinguishable",
-    "laLateromedialDiameter": "'AD' transcribed as 'Ase' (= AS), so AS/AD are indistinguishable",
-    "raLateromedialDiameter": "'AD' transcribed as 'Ase' (= AS), so AS/AD are indistinguishable",
+    "rvLateromedialDiameter": "'VD' transcribed as 'Vese' (= VS): its value is offered as a second, unchecked VS value",
+    "raLateromedialDiameter": "'AD' transcribed as 'Ase' (= AS): its value is offered as a second, unchecked AS value",
     "aorticVmax": "'Flux aortic' heading dropped; bare 'Vmax' has no section",
     "aorticPmax": "'Flux aortic' heading dropped and 'Pmax' heard as 'Vmax'",
     "aorticPmean": "'Flux aortic' heading dropped and 'Pmediu' heard as 'Vmediu'",
@@ -46,5 +44,17 @@
     "septalAPrime": "values dropped and 'A prim' heard as 'E, primitru'",
     "septalEaPrimeRatio": "derived from the dropped E'/A' values",
     "eePrimeRatio": "derived from the dropped E' value"
+  },
+  "patient-2026-10-04": {
+    "lvEjectionFractionTeicholz": "whisper dropped the whole 'Fracție de ejecție VS Teicholz 63' sentence",
+    "lvMass": "'88' heard as '8,8'",
+    "aorticPmean": "'Pmediu 3' heard as 'PMAX 3'",
+    "aorticValveArea": "value lost: 'ARIA VALVEI AORTIC, VMAX 12,8'",
+    "septalEPrime": "whisper garbled the Doppler tisular section (no heading; wrote 'UNDA A57, UNDA S57, UNDA S57, UNDA S57')",
+    "septalAPrime": "whisper garbled the Doppler tisular section (no heading; wrote 'UNDA A57, UNDA S57, UNDA S57, UNDA S57')",
+    "septalS": "whisper garbled the Doppler tisular section (no heading; wrote 'UNDA A57, UNDA S57, UNDA S57, UNDA S57')",
+    "septalEaPrimeRatio": "derived from the garbled tissue Doppler values",
+    "eePrimeRatio": "derived from the garbled E' value",
+    "conclusions": "whisper wrote 'valvulopatie significative' and commas for full stops; conclusions are kept verbatim"
   }
 }

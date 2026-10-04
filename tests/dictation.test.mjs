@@ -39,7 +39,8 @@ for (const script of scripts) {
     assert.deepEqual(Object.keys(script.expected.measurements).sort(), [...keys].sort());
   });
 
-  test(`script "${script.name}" uses a unique value for every numeric field`, () => {
+  // "repeatedValues": "<reason>" exempts a script that was already recorded.
+  test(`script "${script.name}" uses a unique value for every numeric field`, { skip: script.expected.repeatedValues }, () => {
     const numbers = [
       ...Object.values(script.expected.measurements),
       ...Object.values(script.expected.patient ?? {}),

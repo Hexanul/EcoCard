@@ -1,0 +1,5 @@
+Nume Ionescu, prenume Clementina, vârsta 71 de ani, greutate 64 de kg, înălțime 160 cm, VSE diametrul tele diastolic 4,8, VSE diametrul tele sistolic 3,1, SIV diametrul diastolic 1,1, perete posterior diametrul diastolic 1,0,
+FACţie de scurtare 35, masa VSE 8,8, Aorta la inel 2, Aorta ascendente 3,4, ASE diametrul antroposterior 4, Aorta la nivelul crosei 2,8, Artera pulmonară 2,5, VSE diametrul lateromedian 4,9, VD diametrul lateromedian 3,4, ASE diametrul lateromedian 4,5, AD diametrul lateromedian 3,6,
+MAPSE 16, TAPSE 20, ARIA ASE 22, ARIA AD 16, VOLUM TELE diastolic VSE 108, VOLUM TELE sistolic VSE 40, FRACţie de ejecție Simpson 63, FLUX AORTIC, VMAX 125, PMAX 6, PMAX 3, FLUX LVOT, VMAX 92, PMAX 5, VTI 19, ARIA VALVEI AORTIC,
+VMAX 12,8, FLUX MITRAL, UNDA E 68, UNDA A82, TDE 240, TRI V104, ARIA VALVEI MITRALE 4,2, FLUX TRI CUSPIDIAN, VMAX 210, PMAX 18, PSVD 26, UNDA E 48, UNDA A57, FLUX PULMONAR, VMAX 78, PMAX 2, VTI 14,
+UNDA A57, UNDA S57, UNDA S57, UNDA S57, CONCLUZI, FUNCŢia sistolică a ventriculului stâng este păstrată, relaxare diastolică încetinită, fără valvulopatie significative.

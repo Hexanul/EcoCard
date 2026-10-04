@@ -131,6 +131,9 @@ const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
   tricuspid: [
     'flux tricuspidian',
     'fluxul tricuspidian',
+    // Whisper splits the word: "Flux tri cuspidian".
+    'flux tri cuspidian',
+    'fluxul tri cuspidian',
     // A regurgitation phrase stays in the tricuspid section: a following
     // bare "Vmax"/"PSVD" belongs to it even when the doctor did not dictate
     // the "Flux tricuspidian" heading.
@@ -448,7 +451,8 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'shorteningFraction',
-    aliases: ['fractie de scurtare', 'fractia de scurtare'],
+    // Whisper drops the "r": "FACție de scurtare".
+    aliases: ['fractie de scurtare', 'fractia de scurtare', 'factie de scurtare', 'factia de scurtare'],
   },
   {
     field: 'lvMass',
@@ -500,12 +504,17 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'as diametru anterior posterior',
       'as diametrul anterior postior',
       'as diametru anterior postior',
+      // Whisper drops the "e": "antroposterior".
+      'as diametrul antroposterior',
+      'as diametru antroposterior',
       'atriul stang diametrul antero posterior',
       // Dictated without the "AS" prefix ("Diametrul anteroposterior, 3 cm").
       'diametrul anteroposterior',
       'diametrul antero posterior',
       'diametru anteroposterior',
       'diametru antero posterior',
+      'diametrul antroposterior',
+      'diametru antroposterior',
     ],
   },
   {
@@ -757,7 +766,8 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   { field: 'mitralA', aliases: ['unda a', 'onda a', 'a'], context: 'mitral' },
   { field: 'mitralEaRatio', aliases: ['e/a', 'e a', 'ea', 'epa'], context: 'mitral' },
   { field: 'mitralDecelerationTime', aliases: ['tde', 'timp de deceleratie'], context: 'mitral' },
-  { field: 'mitralTriv', aliases: ['triv'], context: 'mitral' },
+  // Whisper splits TRIV and glues the number: "TRI V104".
+  { field: 'mitralTriv', aliases: ['triv', 'tri v'], context: 'mitral' },
 
   // Doppler — flux tricuspidian
   { field: 'tricuspidVmax', aliases: ['vmax', 'v max'], context: 'tricuspid' },
@@ -1273,7 +1283,9 @@ function findNextPunctuation(raw: string, from: number, limit: number): number |
   return match ? from + (match.index ?? 0) : null;
 }
 
-const CONCLUSIONS_MARKER = /\bconcluzi(?:i|e)\s*[:.,-]?\s*/i;
+// "Concluzii", "Concluzie", "Concluziile", and Whisper's "CONCLUZI," with the
+// last letter dropped.
+const CONCLUSIONS_MARKER = /\bconcluzi(?:ile|i|e)?\b\s*[:.,-]?\s*/i;
 
 function extractConclusions(transcript: string): string {
   const match = CONCLUSIONS_MARKER.exec(transcript);

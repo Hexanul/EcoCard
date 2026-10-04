@@ -27,10 +27,42 @@ export function getFollowingCurrentNumber(value: string): number | null {
   return Number.isInteger(currentNumber) && currentNumber > 0 ? currentNumber + 1 : null;
 }
 
+/**
+ * Fields dictated more than once with different values ("VS ... 4,4" and a
+ * misheard "VS ... 3,5"). Their rows must never be applied silently: the
+ * doctor has to pick one.
+ */
+export function conflictingDuplicateFields(items: ParsedDetectedItem[]): Set<ParsedDetectedItem['field']> {
+  const valuesByField = new Map<ParsedDetectedItem['field'], Set<string>>();
+  for (const item of items) {
+    const values = valuesByField.get(item.field) ?? new Set<string>();
+    values.add(item.value);
+    valuesByField.set(item.field, values);
+  }
+  const conflicting = new Set<ParsedDetectedItem['field']>();
+  for (const [field, values] of valuesByField) {
+    if (values.size > 1) conflicting.add(field);
+  }
+  return conflicting;
+}
+
+// A field repeated with the same value is one finding; only the first row is kept.
+function withoutRepeatedValues(items: ParsedMeasurement[]): ParsedMeasurement[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.field}|${item.value}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function addCalculatedMeasurements(
-  parsedMeasurements: ParsedMeasurement[],
+  dictated: ParsedMeasurement[],
   existing: Measurements,
 ): ParsedMeasurement[] {
+  const parsedMeasurements = withoutRepeatedValues(dictated);
+  const duplicates = conflictingDuplicateFields(parsedMeasurements);
   const values = { ...existing };
   const parsedFields = new Set(parsedMeasurements.map((item) => item.field));
   for (const item of parsedMeasurements) {
@@ -43,6 +75,9 @@ function addCalculatedMeasurements(
   );
 
   for (const [field, sourceText, sourceFields] of DERIVED_DEFINITIONS) {
+    // A ratio built from a field with conflicting dictated values would show
+    // an arbitrary result; it is recalculated once the doctor picks a value.
+    if (sourceFields.some((sourceField) => duplicates.has(sourceField))) continue;
     if (sourceFields.some((sourceField) => parsedFields.has(sourceField)) && calculated[field] !== '') {
       detected.push({
         field,

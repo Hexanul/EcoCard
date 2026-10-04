@@ -4,6 +4,7 @@ import {
   applyDetectedItems,
   buildDetectedItems,
   changedPatientFields,
+  conflictingDuplicateFields,
   getFollowingCurrentNumber,
   mergeParsedPatient,
 } from '../dist-parser-tests/src/services/reportState.js';
@@ -125,4 +126,47 @@ test('the field registry covers every measurement exactly once', async () => {
   assert.equal(MEASUREMENT_FIELDS.aorticVmax.reviewLabel, 'Flux aortic — Vmax');
   assert.equal(MEASUREMENT_FIELDS.aorticRegurgitation.reviewLabel, 'Regurgitare aortică');
   assert.equal(MEASUREMENT_FIELDS.mitralE.reportLabel, 'Unda E');
+});
+
+test('a field dictated twice with different values is a conflict and gets no derived ratio', () => {
+  // Whisper heard "VD" as "VS": the VS field received two different values.
+  const items = buildDetectedItems(
+    {
+      measurements: [
+        numeric('lvLateromedialDiameter', '4.4'),
+        numeric('lvLateromedialDiameter', '3.5'),
+        numeric('mitralE', '80'),
+        numeric('mitralE', '64'),
+        numeric('mitralA', '50'),
+      ],
+      conclusions: '',
+      patient: emptyPatient,
+    },
+    createEmptyEchoReport().measurements,
+  );
+  assert.deepEqual(items.map((item) => [item.field, item.value]), [
+    ['lvLateromedialDiameter', '4.4'],
+    ['lvLateromedialDiameter', '3.5'],
+    ['mitralE', '80'],
+    ['mitralE', '64'],
+    ['mitralA', '50'],
+  ]);
+  assert.deepEqual([...conflictingDuplicateFields(items)].sort(), ['lvLateromedialDiameter', 'mitralE']);
+});
+
+test('a field repeated with the same value is shown once and is not a conflict', () => {
+  const items = buildDetectedItems(
+    {
+      measurements: [numeric('mitralE', '80'), numeric('mitralE', '80'), numeric('mitralA', '64')],
+      conclusions: '',
+      patient: emptyPatient,
+    },
+    createEmptyEchoReport().measurements,
+  );
+  assert.deepEqual(items.map((item) => [item.field, item.value]), [
+    ['mitralE', '80'],
+    ['mitralA', '64'],
+    ['mitralEaRatio', '1.25'],
+  ]);
+  assert.equal(conflictingDuplicateFields(items).size, 0);
 });

@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MEASUREMENT_FIELDS, MEASUREMENT_SECTIONS, DERIVED_MEASUREMENT_KEYS } from '../dist-parser-tests/src/config/measurementFields.js';
 import { parseEchoTranscript } from '../dist-parser-tests/src/services/medicalParser.js';
-import { buildDetectedItems } from '../dist-parser-tests/src/services/reportState.js';
+import { buildDetectedItems, conflictingDuplicateFields } from '../dist-parser-tests/src/services/reportState.js';
 import { createEmptyMeasurements } from '../dist-parser-tests/src/types/echoReport.js';
 import { calculateDerivedMeasurements } from '../dist-parser-tests/src/utils/derivedMeasurements.js';
 
@@ -169,13 +169,18 @@ function uncertainty(item) {
 export function evaluateTranscript(text, expected) {
   const parsed = parseEchoTranscript(text);
   const items = buildDetectedItems(parsed, createEmptyMeasurements());
-  const itemsByField = new Map();
-  const duplicates = new Set();
-  for (const item of items) {
-    if (itemsByField.has(item.field)) duplicates.add(item.field);
-    itemsByField.set(item.field, item); // later items win, as when applying
-  }
+  // A field dictated twice with different values starts unchecked in the
+  // review panel and the doctor picks one, so the row matching the expected
+  // value (if any) stands for the field.
+  const duplicates = conflictingDuplicateFields(items);
   const expectedValues = expectedMeasurements(expected);
+  const itemsByField = new Map();
+  for (const item of items) {
+    const current = itemsByField.get(item.field);
+    const keepCurrent = current && duplicates.has(item.field)
+      && sameValue(expectedValues[item.field] ?? '', current.value);
+    if (!keepCurrent) itemsByField.set(item.field, item);
+  }
   const ownerOfValue = (value, exceptKey) =>
     Object.keys(expectedValues).find((key) => key !== exceptKey && asNumber(value) !== null && sameValue(expectedValues[key], value));
 
@@ -202,17 +207,17 @@ export function evaluateTranscript(text, expected) {
     const row = { group: 'measurement', key, label, section, expected: expectedValue, actual: item?.value ?? null, status: 'OK', detail: '', excerpt: '', source: item?.sourceText ?? '' };
     if (item && sameValue(expectedValue, item.value)) {
       const reasons = uncertainty(item);
+      if (duplicates.has(key)) reasons.push('dictated more than once with different values');
       if (reasons.length > 0) {
         row.status = 'OK*';
         row.detail = `review row starts unchecked: ${reasons.join(', ')}`;
       }
-      if (duplicates.has(key)) row.detail = [row.detail, 'detected more than once'].filter(Boolean).join('; ');
     } else if (item) {
       row.status = 'WRONG';
       const owner = ownerOfValue(item.value, key);
       row.detail = owner ? `got the value of ${owner}` : '';
       const reasons = uncertainty(item);
-      if (duplicates.has(key)) reasons.push('detected more than once, the last one wins');
+      if (duplicates.has(key)) reasons.push('dictated more than once with different values, rows start unchecked');
       if (reasons.length > 0) row.detail = [row.detail, reasons.join(', ')].filter(Boolean).join('; ');
       row.excerpt = row.source;
     } else {

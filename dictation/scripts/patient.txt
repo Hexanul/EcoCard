@@ -1,0 +1,11 @@
+Nume Ionescu prenume Clementina. Vârsta 71 de ani. Greutate 64 de kilograme. Înălțime 160 de centimetri.
+VS diametrul telediastolic 4,8. VS diametrul telesistolic 3,1. SIV diametrul diastolic 1,1. Perete posterior diametrul diastolic 1,0. Fracție de ejecție VS Teicholz 63. Fracție de scurtare 35.
+Masa VS 88. Aorta la inel 2,0. Aorta ascendentă 3,4. AS diametrul antero-posterior 4,0. Aorta la nivelul crosei 2,8. Artera pulmonară 2,5.
+VS diametrul latero-median 4,9. VD diametrul latero-median 3,4. AS diametrul latero-median 4,5. AD diametrul latero-median 3,6. MAPSE 16. TAPSE 20. Aria AS 22. Aria AD 16. Volum telediastolic VS 108. Volum telesistolic VS 40. Fracție de ejecție Simpson 63.
+Flux aortic. Vmax 125. Pmax 6. Pmediu 3.
+Flux LVOT. Vmax 92. Pmax 5. VTI 19. Aria valvei aortice 2,8.
+Flux mitral. Unda E 68. Unda A 82. TDE 240. TRIV 104. Aria valvei mitrale 4,2.
+Flux tricuspidian. Vmax 210. Pmax 18. PSVD 26. Unda E 48. Unda A 57.
+Flux pulmonar. Vmax 78. Pmax 2. VTI 14.
+Doppler tisular. Unda E prim 8. Unda A prim 11. Unda S 6.
+Concluzii: funcția sistolică a ventriculului stâng este păstrată. Relaxare diastolică încetinită. Fără valvulopatii semnificative.

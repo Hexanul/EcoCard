@@ -121,6 +121,17 @@ test('extracts dictated conclusions after the Concluzii heading', () => {
   );
 });
 
+test('finds conclusions after "Concluziile" and Whisper\'s truncated "CONCLUZI"', () => {
+  const plural = parseEchoTranscript('PSVD 26. Concluziile: funcție sistolică păstrată.');
+  assert.equal(plural.conclusions, 'funcție sistolică păstrată.');
+  assert.ok(plural.measurements.some((item) => item.field === 'psvd'));
+
+  const truncated = parseEchoTranscript(
+    'FLUX PULMONAR, VMAX 78, CONCLUZI, FUNCŢia sistolică a ventriculului stâng este păstrată.',
+  );
+  assert.equal(truncated.conclusions, 'FUNCŢia sistolică a ventriculului stâng este păstrată.');
+});
+
 test('does not guess a Vmax field without a flow context', () => {
   assert.equal(parseEchoTranscript('Vmax o sută cincizeci').measurements.length, 0);
 });

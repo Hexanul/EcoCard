@@ -16,7 +16,39 @@ export function getFollowingCurrentNumber(value) {
     const currentNumber = Number(value.trim());
     return Number.isInteger(currentNumber) && currentNumber > 0 ? currentNumber + 1 : null;
 }
-function addCalculatedMeasurements(parsedMeasurements, existing) {
+/**
+ * Fields dictated more than once with different values ("VS ... 4,4" and a
+ * misheard "VS ... 3,5"). Their rows must never be applied silently: the
+ * doctor has to pick one.
+ */
+export function conflictingDuplicateFields(items) {
+    const valuesByField = new Map();
+    for (const item of items) {
+        const values = valuesByField.get(item.field) ?? new Set();
+        values.add(item.value);
+        valuesByField.set(item.field, values);
+    }
+    const conflicting = new Set();
+    for (const [field, values] of valuesByField) {
+        if (values.size > 1)
+            conflicting.add(field);
+    }
+    return conflicting;
+}
+// A field repeated with the same value is one finding; only the first row is kept.
+function withoutRepeatedValues(items) {
+    const seen = new Set();
+    return items.filter((item) => {
+        const key = `${item.field}|${item.value}`;
+        if (seen.has(key))
+            return false;
+        seen.add(key);
+        return true;
+    });
+}
+function addCalculatedMeasurements(dictated, existing) {
+    const parsedMeasurements = withoutRepeatedValues(dictated);
+    const duplicates = conflictingDuplicateFields(parsedMeasurements);
     const values = { ...existing };
     const parsedFields = new Set(parsedMeasurements.map((item) => item.field));
     for (const item of parsedMeasurements) {
@@ -25,6 +57,10 @@ function addCalculatedMeasurements(parsedMeasurements, existing) {
     const calculated = calculateDerivedMeasurements(values);
     const detected = parsedMeasurements.filter((item) => !DERIVED_MEASUREMENT_KEYS.includes(item.field));
     for (const [field, sourceText, sourceFields] of DERIVED_DEFINITIONS) {
+        // A ratio built from a field with conflicting dictated values would show
+        // an arbitrary result; it is recalculated once the doctor picks a value.
+        if (sourceFields.some((sourceField) => duplicates.has(sourceField)))
+            continue;
         if (sourceFields.some((sourceField) => parsedFields.has(sourceField)) && calculated[field] !== '') {
             detected.push({
                 field,

@@ -653,6 +653,16 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
               {formatElapsed(Math.ceil(playbackDuration || elapsedSeconds))}
             </span>
           </div>
+          {/* Dev-only: save a dictation test recording for dictation/recordings/. */}
+          {import.meta.env.DEV && audioUrl && (
+            <a
+              className="btn btn--secondary no-print"
+              href={audioUrl}
+              download="dictation.webm"
+            >
+              ⬇ Descarcă înregistrarea (dev)
+            </a>
+          )}
           {(state === 'transcribed' || state === 'error') && (
             <button
               type="button"
