@@ -8,6 +8,12 @@ import { MeasurementGroup } from './components/MeasurementGroup';
 import { ConclusionsForm } from './components/ConclusionsForm';
 import { ReportActions } from './components/ReportActions';
 import { ReportPreviewPage } from './components/ReportPreviewPage';
+import { SettingsDialog } from './components/SettingsDialog';
+import {
+  CLINIC_SETTINGS_STORAGE_KEY,
+  parseClinicSettings,
+  type ClinicSettings,
+} from './config/clinicSettings';
 import { createTestEchoReport } from './dev/testReport';
 import type {
   ParsedEchoData,
@@ -35,6 +41,14 @@ function getNextCurrentNumber(): number {
   return Number.isInteger(stored) && stored > 0 ? stored : 1;
 }
 
+function loadClinicSettings(): ClinicSettings {
+  try {
+    return parseClinicSettings(window.localStorage.getItem(CLINIC_SETTINGS_STORAGE_KEY));
+  } catch {
+    return parseClinicSettings(null);
+  }
+}
+
 function createReportWithCurrentNumber(): EchoReport {
   const report = createEmptyEchoReport();
   report.patient.currentNumber = String(getNextCurrentNumber());
@@ -49,6 +63,9 @@ function App() {
   // Bumped on "Șterge formularul" to remount the dictation panel, so the
   // previous patient's transcript and recording are discarded with the form.
   const [dictationKey, setDictationKey] = useState(0);
+  // Clinic header ("⚙ Setări"), set once per installation.
+  const [clinic, setClinic] = useState<ClinicSettings>(loadClinicSettings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const updatePatient = (patient: PatientInfo) => {
     setReport((prev) => ({ ...prev, patient }));
@@ -118,6 +135,16 @@ function App() {
     }
   };
 
+  const handleSaveClinic = (settings: ClinicSettings) => {
+    try {
+      window.localStorage.setItem(CLINIC_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('[Echo Report] Saving clinic settings failed:', error);
+    }
+    setClinic(settings);
+    setSettingsOpen(false);
+  };
+
   const handleLoadTestReport = () => {
     const testReport = createTestEchoReport();
     testReport.patient.currentNumber = String(getNextCurrentNumber());
@@ -131,10 +158,13 @@ function App() {
   return (
     <>
     {view === 'preview' && (
-      <ReportPreviewPage report={report} onBack={() => setView('form')} onExportSuccess={handlePdfExported} />
+      <ReportPreviewPage report={report} clinic={clinic} onBack={() => setView('form')} onExportSuccess={handlePdfExported} />
     )}
     <div className="app" style={view === 'preview' ? { display: 'none' } : undefined}>
-      <Header />
+      <Header onOpenSettings={() => setSettingsOpen(true)} />
+      {settingsOpen && (
+        <SettingsDialog clinic={clinic} onSave={handleSaveClinic} onClose={() => setSettingsOpen(false)} />
+      )}
 
       <main className="app-main">
         <DictationPanel

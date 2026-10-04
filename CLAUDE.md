@@ -43,7 +43,7 @@ Tests import the compiled JS from `dist-parser-tests/` (not the `.ts` sources), 
 
 `src/types/echoReport.ts` defines `EchoReport` / `Measurements` (all values are strings; keys are the `MeasurementKey` union used everywhere). `src/config/measurementFields.ts` is the single registry of every measurement's form section, label, unit, report label, and review label; the forms (`MeasurementGroup`), report rows, review labels, derived-key list, and `MEASUREMENT_UNITS` are all generated from it (a test asserts it covers every key once). Adding a measurement means touching the type, the registry, the parser's alias definitions, and placing a `<Field k=…>` in the report layout (`ReportPreview.tsx`, which keeps its hand-built print layout).
 
-The register number ("Nr. curent") is consumed only by a successful PDF export, which stores exported+1 in localStorage (`ecocard-next-current-number`); the next number appears when a new report is started. `src/dev/testReport.ts` is a dev-only fixture behind an `import.meta.env.DEV` button.
+The register number ("Nr. curent") is consumed only by a successful PDF export, which stores exported+1 in localStorage (`ecocard-next-current-number`); the next number appears when a new report is started. The clinic header (name, address) printed on the report is edited via "⚙ Setări" (`SettingsDialog`) and stored in localStorage (`ecocard-clinic-settings`, parsed by the pure `src/config/clinicSettings.ts`). It starts empty — the app ships to several doctors, so never hard-code a clinic's name or address. `src/dev/testReport.ts` is a dev-only fixture behind an `import.meta.env.DEV` button.
 
 ## Medical parser (`src/services/medicalParser.ts`)
 

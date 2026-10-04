@@ -15,6 +15,7 @@
     "types": []
   },
   "include": [
+    "src/config/clinicSettings.ts",
     "src/config/measurementFields.ts",
     "src/config/measurementUnits.ts",
     "src/services/medicalParser.ts",

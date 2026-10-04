@@ -669,6 +669,84 @@
   border-color: #d99;
 }
 
+/* Neutral button (settings, cancel) — not the red "clear form" style. */
+
+.btn--neutral {
+  color: var(--accent);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.btn--neutral:hover {
+  background: var(--accent-bg);
+  border-color: var(--border-focus);
+}
+
+.settings-dialog .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header__actions .btn {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Settings dialog */
+
+.settings-dialog {
+  width: min(520px, calc(100vw - 32px));
+  margin: auto;
+  padding: 24px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(26, 35, 50, 0.2);
+}
+
+.settings-dialog::backdrop {
+  background: rgba(26, 35, 50, 0.4);
+}
+
+.settings-dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-dialog__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.settings-dialog__section {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.settings-dialog__note {
+  margin-top: -8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.settings-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
 @media (max-width: 600px) {
   .app-header {
     flex-direction: column;

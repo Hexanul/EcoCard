@@ -1,9 +1,11 @@
+import type { ClinicSettings } from '../config/clinicSettings';
 import { MEASUREMENT_FIELDS } from '../config/measurementFields';
 import type { EchoReport, MeasurementKey, Measurements } from '../types/echoReport';
 import './ReportPreview.css';
 
 type ReportPreviewProps = {
   report: EchoReport;
+  clinic: ClinicSettings;
 };
 
 // ISO dates (yyyy-mm-dd) are shown in the Romanian report format (dd.mm.yyyy).
@@ -40,7 +42,7 @@ function Field({ k, m }: { k: MeasurementKey; m: Measurements }) {
   return <Row label={field.reportLabel} value={m[k]} unit={field.unit} />;
 }
 
-export function ReportPreview({ report }: ReportPreviewProps) {
+export function ReportPreview({ report, clinic }: ReportPreviewProps) {
   const { patient, measurements: m, conclusions } = report;
   const patientName = [patient.lastName, patient.firstName].filter(Boolean).join(' ');
 
@@ -49,11 +51,11 @@ export function ReportPreview({ report }: ReportPreviewProps) {
       <article className="rp-sheet" aria-label="Previzualizare raport ecocardiografie">
         <header className="rp-clinic-header">
           <div className="rp-clinic-header__top">
-            <strong>CMI DR. CURTA ASINETA</strong>
+            <strong>{clinic.name}</strong>
             <Row label="Nr. curent" value={patient.currentNumber} />
             <Row label="Data" value={formatDate(patient.examinationDate)} />
           </div>
-          <span>Str. Vișinului nr. 47, Arad</span>
+          {clinic.address && <span>{clinic.address}</span>}
         </header>
 
         <div className="rp-document-meta">

@@ -47,6 +47,10 @@
   color: var(--danger);
 }
 
+.preview-toolbar__status--warning {
+  color: var(--paused);
+}
+
 .preview-scroll {
   flex: 1;
   overflow-y: auto;

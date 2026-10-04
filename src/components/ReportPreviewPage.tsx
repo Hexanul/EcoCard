@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { getEchoReportApi } from '../services/electronBridge';
 import { ReportPreview } from './ReportPreview';
+import { isClinicSettingsEmpty, type ClinicSettings } from '../config/clinicSettings';
 import type { EchoReport } from '../types/echoReport';
 
 type ReportPreviewPageProps = {
   report: EchoReport;
+  clinic: ClinicSettings;
   onBack: () => void;
   onExportSuccess: () => void;
 };
 
 type ExportStatus = 'idle' | 'generating' | 'success' | 'error';
 
-export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPreviewPageProps) {
+export function ReportPreviewPage({ report, clinic, onBack, onExportSuccess }: ReportPreviewPageProps) {
   // Narrowly scoped preload bridge: the main process generates an A4 PDF via
   // webContents.printToPDF() and the native Windows Save As dialog. Nothing
   // happens without the doctor clicking "Exportă PDF".
@@ -57,6 +59,11 @@ export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPre
           Raport ecocardiografie — previzualizare doar-citire a valorilor curente din formular.
           Verificați valorile înainte de export.
         </p>
+        {isClinicSettingsEmpty(clinic) && (
+          <p className="preview-toolbar__status preview-toolbar__status--warning" role="note">
+            Antetul cabinetului nu este completat — completați-l din ⚙ Setări.
+          </p>
+        )}
         {exportStatus !== 'idle' && (
           <p className={`preview-toolbar__status preview-toolbar__status--${exportStatus}`} role="status">
             {exportStatus === 'generating' && 'Se generează PDF...'}
@@ -75,7 +82,7 @@ export function ReportPreviewPage({ report, onBack, onExportSuccess }: ReportPre
         </button>
       </div>
       <div className="preview-scroll">
-        <ReportPreview report={report} />
+        <ReportPreview report={report} clinic={clinic} />
       </div>
     </div>
   );

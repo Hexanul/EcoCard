@@ -19,3 +19,5 @@ Flux tricuspidian. Vmax 230. Pmax 24. PSVD 29. Unda E 54. Unda A 43.
 Flux pulmonar. Vmax 86. Pmax 3. VTI 16.
 
 Doppler tisular. Unda E prim 10. Unda A prim 12. Unda S 7.
+
+Job assist

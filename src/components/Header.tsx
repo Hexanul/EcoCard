@@ -1,4 +1,8 @@
-export function Header() {
+type HeaderProps = {
+  onOpenSettings: () => void;
+};
+
+export function Header({ onOpenSettings }: HeaderProps) {
   return (
     <header className="app-header">
       <div className="app-header__titles">
@@ -7,9 +11,14 @@ export function Header() {
           Asistent pentru raportarea ecocardiografică
         </p>
       </div>
-      <div className="offline-indicator" aria-label="Mod offline activ">
-        <span className="offline-indicator__dot" aria-hidden="true" />
-        Offline
+      <div className="app-header__actions">
+        <button type="button" className="btn btn--neutral" onClick={onOpenSettings}>
+          ⚙ Setări
+        </button>
+        <div className="offline-indicator" aria-label="Mod offline activ">
+          <span className="offline-indicator__dot" aria-hidden="true" />
+          Offline
+        </div>
       </div>
     </header>
   );
