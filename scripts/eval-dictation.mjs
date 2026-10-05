@@ -1,11 +1,13 @@
 // Dictation test loop: transcribes new recordings in dictation/recordings/
-// with the app's own ffmpeg + whisper pipeline (cached in
-// dictation/transcripts/), then checks every transcript and each script's
-// perfect text against the script's expected values.
+// with the app's own pipeline — the renderer's Chromium-based WAV conversion
+// (scripts/whisper-wav.mjs) and the main process's whisper invocation —
+// caches them in dictation/transcripts/, then checks every transcript and
+// each script's perfect text against the script's expected values.
 //
 //   npm run eval:dictation [-- <name-filter>] [--retranscribe] [--all] [--json]
 //
-// Run through npm: the npm script compiles the parser and the Electron code first.
+// Run through npm: the npm script compiles the parser, the audio converter
+// and the Electron code first.
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -19,6 +21,7 @@ import {
   loadTranscripts,
   scriptNameFor,
 } from './dictation-check.mjs';
+import { convertFilesToWhisperWav } from './whisper-wav.mjs';
 
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((arg) => arg.startsWith('--')));
@@ -26,8 +29,6 @@ const filter = args.find((arg) => !arg.startsWith('--')) ?? '';
 const asJson = flags.has('--json');
 const showAll = flags.has('--all');
 const log = asJson ? () => undefined : (...parts) => console.log(...parts);
-
-const MIME_TYPES = { '.m4a': 'audio/mp4', '.wav': 'audio/wav', '.webm': 'audio/webm', '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg' };
 
 const scripts = loadScripts();
 const scriptNames = scripts.map((script) => script.name);
@@ -40,7 +41,7 @@ async function transcribeRecordings() {
     .filter((file) => AUDIO_EXTENSIONS.includes(path.extname(file).toLowerCase()))
     .filter((file) => file.includes(filter))
     .sort();
-  let transcribeAudio;
+  const pending = [];
   for (const file of recordings) {
     const base = path.basename(file, path.extname(file));
     const transcriptPath = path.join(TRANSCRIPTS_DIR, `${base}.txt`);
@@ -49,11 +50,17 @@ async function transcribeRecordings() {
       continue;
     }
     if (fs.existsSync(transcriptPath) && !flags.has('--retranscribe')) continue;
-    transcribeAudio ??= (await import('../dist-electron/transcription.cjs')).transcribeAudio;
+    pending.push({ file, base, transcriptPath });
+  }
+  if (pending.length === 0) return;
+
+  // One hidden Electron window converts all pending recordings at once.
+  const wavs = await convertFilesToWhisperWav(pending.map(({ file }) => path.join(RECORDINGS_DIR, file)));
+  const { transcribeAudio } = await import('../dist-electron/transcription.cjs');
+  for (const [index, { file, base, transcriptPath }] of pending.entries()) {
     log(`Transcribing ${file} (local whisper, may take a few minutes)...`);
     const started = Date.now();
-    const audio = new Uint8Array(fs.readFileSync(path.join(RECORDINGS_DIR, file)));
-    const result = await transcribeAudio(audio, MIME_TYPES[path.extname(file).toLowerCase()]);
+    const result = await transcribeAudio(wavs[index], 'audio/wav');
     if (!result.success) {
       log(`! ${file}: ${result.errorCode}: ${result.message}`);
       continue;

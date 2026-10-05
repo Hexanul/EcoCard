@@ -1,3 +1,4 @@
+import { convertToWhisperWav } from '../audio/whisperWav';
 import type { TranscriptionResult } from '../types/audioPipeline';
 import { getEchoReportApi } from './electronBridge';
 
@@ -11,9 +12,10 @@ export class TranscriptionError extends Error {
 /**
  * Transcribes a locally recorded audio Blob using offline whisper.cpp.
  *
- * Pipeline (Electron main process):
- *   recorded audio → ffmpeg → WAV PCM 16-bit / 16 kHz / mono
- *   → whisper-cli.exe → large-v3-turbo → Romanian transcript
+ * Pipeline:
+ *   recorded audio → Chromium decoder (renderer, src/audio/whisperWav.ts)
+ *   → WAV PCM 16-bit / 16 kHz / mono → Electron main process
+ *   → whisper-cli.exe → Romanian transcript
  *
  * The UI must not know how whisper.cpp works — it only calls this function.
  *
@@ -30,13 +32,15 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
     );
   }
 
-  const audioBytes = new Uint8Array(await audio.arrayBuffer());
+  let wav: Uint8Array;
+  try {
+    wav = await convertToWhisperWav(await audio.arrayBuffer());
+  } catch {
+    throw new TranscriptionError('Înregistrarea audio nu a putut fi convertită local. Încercați din nou.');
+  }
 
   try {
-    const result = await api.transcribeAudio(
-      audioBytes,
-      audio.type || 'audio/webm',
-    );
+    const result = await api.transcribeAudio(wav, 'audio/wav');
 
     if (!result.success) {
       throw new TranscriptionError(result.message);
@@ -44,7 +48,6 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
 
     return {
       text: result.transcript,
-      originalAudio: result.original,
       convertedAudio: result.converted,
     };
   } catch (error) {

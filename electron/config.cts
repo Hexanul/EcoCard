@@ -8,7 +8,7 @@ const projectRoot = path.resolve(__dirname, '..');
 // (scripts/test-pipeline.mjs), which always uses the project layout.
 const runtimeRoot = (app as typeof app | undefined)?.isPackaged ? process.resourcesPath : projectRoot;
 const localPathsFile = path.join(runtimeRoot, 'echoReport.paths.json');
-type UserPaths = Partial<{ ffmpegPath: string; whisperCliPath: string; modelPath: string; vadModelPath: string; tempDir: string }>;
+type UserPaths = Partial<{ whisperCliPath: string; modelPath: string; vadModelPath: string; tempDir: string }>;
 
 function readLocalPaths(): UserPaths {
   if (!existsSync(localPathsFile)) return {};
@@ -23,7 +23,6 @@ function readLocalPaths(): UserPaths {
 const configured = readLocalPaths();
 const localAppDirectory = path.join(runtimeRoot, 'app');
 export const runtimePaths = {
-  ffmpegPath: process.env.ECHOREPORT_FFMPEG ?? configured.ffmpegPath ?? path.join(localAppDirectory, 'bin', 'ffmpeg.exe'),
   whisperCliPath: process.env.ECHOREPORT_WHISPER_CLI ?? configured.whisperCliPath ?? path.join(localAppDirectory, 'bin', 'whisper-cli.exe'),
   modelPath: process.env.ECHOREPORT_MODEL ?? configured.modelPath ?? path.join(localAppDirectory, 'models', 'ggml-large-v3-turbo.bin'),
   // Silero voice-activity model; optional, whisper runs without VAD if it is missing.
@@ -33,7 +32,6 @@ export const runtimePaths = {
 
 export function pipelineStatus(): PipelineStatus {
   return {
-    ffmpegFound: existsSync(runtimePaths.ffmpegPath),
     whisperCliFound: existsSync(runtimePaths.whisperCliPath),
     modelFound: existsSync(runtimePaths.modelPath),
     // ggml-large-v3-turbo.bin -> large-v3-turbo

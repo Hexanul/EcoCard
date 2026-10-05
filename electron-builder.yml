@@ -11,6 +11,10 @@ extraResources:
     to: app
     filter:
       - '**/*'
+      # Audio is converted by Chromium in the renderer; a leftover local
+      # ffmpeg.exe must never be shipped (GPL licence, unused).
+      - '!bin/ffmpeg.exe'
+      - '!**/.gitkeep'
 win:
   target:
     - target: nsis

@@ -15,7 +15,7 @@ Arguments: an optional name filter (e.g. `standard-2026-10-04`) limits the run t
 npm run eval:dictation -- <filter>
 ```
 
-- New audio in `dictation/recordings/` (`<script>-<anything>.m4a|wav|webm|ogg|mp3`) is transcribed with the app's own ffmpeg + whisper and cached in `dictation/transcripts/<name>.txt`. Whisper takes ~10–60 s per minute of audio; do not interrupt it.
+- New audio in `dictation/recordings/` (`<script>-<anything>.m4a|wav|webm|ogg|mp3`) is transcribed with the app's own audio conversion (Chromium, in a hidden Electron window) + whisper and cached in `dictation/transcripts/<name>.txt`. Whisper takes ~10–60 s per minute of audio; do not interrupt it.
 - A recording whose name does not start with a script name is skipped with a warning — tell the user how to rename it.
 - Exit code 1 just means there are fields to fix.
 - `--json` gives the same data machine-readable; `--all` also lists passing rows.

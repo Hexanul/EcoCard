@@ -98,6 +98,9 @@ const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
     'fluxul levot',
     'flux levod',
     'fluxul levod',
+    // Whisper splits "LVOT" after the L ("Flux L, vot").
+    'flux l vot',
+    'fluxul l vot',
     'flux elevot',
     'fluxul elevot',
     'flux elevod',
@@ -155,6 +158,9 @@ const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
     'doppler trisular sept',
     'doppler trisular',
     'dopplerul trisular',
+    // Whisper may drop "Doppler" and keep only "tisular"; the word only
+    // ever names this section.
+    'tisular',
   ],
   apical4c: ['apical 4c', 'apical 4 camere', 'apicala 4 camere'],
 };
@@ -475,6 +481,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'aorta la inere',
       'aorta la inare',
       'aorta inere',
+      // Whisper "enel" for "inel"
+      'aorta la enel',
+      'aorta la enelul',
       'aortel inere',
       'aortelainere',
     ],
@@ -511,6 +520,11 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // Whisper drops the "e": "antroposterior".
       'as diametrul antroposterior',
       'as diametru antroposterior',
+      // Whisper fuses "latero"/"antero": "lanteroposterior".
+      'as diametrul lanteroposterior',
+      'as diametru lanteroposterior',
+      'as diametrul lantero posterior',
+      'as diametru lantero posterior',
       'atriul stang diametrul antero posterior',
       // Dictated without the "AS" prefix ("Diametrul anteroposterior, 3 cm").
       'diametrul anteroposterior',
@@ -569,6 +583,11 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vs diametrul ateromedian',
       'vs diametru ateromedian',
       'vs diam ateromedian',
+      // Whisper fuses "latero"/"antero": "lanteromedian".
+      'vs diametrul lanteromedian',
+      'vs diametru lanteromedian',
+      'vs diametrul lantero median',
+      'vs diametru lantero median',
       'vse diametrul anterior median',
       'vse diametru anterior median',
     ],
@@ -585,6 +604,13 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vd diametrul ateromedian',
       'vd diametru ateromedian',
       'vd diam ateromedian',
+      // Whisper hears "VD" as "B, D".
+      'b d diametrul ateromedian',
+      'b d diametru ateromedian',
+      'b d diametrul lateromedian',
+      'b d diametru lateromedian',
+      'b d diametrul latero median',
+      'b d diametru latero median',
       // Whisper hears VD as "vede".
       'vede diametrul latero median',
       'vede diametrul lateromedian',
@@ -669,6 +695,11 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vs volum tele diastolic',
       // Whisper "telediastoric" variant (same as diameters)
       'volum telediastoric vs',
+      // Whisper "Volum T, diastoric V, S". It can also be a misheard
+      // telesistolic volume; a second, different value then makes both review
+      // rows start unchecked (conflictingDuplicateFields) so the doctor picks.
+      'volum t diastoric vs',
+      'volum t diastolic vs',
       'volumul telediastoric vs',
       'volum telediastoric',
       'vs volum telediastoric',

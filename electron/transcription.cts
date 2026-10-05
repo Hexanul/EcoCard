@@ -10,13 +10,6 @@ const PROCESS_TIMEOUT_MS = 10 * 60 * 1000;
 const failure = (errorCode: TranscriptionFailure['errorCode'], message: string): TranscriptionFailure => ({ success: false, errorCode, message });
 const formatBytes = (bytes: number): string => bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
-function inputExtension(mimeType: string): string | null {
-  const type = mimeType.toLowerCase();
-  if (type.includes('webm')) return 'webm'; if (type.includes('ogg')) return 'ogg';
-  if (type.includes('mp4') || type.includes('m4a')) return 'm4a'; if (type.includes('mpeg') || type.includes('mp3')) return 'mp3';
-  return type.includes('wav') ? 'wav' : null;
-}
-
 type ProcessResult = { exitCode: number; stdout: string; stderr: string };
 function runTrustedProcess(command: string, args: string[], cwd?: string): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
@@ -31,8 +24,12 @@ function runTrustedProcess(command: string, args: string[], cwd?: string): Promi
   });
 }
 
+// The renderer converts every recording to this exact format (src/audio/
+// whisperWav.ts, Chromium's decoders), so the main process only validates it:
+// canonical 44-byte header, PCM 16-bit mono 16 kHz, data chunk matching the size.
 function inspectWhisperWav(buffer: Buffer): ConvertedAudio | null {
-  if (buffer.length < 44 || buffer.toString('ascii', 0, 4) !== 'RIFF' || buffer.toString('ascii', 8, 12) !== 'WAVE') return null;
+  if (buffer.length <= 44 || buffer.toString('ascii', 0, 4) !== 'RIFF' || buffer.toString('ascii', 8, 12) !== 'WAVE') return null;
+  if (buffer.toString('ascii', 12, 16) !== 'fmt ' || buffer.toString('ascii', 36, 40) !== 'data' || buffer.readUInt32LE(40) !== buffer.length - 44) return null;
   const channels = buffer.readUInt16LE(22); const sampleRate = buffer.readUInt32LE(24); const bitDepth = buffer.readUInt16LE(34);
   if (buffer.readUInt16LE(20) !== 1 || channels !== 1 || sampleRate !== 16000 || bitDepth !== 16) return null;
   return { format: 'WAV', codec: 'PCM signed 16-bit', channels: 1, sampleRate: 16000, bitDepth: 16, sizeBytes: buffer.byteLength, sizeFormatted: formatBytes(buffer.byteLength) };
@@ -43,21 +40,17 @@ function isStorageError(error: unknown): boolean {
 }
 
 export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string): Promise<TranscriptionResponse> {
-  const extension = inputExtension(mimeType);
-  if (!extension) return failure('INVALID_AUDIO', 'Formatul înregistrării audio nu este acceptat.');
-  if (!existsSync(runtimePaths.ffmpegPath)) return failure('FFMPEG_NOT_FOUND', 'FFmpeg nu a fost găsit.');
+  const wav = Buffer.from(audioBytes.buffer, audioBytes.byteOffset, audioBytes.byteLength);
+  const converted = mimeType === 'audio/wav' ? inspectWhisperWav(wav) : null;
+  if (!converted) return failure('INVALID_AUDIO', 'Înregistrarea audio nu are formatul așteptat (WAV 16 kHz mono).');
   if (!existsSync(runtimePaths.whisperCliPath)) return failure('WHISPER_CLI_NOT_FOUND', 'whisper-cli.exe nu a fost găsit.');
   if (!existsSync(runtimePaths.modelPath)) return failure('WHISPER_MODEL_NOT_FOUND', 'Modelul Whisper nu a fost găsit.');
   let sessionDirectory: string | undefined;
   try {
     sessionDirectory = await mkdtemp(path.join(runtimePaths.tempDir || os.tmpdir(), 'echoreport-'));
-    const inputPath = path.join(sessionDirectory, `source.${extension}`); const wavPath = path.join(sessionDirectory, 'recording.wav');
+    const wavPath = path.join(sessionDirectory, 'recording.wav');
     const outputPrefix = path.join(sessionDirectory, 'transcript'); const outputTextPath = `${outputPrefix}.txt`;
-    await writeFile(inputPath, Buffer.from(audioBytes));
-    const ffmpeg = await runTrustedProcess(runtimePaths.ffmpegPath, ['-y', '-i', inputPath, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-f', 'wav', wavPath]);
-    if (ffmpeg.exitCode !== 0) { console.error('[Echo Report] FFmpeg failed:', ffmpeg.stderr); return failure('FFMPEG_CONVERSION_FAILED', 'Conversia audio locală a eșuat.'); }
-    const converted = inspectWhisperWav(await readFile(wavPath));
-    if (!converted) return failure('FFMPEG_CONVERSION_FAILED', 'Conversia audio locală a eșuat.');
+    await writeFile(wavPath, wav);
     // -mc 0: don't condition on previous text (stops "Vmax, Vmax, Vmax" loops).
     // VAD skips silences that otherwise make whisper drop whole sentences.
     // Both measured on dictation/recordings; an initial --prompt with the
@@ -74,7 +67,7 @@ export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string):
     }
     const transcript = (await readFile(outputTextPath, 'utf8')).trim();
     if (!transcript) return failure('WHISPER_PROCESS_FAILED', 'Transcrierea locală a eșuat.');
-    return { success: true, transcript, original: { mimeType, sizeBytes: audioBytes.byteLength, sizeFormatted: formatBytes(audioBytes.byteLength) }, converted };
+    return { success: true, transcript, converted };
   } catch (error) {
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'PROCESS_TIMEOUT') return failure('PROCESS_TIMEOUT', 'Transcrierea locală a depășit timpul permis.');
     if (isStorageError(error)) return failure('TEMPORARY_STORAGE_ERROR', 'Fișierele temporare nu au putut fi procesate local.');

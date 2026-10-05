@@ -9,7 +9,6 @@ Place the untracked runtime files in this project layout:
 ```
 app/
   bin/
-    ffmpeg.exe
     whisper-cli.exe
     # all *.dll files distributed alongside whisper-cli.exe
   models/
@@ -17,7 +16,7 @@ app/
     ggml-silero-v5.1.2.bin   # voice activity detection (optional), from huggingface.co/ggml-org/whisper-vad
 ```
 
-Those files are excluded from Git. For a different development location, copy `echoReport.paths.example.json` to the ignored `echoReport.paths.json` and set absolute paths there. The `ECHOREPORT_FFMPEG`, `ECHOREPORT_WHISPER_CLI`, `ECHOREPORT_MODEL`, `ECHOREPORT_VAD_MODEL`, and `ECHOREPORT_TEMP_DIR` environment variables override that file.
+Those files are excluded from Git. For a different development location, copy `echoReport.paths.example.json` to the ignored `echoReport.paths.json` and set absolute paths there. The `ECHOREPORT_WHISPER_CLI`, `ECHOREPORT_MODEL`, `ECHOREPORT_VAD_MODEL`, and `ECHOREPORT_TEMP_DIR` environment variables override that file.
 
 ## Commands
 
@@ -50,15 +49,15 @@ The BrowserWindow enables `contextIsolation: true`, `nodeIntegration: false`, `s
 
 ```
 React MediaRecorder (WebM/Opus)
+  -> renderer: Chromium decoder (Web Audio) -> WAV / PCM signed 16-bit / mono / 16000 Hz
   -> preload IPC: transcribeAudio
-  -> Electron main process
-  -> ffmpeg.exe: WAV / PCM signed 16-bit / mono / 16000 Hz
+  -> Electron main process: validates the WAV header
   -> whisper-cli.exe: local large-v3-turbo, Romanian, Silero VAD, no text context (-mc 0)
   -> preload IPC result
   -> editable React textarea
 ```
 
-The main process writes one recording into a `%TEMP%/echoreport-*` session directory, removes that directory in `finally`, and does not archive audio. It uses fixed executable/model paths from trusted local configuration and fixed command arguments:
+No ffmpeg is shipped: the renderer converts the recording with Chromium's own decoders (`src/audio/whisperWav.ts`), and the main process accepts only that canonical WAV. The packaging config also excludes any leftover `app/bin/ffmpeg.exe`. The main process writes one recording into a `%TEMP%/echoreport-*` session directory, removes that directory in `finally`, and does not archive audio. It uses fixed executable/model paths from trusted local configuration and fixed command arguments:
 
 ```
 whisper-cli.exe -m <modelPath> -f <wavPath> -l ro -nt -otxt -of <outputPrefix>

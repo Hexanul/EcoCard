@@ -1,9 +1,3 @@
-export type AudioBlobSummary = {
-  mimeType: string;
-  sizeBytes: number;
-  sizeFormatted: string;
-};
-
 export type ConvertedAudioInfo = {
   format: string;
   codec: string;
@@ -16,12 +10,10 @@ export type ConvertedAudioInfo = {
 
 export type TranscriptionResult = {
   text: string;
-  originalAudio?: AudioBlobSummary;
   convertedAudio?: ConvertedAudioInfo;
 };
 
 export type PipelineStatus = {
-  ffmpegFound: boolean;
   whisperCliFound: boolean;
   modelFound: boolean;
   model: string;
@@ -37,7 +29,6 @@ export type TranscriptionFailure = {
 export type TranscriptionSuccess = {
   success: true;
   transcript: string;
-  original: AudioBlobSummary;
   converted: ConvertedAudioInfo;
 };
 

@@ -1976,3 +1976,28 @@ test('parses Whisper "Vede", "Artera pulmonare", "valve mitale", "Aria S" and "A
     ],
   );
 });
+
+test('parses Whisper "Aorta la enel", "lanteroposterior", "B, D", "Flux L, vot" and a bare "tisular" heading', () => {
+  const data = parseEchoTranscript(
+    'Aorta la enel, 2,1. As, diametru lanteroposterior, 4,1. Vs, diametru lanteromedian.\n4,6. ' +
+      'B, D, diametrul ateromedian 3,8. Flux L, vot.\nVmax 98, Pmax 6, VTI 21, area valvei aortice 3.1, ' +
+      "flux pulmonar, Vmax 86. tisular, unda E' 10, unda A' 12, unda S7.",
+  );
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['aortaAnnulus', '2.1'],
+      ['laAnteroposteriorDiameter', '4.1'],
+      ['lvLateromedialDiameter', '4.6'],
+      ['rvLateromedialDiameter', '3.8'],
+      ['lvotVmax', '98'],
+      ['lvotPmax', '6'],
+      ['lvotVti', '21'],
+      ['aorticValveArea', '3.1'],
+      ['pulmonaryVmax', '86'],
+      ['septalEPrime', '10'],
+      ['septalAPrime', '12'],
+      ['septalS', '7'],
+    ],
+  );
+});

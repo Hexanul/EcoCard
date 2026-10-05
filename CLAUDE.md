@@ -14,7 +14,7 @@ npm run dev:vite           # renderer only in a browser (no Electron bridge)
 npm run build              # tsc -b, compile electron/, vite build
 npm run lint               # eslint .
 npm run test:parser        # compile pure TS modules to dist-parser-tests/ and run all tests/*.test.mjs
-npm run test:pipeline      # real ffmpeg+whisper end-to-end; needs `npm run build` first and ECHOREPORT_TEST_AUDIO set to a non-patient fixture
+npm run test:pipeline      # real conversion+whisper end-to-end; needs `npm run build` first and ECHOREPORT_TEST_AUDIO set to a non-patient fixture
 npm run package:portable   # release/Raport-Eco-Portable.exe (client handoff)
 npm run package:installer  # NSIS installer in release/
 ```
@@ -25,14 +25,14 @@ Tests import the compiled JS from `dist-parser-tests/` (not the `.ts` sources), 
 
 ## Runtime dependencies (not in git)
 
-`app/bin/ffmpeg.exe`, `app/bin/whisper-cli.exe` (+ its DLLs), `app/models/ggml-large-v3-turbo.bin`, and `app/models/ggml-silero-v5.1.2.bin` (Silero VAD, from Hugging Face `ggml-org/whisper-vad`; optional — whisper runs without `--vad` if it is missing). Whisper runs with `-mc 0` + VAD; these won an A/B on `dictation/recordings` against no flags, an initial `--prompt` term list, and full large-v3 (all worse). Path resolution in `electron/config.cts`: env vars `ECHOREPORT_FFMPEG` / `ECHOREPORT_WHISPER_CLI` / `ECHOREPORT_MODEL` / `ECHOREPORT_VAD_MODEL` / `ECHOREPORT_TEMP_DIR` > `echoReport.paths.json` (ignored; copy from `.example`) > default `app/` layout. When packaged, `app/` is shipped as an extraResource and resolved from `process.resourcesPath`.
+`app/bin/whisper-cli.exe` (+ its DLLs), `app/models/ggml-large-v3-turbo.bin`, and `app/models/ggml-silero-v5.1.2.bin` (Silero VAD, from Hugging Face `ggml-org/whisper-vad`; optional — whisper runs without `--vad` if it is missing). Whisper runs with `-mc 0` + VAD; these won an A/B on `dictation/recordings` against no flags, an initial `--prompt` term list, and full large-v3 (all worse). Path resolution in `electron/config.cts`: env vars `ECHOREPORT_WHISPER_CLI` / `ECHOREPORT_MODEL` / `ECHOREPORT_VAD_MODEL` / `ECHOREPORT_TEMP_DIR` > `echoReport.paths.json` (ignored; copy from `.example`) > default `app/` layout. When packaged, `app/` is shipped as an extraResource and resolved from `process.resourcesPath`.
 
 ## Architecture
 
 **Electron process (`electron/*.cts`)** — compiled to CommonJS `.cjs` in `dist-electron/` via `tsconfig.electron.json` (the sandboxed preload requires CJS; imports between these files use `.cjs` extensions).
 - `main.cts`: creates the BrowserWindow (contextIsolation, sandbox, no nodeIntegration) and registers fixed IPC handlers.
 - `preload.cts`: the only renderer bridge — exposes exactly `getPipelineStatus()`, `transcribeAudio(bytes, mimeType)`, `exportPdf(suggestedName)`. Keep it narrow; never expose fs, shell, child_process, or a generic command channel. Types for this bridge live in `src/types/electron.d.ts`, wrapped by `src/services/electronBridge.ts`.
-- `transcription.cts`: writes audio to a `%TEMP%/echoreport-*` dir, ffmpeg → 16 kHz mono PCM WAV, then `whisper-cli -l ro`, deletes the dir in `finally`. Returns safe error codes (types in `shared.cts` / `src/types/audioPipeline.ts`), never raw stacks.
+- `transcription.cts`: accepts only a canonical 16 kHz mono PCM 16-bit WAV (validated by `inspectWhisperWav`), writes it to a `%TEMP%/echoreport-*` dir, runs `whisper-cli -l ro`, deletes the dir in `finally`. **No ffmpeg is shipped** (it was a GPL build): the renderer converts recordings with Chromium's decoders in `src/audio/whisperWav.ts` (self-contained, no imports, compiled by `tsconfig.audio.json` to the ignored `dist-audio/`); dev tools reuse that exact module in a hidden Electron window via `scripts/whisper-wav.mjs` → `scripts/whisper-wav-harness.cjs`. `electron-builder.yml` excludes any leftover `app/bin/ffmpeg.exe`. Returns safe error codes (types in `shared.cts` / `src/types/audioPipeline.ts`), never raw stacks.
 - `pdf.cts`: `echo-report:export-pdf` waits for `#printable-report`, shows Save As, uses `webContents.printToPDF()` A4 portrait. Elements with `.no-print` are hidden in print.
 
 **Renderer data flow (`src/`)**
@@ -59,6 +59,8 @@ When fixing a parser bug, add a regression test in `tests/medicalParser.test.mjs
 ## Dictation test loop (`dictation/`)
 
 - `dictation/scripts/<name>.txt` is a text the doctor reads aloud; `<name>.expected.json` holds its expected patient data, every dictated measurement (all numeric values unique, so misplaced values are identifiable) and conclusions. Derived ratios are computed, not listed. `"scope": "numeric"` marks a labels-and-numbers-only script (e.g. `numeric`) that covers just the measurements with a unit.
-- Recordings go in `dictation/recordings/<script>-<anything>.m4a|wav|webm|ogg|mp3` (git-ignored, stays local). `npm run eval:dictation [-- <filter>] [--retranscribe] [--all] [--json]` transcribes new recordings with the app's own ffmpeg + whisper into `dictation/transcripts/<name>.txt` (committed, cached), then reports per field `OK` / `OK*` (right value, review row unchecked) / `WRONG` / `MISPLACED` / `MISSING` with transcript excerpts. Logic lives in `scripts/dictation-check.mjs`.
+- Recordings go in `dictation/recordings/<script>-<anything>.m4a|wav|webm|ogg|mp3` (git-ignored, stays local). `npm run eval:dictation [-- <filter>] [--retranscribe] [--all] [--json]` transcribes new recordings with the app's own Chromium WAV conversion + whisper into `dictation/transcripts/<name>.txt` (committed, cached), then reports per field `OK` / `OK*` (right value, review row unchecked) / `WRONG` / `MISPLACED` / `MISSING` with transcript excerpts. Logic lives in `scripts/dictation-check.mjs`.
 - `tests/dictation.test.mjs` (part of `test:parser`) requires each script's text to parse perfectly and every committed transcript to keep passing, except entries in `dictation/known-issues.json` (unrecoverable whisper output, with a reason).
 - `/fix-dictation` (`.claude/skills/fix-dictation/SKILL.md`) is the procedure for turning a new recording's failures into parser fixes. Never edit transcripts or expected values to make a check pass.
+
+`/push-main` (`.claude/skills/push-main/SKILL.md`) verifies (tests, lint, typecheck), commits everything and pushes to `origin/main`; it refuses to commit audio, PDFs, runtime binaries or local config.
