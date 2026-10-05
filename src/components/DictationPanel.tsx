@@ -449,7 +449,7 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
         .then((status) => {
           if (!status.modelFound) {
             setPipelineHint(
-              'Modelul Whisper large-v3-turbo nu este instalat local. Plasați ggml-large-v3-turbo.bin în folderul configurat.',
+              `Modelul Whisper ${status.model} nu este instalat local. Plasați ggml-${status.model}.bin în folderul configurat.`,
             );
           }
         })

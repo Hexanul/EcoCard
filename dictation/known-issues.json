@@ -56,5 +56,12 @@
     "septalEaPrimeRatio": "derived from the garbled tissue Doppler values",
     "eePrimeRatio": "derived from the garbled E' value",
     "conclusions": "whisper wrote 'valvulopatie significative' and commas for full stops; conclusions are kept verbatim"
+  },
+  "patient-2026-10-04-2": {
+    "lvLateromedialDiameter": "'4,9' heard as '4,0'",
+    "aorticPmean": "'Pmediu' heard as 'PMA'; not aliased because it is just as likely a cut-off 'Pmax'",
+    "tricuspidPmax": "'Pmax' heard as 'VMAX' ('VMAX 210, VMAX 18')",
+    "pulmonaryPmax": "'Pmax' heard as 'VMAX' ('VMAX 78, VMAX 2')",
+    "conclusions": "whisper wrote 'ventricului', 'Relaxare, funcția sistolică' and 'valvul, laopatiei'; conclusions are kept verbatim"
   }
 }

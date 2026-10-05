@@ -47,7 +47,7 @@ export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string):
   if (!extension) return failure('INVALID_AUDIO', 'Formatul înregistrării audio nu este acceptat.');
   if (!existsSync(runtimePaths.ffmpegPath)) return failure('FFMPEG_NOT_FOUND', 'FFmpeg nu a fost găsit.');
   if (!existsSync(runtimePaths.whisperCliPath)) return failure('WHISPER_CLI_NOT_FOUND', 'whisper-cli.exe nu a fost găsit.');
-  if (!existsSync(runtimePaths.modelPath)) return failure('WHISPER_MODEL_NOT_FOUND', 'Modelul Whisper large-v3-turbo nu a fost găsit.');
+  if (!existsSync(runtimePaths.modelPath)) return failure('WHISPER_MODEL_NOT_FOUND', 'Modelul Whisper nu a fost găsit.');
   let sessionDirectory: string | undefined;
   try {
     sessionDirectory = await mkdtemp(path.join(runtimePaths.tempDir || os.tmpdir(), 'echoreport-'));
@@ -58,7 +58,12 @@ export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string):
     if (ffmpeg.exitCode !== 0) { console.error('[Echo Report] FFmpeg failed:', ffmpeg.stderr); return failure('FFMPEG_CONVERSION_FAILED', 'Conversia audio locală a eșuat.'); }
     const converted = inspectWhisperWav(await readFile(wavPath));
     if (!converted) return failure('FFMPEG_CONVERSION_FAILED', 'Conversia audio locală a eșuat.');
-    const whisper = await runTrustedProcess(runtimePaths.whisperCliPath, ['-m', runtimePaths.modelPath, '-f', wavPath, '-l', 'ro', '-nt', '-otxt', '-of', outputPrefix], path.dirname(runtimePaths.whisperCliPath));
+    // -mc 0: don't condition on previous text (stops "Vmax, Vmax, Vmax" loops).
+    // VAD skips silences that otherwise make whisper drop whole sentences.
+    // Both measured on dictation/recordings; an initial --prompt with the
+    // term list did not help and made results worse on its own.
+    const vadArgs = existsSync(runtimePaths.vadModelPath) ? ['--vad', '-vm', runtimePaths.vadModelPath] : [];
+    const whisper = await runTrustedProcess(runtimePaths.whisperCliPath, ['-m', runtimePaths.modelPath, '-f', wavPath, '-l', 'ro', '-nt', '-mc', '0', ...vadArgs, '-otxt', '-of', outputPrefix], path.dirname(runtimePaths.whisperCliPath));
     if (whisper.exitCode !== 0) {
       console.error(
         `[Echo Report] whisper-cli failed with exit code ${whisper.exitCode}:`,

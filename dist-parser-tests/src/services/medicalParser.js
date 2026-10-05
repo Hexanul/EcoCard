@@ -104,6 +104,7 @@ const NUMERIC_FIELDS = [
         aliases: [
             'vs diametrul telediastolic',
             'vs diametrul telediastoric',
+            'vs diametrul tere diastolic',
             // Spoken "diametru la telediastolic" (with "la" between the words).
             'vs diametru la telediastolic',
             'vs diametrul la telediastolic',
@@ -395,6 +396,9 @@ const NUMERIC_FIELDS = [
         aliases: [
             'aorta la inel',
             'aorta la inelul',
+            // Whisper may drop "Aorta" at a line start ("88,\nla inel 2"). Whole
+            // words only, so "la inelul mitral" does not match.
+            'la inel',
             'aorta inel',
             'aortelainel',
             'aortel a inel',
@@ -459,6 +463,8 @@ const NUMERIC_FIELDS = [
             'aorta la nivelul crosie',
             'aorta la nivelul crosii',
             'aorta la nivelul crossii',
+            'la nivelul crossei',
+            'la nivelul cossei',
             'aorta la crosa',
             'aortel la nivelul crossei',
             'aortel la nivelul crosei',
@@ -467,7 +473,14 @@ const NUMERIC_FIELDS = [
     },
     {
         field: 'pulmonaryArtery',
-        aliases: ['artera pulmonara', 'artera pulmonare', 'atera pulmonara', 'cartera pulmonara', 'aorta la pulmonara'],
+        aliases: [
+            'artera pulmonara',
+            'artera pulmonare',
+            'arterea pulmonare',
+            'atera pulmonara',
+            'cartera pulmonara',
+            'aorta la pulmonara',
+        ],
     },
     // Apical 4C
     {
@@ -584,6 +597,11 @@ const NUMERIC_FIELDS = [
             'volum telediastolic.vs',
             'vs volum telediastolic',
             'vs volum tele diastolic',
+            // Whisper "telediastoric" variant (same as diameters)
+            'volum telediastoric vs',
+            'volumul telediastoric vs',
+            'volum telediastoric',
+            'vs volum telediastoric',
         ],
     },
     {
@@ -664,6 +682,8 @@ const NUMERIC_FIELDS = [
         aliases: [
             'aria valvei mitrale',
             'aria valvei mitrala',
+            // Whisper drops the ending: "ARIA valvei mitral, 4,2".
+            'aria valvei mitral',
             'aria valvulei mitrale',
             'aria valvulei mitrala',
             // Whisper "area" instead of "aria".
@@ -912,6 +932,9 @@ const TYPO_REPLACEMENTS = [
     { pattern: /\bareade\b/g, target: 'aria ad' },
     { pattern: /\base\b/g, target: 'as' },
     { pattern: /\bade\b/g, target: 'ad' },
+    // Whisper hears "latero-median" as "anteromedian" (same length, so the
+    // raw index stays aligned).
+    { pattern: /\banteromedian\b/g, target: 'lateromedian' },
 ];
 function normalize(text) {
     return normalizeWithIndex(text).text;

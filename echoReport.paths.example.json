@@ -2,5 +2,6 @@
   "ffmpegPath": "C:\\EchoReport\\app\\bin\\ffmpeg.exe",
   "whisperCliPath": "C:\\EchoReport\\app\\bin\\whisper-cli.exe",
   "modelPath": "C:\\EchoReport\\app\\models\\ggml-large-v3-turbo.bin",
+  "vadModelPath": "C:\\EchoReport\\app\\models\\ggml-silero-v5.1.2.bin",
   "tempDir": ""
 }

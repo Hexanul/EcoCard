@@ -23,6 +23,14 @@ test('parses VS telediastolic diameter with a spoken decimal and unit', () => {
   );
 });
 
+test('parses Whisper "tere-diastolic" for the telediastolic diameter', () => {
+  const result = parsed(
+    'VS, diametrul tere-diastolic, 4,8 cm',
+    'lvEndDiastolicDiameter',
+  );
+  assert.equal(result.value, '4.8');
+});
+
 test('parses VS telesistolic diameter with a spoken decimal', () => {
   const result = parsed(
     'VS diametrul telesistolic trei virgulă doi centimetri',
@@ -1884,6 +1892,17 @@ test('parses Whisper "Ase" and "crossie" variants in the parasternal section', (
       ['laAnteroposteriorDiameter', '10', 'high'],
       ['aortaAtArch', '11', 'high'],
       ['pulmonaryArtery', '12', 'high'],
+    ],
+  );
+});
+
+test('parses arch and pulmonary artery measurements without the usual lead-in words', () => {
+  const data = parseEchoTranscript('la nivelul cossei 2,7, arterea pulmonare 2,3');
+  assert.deepEqual(
+    data.measurements.map((item) => [item.field, item.value]),
+    [
+      ['aortaAtArch', '2.7'],
+      ['pulmonaryArtery', '2.3'],
     ],
   );
 });

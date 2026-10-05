@@ -25,7 +25,7 @@ Tests import the compiled JS from `dist-parser-tests/` (not the `.ts` sources), 
 
 ## Runtime dependencies (not in git)
 
-`app/bin/ffmpeg.exe`, `app/bin/whisper-cli.exe` (+ its DLLs), and `app/models/ggml-large-v3-turbo.bin`. Path resolution in `electron/config.cts`: env vars `ECHOREPORT_FFMPEG` / `ECHOREPORT_WHISPER_CLI` / `ECHOREPORT_MODEL` / `ECHOREPORT_TEMP_DIR` > `echoReport.paths.json` (ignored; copy from `.example`) > default `app/` layout. When packaged, `app/` is shipped as an extraResource and resolved from `process.resourcesPath`.
+`app/bin/ffmpeg.exe`, `app/bin/whisper-cli.exe` (+ its DLLs), `app/models/ggml-large-v3-turbo.bin`, and `app/models/ggml-silero-v5.1.2.bin` (Silero VAD, from Hugging Face `ggml-org/whisper-vad`; optional — whisper runs without `--vad` if it is missing). Whisper runs with `-mc 0` + VAD; these won an A/B on `dictation/recordings` against no flags, an initial `--prompt` term list, and full large-v3 (all worse). Path resolution in `electron/config.cts`: env vars `ECHOREPORT_FFMPEG` / `ECHOREPORT_WHISPER_CLI` / `ECHOREPORT_MODEL` / `ECHOREPORT_VAD_MODEL` / `ECHOREPORT_TEMP_DIR` > `echoReport.paths.json` (ignored; copy from `.example`) > default `app/` layout. When packaged, `app/` is shipped as an extraResource and resolved from `process.resourcesPath`.
 
 ## Architecture
 

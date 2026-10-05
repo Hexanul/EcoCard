@@ -14,9 +14,10 @@ app/
     # all *.dll files distributed alongside whisper-cli.exe
   models/
     ggml-large-v3-turbo.bin
+    ggml-silero-v5.1.2.bin   # voice activity detection (optional), from huggingface.co/ggml-org/whisper-vad
 ```
 
-Those files are excluded from Git. For a different development location, copy `echoReport.paths.example.json` to the ignored `echoReport.paths.json` and set absolute paths there. The `ECHOREPORT_FFMPEG`, `ECHOREPORT_WHISPER_CLI`, `ECHOREPORT_MODEL`, and `ECHOREPORT_TEMP_DIR` environment variables override that file.
+Those files are excluded from Git. For a different development location, copy `echoReport.paths.example.json` to the ignored `echoReport.paths.json` and set absolute paths there. The `ECHOREPORT_FFMPEG`, `ECHOREPORT_WHISPER_CLI`, `ECHOREPORT_MODEL`, `ECHOREPORT_VAD_MODEL`, and `ECHOREPORT_TEMP_DIR` environment variables override that file.
 
 ## Commands
 
@@ -52,7 +53,7 @@ React MediaRecorder (WebM/Opus)
   -> preload IPC: transcribeAudio
   -> Electron main process
   -> ffmpeg.exe: WAV / PCM signed 16-bit / mono / 16000 Hz
-  -> whisper-cli.exe: local large-v3-turbo, Romanian
+  -> whisper-cli.exe: local large-v3-turbo, Romanian, Silero VAD, no text context (-mc 0)
   -> preload IPC result
   -> editable React textarea
 ```
