@@ -63,4 +63,4 @@ When fixing a parser bug, add a regression test in `tests/medicalParser.test.mjs
 - `tests/dictation.test.mjs` (part of `test:parser`) requires each script's text to parse perfectly and every committed transcript to keep passing, except entries in `dictation/known-issues.json` (unrecoverable whisper output, with a reason).
 - `/fix-dictation` (`.claude/skills/fix-dictation/SKILL.md`) is the procedure for turning a new recording's failures into parser fixes. Never edit transcripts or expected values to make a check pass.
 
-`/push-main` (`.claude/skills/push-main/SKILL.md`) verifies (tests, lint, typecheck), commits everything and pushes to `origin/main`; it refuses to commit audio, PDFs, runtime binaries or local config.
+`/push-master` (`.claude/skills/push-master/SKILL.md`) verifies (tests, lint, typecheck), commits everything and pushes to `origin/master`; it refuses to commit audio, PDFs, runtime binaries or local config.

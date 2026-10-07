@@ -1,11 +1,11 @@
 ---
-name: push-main
-description: Verify, commit and push all current modifications straight to main on GitHub (origin). Use when the user asks to push, commit and push, upload or publish the changes, or runs /push-main [optional commit message].
+name: push-master
+description: Verify, commit and push all current modifications straight to master on GitHub (origin). Use when the user asks to push, commit and push, upload or publish the changes, or runs /push-master [optional commit message].
 ---
 
-# Push to main
+# Push to master
 
-Commits every pending modification in the working tree and pushes it to `origin/main` (https://github.com/Hexanul/EcoCard). The user invoking this skill is the approval to commit and push — do not ask again, but stop and report if any check below fails.
+Commits every pending modification in the working tree and pushes it to `origin/master` (https://github.com/Hexanul/EcoCard). The user invoking this skill is the approval to commit and push — do not ask again, but stop and report if any check below fails.
 
 Arguments: an optional commit message. Without one, write it yourself from the diff.
 
@@ -14,12 +14,12 @@ Arguments: an optional commit message. Without one, write it yourself from the d
 ```
 git branch --show-current
 git status --short
-git fetch origin main
+git fetch origin master
 ```
 
-- Must be on `main`. On any other branch, stop and tell the user (do not switch or merge on your own).
-- Nothing to commit and not ahead of `origin/main` → report "nothing to push" and stop.
-- If `origin/main` has commits that are not local, run `git pull --rebase origin main` first. On a conflict, run `git rebase --abort` and stop: report the conflicting files and let the user decide.
+- Must be on `master`. On any other branch, stop and tell the user (do not switch or merge on your own).
+- Nothing to commit and not ahead of `origin/master` → report "nothing to push" and stop.
+- If `origin/master` has commits that are not local, run `git pull --rebase origin master` first. On a conflict, run `git rebase --abort` and stop: report the conflicting files and let the user decide.
 
 ## 2. Never commit patient data, binaries or local config
 
@@ -57,12 +57,12 @@ Never use `--no-verify`, `--amend` on an already-pushed commit, or `-c commit.gp
 ## 5. Push
 
 ```
-git push origin main
+git push origin master
 ```
 
-- Never `--force` / `--force-with-lease` to main.
-- If the push is rejected because the remote moved, do one `git pull --rebase origin main`, re-run step 3, and push again. If it is rejected a second time or for another reason (auth, protected branch), stop and report the exact error.
+- Never `--force` / `--force-with-lease` to master.
+- If the push is rejected because the remote moved, do one `git pull --rebase origin master`, re-run step 3, and push again. If it is rejected a second time or for another reason (auth, protected branch), stop and report the exact error.
 
 ## 6. Report
 
-Keep it short: the commit hash and subject, the number of files changed, the push result (`<old>..<new>  main -> main`), and anything skipped or stopped on. Remind the user to rebuild (`npm run package:portable`) if the change affects the shipped app.
+Keep it short: the commit hash and subject, the number of files changed, the push result (`<old>..<new>  master -> master`), and anything skipped or stopped on. Remind the user to rebuild (`npm run package:portable`) if the change affects the shipped app.
