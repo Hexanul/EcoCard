@@ -140,6 +140,12 @@ test('finds conclusions after "Concluziile" and Whisper\'s truncated "CONCLUZI"'
   assert.equal(truncated.conclusions, 'FUNCŢia sistolică a ventriculului stâng este păstrată.');
 });
 
+test('finds conclusions after the article form "Concluzia"', () => {
+  const data = parseEchoTranscript('Flux mitral, unda E 82. Concluzia: insuficiență mitrală ușoară, FEVS 60%.');
+  assert.equal(data.conclusions, 'insuficiență mitrală ușoară, FEVS 60%.');
+  assert.deepEqual(data.measurements.map((item) => item.field), ['mitralE']);
+});
+
 test('does not guess a Vmax field without a flow context', () => {
   assert.equal(parseEchoTranscript('Vmax o sută cincizeci').measurements.length, 0);
 });

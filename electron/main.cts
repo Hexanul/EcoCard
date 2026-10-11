@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { pipelineStatus } from './config.cjs';
 import { exportReportPdf } from './pdf.cjs';
 import { IPC, type ExportPdfResponse, type TranscriptionFailure, type TranscriptionResponse } from './shared.cjs';
-import { transcribeAudio } from './transcription.cjs';
+import { abortActiveTranscriptions, removeStaleSessionDirectories, transcribeAudio } from './transcription.cjs';
 
 const devServerUrl = process.env.ECHOREPORT_DEV_SERVER_URL;
 const rendererIndexPath = path.join(__dirname, '../dist/index.html');
@@ -53,9 +53,11 @@ function registerIpc(): void {
 }
 
 app.whenReady().then(() => {
+  void removeStaleSessionDirectories();
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => callback(permission === 'media' && isTrustedRendererUrl(webContents.getURL())));
   session.defaultSession.setPermissionCheckHandler((webContents, permission) => permission === 'media' && webContents !== null && isTrustedRendererUrl(webContents.getURL()));
   registerIpc(); createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('will-quit', abortActiveTranscriptions);

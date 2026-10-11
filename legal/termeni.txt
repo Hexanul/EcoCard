@@ -1,0 +1,53 @@
+﻿RAPORT ECO — SCOPUL UTILIZĂRII, TERMENI DE UTILIZARE ȘI NOTĂ DE CONFIDENȚIALITATE
+Versiunea termenilor: 2026-10-09
+
+1. SCOPUL UTILIZĂRII
+
+Raport Eco este un instrument de redactare pentru medicii care efectuează ecocardiografii. Aplicația:
+- transcrie local, pe calculator, dictarea medicului;
+- propune completarea câmpurilor raportului pe baza textului dictat;
+- calculează automat raporturi simple din valorile introduse (E/A, E'/A', E/E') și indicele de masă corporală;
+- generează raportul în format PDF.
+
+Raport Eco nu pune diagnostice, nu analizează imagini sau semnale ecografice, nu propune concluzii clinice și nu înlocuiește judecata medicului. Concluziile din raport sunt exclusiv cele dictate sau scrise de medic.
+
+2. AVERTISMENTE
+
+- Transcrierea automată și recunoașterea valorilor pot greși: cuvinte auzite greșit, valori atribuite altui câmp, unități convertite automat (de exemplu mm în cm sau m/s în cm/s). Indicatorul „Sigur / Aproximativ / Incert” nu garantează corectitudinea unei valori.
+- Fiecare valoare, unitate, calcul și concluzie trebuie verificată de medic înainte de exportul și semnarea raportului.
+- Medicul examinator este singurul responsabil pentru conținutul raportului.
+- Aplicația este destinată exclusiv medicilor, ca instrument de redactare.
+
+3. LICENȚĂ
+
+Furnizorul aplicației acordă utilizatorului un drept neexclusiv și netransferabil de a instala și utiliza aplicația în activitatea proprie. Redistribuirea, revânzarea, decompilarea sau modificarea aplicației nu sunt permise, cu excepția cazurilor permise expres de lege. Componentele terțe incluse se supun propriilor licențe (secțiunea 6).
+
+4. FĂRĂ GARANȚII ȘI LIMITAREA RĂSPUNDERII
+
+În măsura permisă de lege, aplicația este furnizată „ca atare”, fără garanții de niciun fel, exprese sau implicite, inclusiv privind exactitatea transcrierii, a valorilor propuse sau a calculelor. În măsura maximă permisă de lege, furnizorul nu răspunde pentru prejudicii rezultate din utilizarea aplicației, inclusiv din erori de transcriere, de recunoaștere a valorilor sau de calcul nedetectate de medic. Nicio prevedere a acestor termeni nu limitează răspunderea care, potrivit legii, nu poate fi limitată.
+
+5. CONFIDENȚIALITATE ȘI DATE PERSONALE
+
+Aplicația funcționează integral local. Nu conține funcții care trimit date prin internet sau către furnizor, iar furnizorul nu are acces la datele introduse.
+
+Ce date sunt prelucrate și unde:
+- Înregistrarea audio a dictării este păstrată în memorie. Pe durata transcrierii este scrisă temporar într-un dosar din directorul temporar Windows (%TEMP%\echoreport-*), șters la finalul transcrierii. Dacă aplicația este închisă forțat sau se blochează, dosarul rămas este șters la următoarea pornire.
+- Textul transcris și datele raportului (nume, vârstă, greutate, înălțime, măsurători, concluzii) sunt păstrate doar în memorie cât timp aplicația este deschisă și nu sunt salvate automat pe disc. Se șterg la „Șterge formularul” sau la închiderea aplicației.
+- Raportul PDF este salvat numai când medicul îl exportă, în locația aleasă de acesta. Numele fișierului conține numele pacientului. Dacă dosarul ales este sincronizat în cloud (de exemplu OneDrive), fișierul va fi copiat și acolo.
+- Setările (numele și adresa cabinetului, următorul număr de registru) sunt păstrate local, în profilul Windows al utilizatorului, și nu conțin date ale pacienților.
+
+Medicul sau unitatea medicală care folosește aplicația este operatorul datelor cu caracter personal ale pacienților, în sensul Regulamentului (UE) 2016/679 (GDPR), și răspunde pentru informarea pacienților, păstrarea și securitatea rapoartelor exportate. Recomandăm un cont Windows protejat cu parolă, criptarea discului (BitLocker) și copii de siguranță ale rapoartelor.
+
+6. COMPONENTE TERȚE
+
+Aplicația include următoarele componente, fiecare sub propria licență:
+- Electron și Chromium (MIT și licențele din fișierele LICENSE.electron.txt și LICENSES.chromium.html din dosarul aplicației);
+- React (MIT);
+- whisper.cpp și ggml (MIT);
+- modelul de recunoaștere vocală Whisper large-v3-turbo (MIT);
+- modelul de detecție a vocii Silero VAD (MIT);
+- SDL2 (zlib).
+
+7. LEGEA APLICABILĂ
+
+Acești termeni sunt guvernați de legea română.

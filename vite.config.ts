@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -30,10 +31,14 @@ function contentSecurityPolicy(): Plugin {
   }
 }
 
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
+
 // https://vite.dev/config/
 export default defineConfig({
   // Relative asset paths so the production build also loads from file://
   // inside the packaged Electron window (loadFile of dist/index.html).
   base: './',
   plugins: [react(), contentSecurityPolicy()],
+  // Shown in the About dialog so a doctor can tell which build they run.
+  define: { __APP_VERSION__: JSON.stringify(version) },
 })

@@ -1,9 +1,10 @@
 {
   "name": "ecocard",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Aplicație locală pentru dictare și raportare ecocardiografică",
   "author": "Raport Eco",
+  "license": "SEE LICENSE IN legal/termeni.txt",
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {

@@ -32,6 +32,13 @@ npm run lint
 
 Run `npm.cmd run package:portable` on Windows. The generated `release/Raport-Eco-Portable.exe` can be copied to the client's laptop and started directly; no Node.js, npm, or installation step is required. The packaged app includes the local `app/bin` and `app/models` runtime files. If using `release/win-unpacked` instead, copy the entire folder, not only its `.exe` file.
 
+Before every build that goes to a doctor:
+
+- Bump `version` in `package.json` (shown in the app header and in "Despre"), so you can tell which build each doctor runs.
+- If the terms changed, edit `legal/termeni.txt` and bump its `Versiunea termenilor` line; every doctor is then asked to accept them again at the next start. The same file is the installer's license page (keep it UTF-8 with BOM). Have the text reviewed by a lawyer before the first release.
+- Sign the build: electron-builder signs automatically when `CSC_LINK` (path to the `.pfx` code-signing certificate) and `CSC_KEY_PASSWORD` are set in the environment. Unsigned builds trigger SmartScreen warnings, and on PCs with Windows 11 Smart App Control turned on they are blocked outright. That includes this development PC: the NSIS step fails with `spawn UNKNOWN` because electron-builder runs a freshly built, unsigned uninstaller helper.
+- Packaging fails (`scripts/check-package.cjs`) if any `ffmpeg.exe`/`ffprobe.exe`/`ffplay.exe` ends up in the app. The 2026-09-05 build shipped a GPLv3 FFmpeg 9.0 (gyan.dev "full_build") in `resources/app/bin`; replace any install of that build with a current one.
+
 `npm run electron:start` opens the compiled React application from `dist/`.
 
 To run a real end-to-end local test after placing all runtime files, set `ECHOREPORT_TEST_AUDIO` to a non-patient audio fixture and run:
@@ -57,7 +64,7 @@ React MediaRecorder (WebM/Opus)
   -> editable React textarea
 ```
 
-No ffmpeg is shipped: the renderer converts the recording with Chromium's own decoders (`src/audio/whisperWav.ts`), and the main process accepts only that canonical WAV. The packaging config also excludes any leftover `app/bin/ffmpeg.exe`. The main process writes one recording into a `%TEMP%/echoreport-*` session directory, removes that directory in `finally`, and does not archive audio. It uses fixed executable/model paths from trusted local configuration and fixed command arguments:
+No ffmpeg is shipped: the renderer converts the recording with Chromium's own decoders (`src/audio/whisperWav.ts`), and the main process accepts only that canonical WAV. The packaging config also excludes any leftover `app/bin/ffmpeg.exe`, and an `afterPack` check fails the build if one is packaged anyway. The main process writes one recording into a `%TEMP%/echoreport-*` session directory, removes that directory in `finally`, and does not archive audio. It uses fixed executable/model paths from trusted local configuration and fixed command arguments:
 
 ```
 whisper-cli.exe -m <modelPath> -f <wavPath> -l ro -nt -otxt -of <outputPrefix>

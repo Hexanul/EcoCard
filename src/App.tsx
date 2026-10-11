@@ -9,6 +9,8 @@ import { ConclusionsForm } from './components/ConclusionsForm';
 import { ReportActions } from './components/ReportActions';
 import { ReportPreviewPage } from './components/ReportPreviewPage';
 import { SettingsDialog } from './components/SettingsDialog';
+import { AboutDialog } from './components/AboutDialog';
+import { TERMS_ACCEPTED_STORAGE_KEY, TERMS_REVISION } from './config/appInfo';
 import {
   CLINIC_SETTINGS_STORAGE_KEY,
   parseClinicSettings,
@@ -49,6 +51,15 @@ function loadClinicSettings(): ClinicSettings {
   }
 }
 
+// The intended purpose and terms must be accepted once per terms revision.
+function hasAcceptedTerms(): boolean {
+  try {
+    return window.localStorage.getItem(TERMS_ACCEPTED_STORAGE_KEY) === TERMS_REVISION;
+  } catch {
+    return false;
+  }
+}
+
 function createReportWithCurrentNumber(): EchoReport {
   const report = createEmptyEchoReport();
   report.patient.currentNumber = String(getNextCurrentNumber());
@@ -66,6 +77,7 @@ function App() {
   // Clinic header ("⚙ Setări"), set once per installation.
   const [clinic, setClinic] = useState<ClinicSettings>(loadClinicSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [about, setAbout] = useState<'accept' | 'about' | null>(() => (hasAcceptedTerms() ? null : 'accept'));
 
   const updatePatient = (patient: PatientInfo) => {
     setReport((prev) => ({ ...prev, patient }));
@@ -145,6 +157,15 @@ function App() {
     setSettingsOpen(false);
   };
 
+  const handleAcceptTerms = () => {
+    try {
+      window.localStorage.setItem(TERMS_ACCEPTED_STORAGE_KEY, TERMS_REVISION);
+    } catch (error) {
+      console.error('[Echo Report] Saving terms acceptance failed:', error);
+    }
+    setAbout(null);
+  };
+
   const handleLoadTestReport = () => {
     const testReport = createTestEchoReport();
     testReport.patient.currentNumber = String(getNextCurrentNumber());
@@ -161,7 +182,14 @@ function App() {
       <ReportPreviewPage report={report} clinic={clinic} onBack={() => setView('form')} onExportSuccess={handlePdfExported} />
     )}
     <div className="app" style={view === 'preview' ? { display: 'none' } : undefined}>
-      <Header onOpenSettings={() => setSettingsOpen(true)} />
+      <Header onOpenSettings={() => setSettingsOpen(true)} onOpenAbout={() => setAbout('about')} />
+      {about && (
+        <AboutDialog
+          requireAcceptance={about === 'accept'}
+          onAccept={handleAcceptTerms}
+          onClose={() => setAbout(null)}
+        />
+      )}
       {settingsOpen && (
         <SettingsDialog clinic={clinic} onSave={handleSaveClinic} onClose={() => setSettingsOpen(false)} />
       )}

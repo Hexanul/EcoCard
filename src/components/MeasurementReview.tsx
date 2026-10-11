@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { Measurements } from '../types/echoReport';
 import type { ParsedDetectedItem } from '../services/medicalParser';
-import { conflictingDuplicateFields } from '../services/reportState';
+import {
+  conflictingDuplicateFields,
+  isCalculatedItem,
+  mergeSelectedMeasurements,
+  needsExplicitApproval,
+} from '../services/reportState';
 
 const CONFIDENCE_LABELS: Record<ParsedDetectedItem['confidence'], string> = {
   high: 'Sigur',
@@ -41,13 +46,14 @@ export function MeasurementReview({
 
   const isDuplicate = (item: ParsedDetectedItem): boolean => duplicates.has(item.field);
 
-  const isConflict = (item: ParsedDetectedItem): boolean => {
-    if (hasUnitMismatch(item) || hasAmbiguousValue(item) || isDuplicate(item)) return true;
-    const existing = item.field === 'conclusions' ? conclusions : measurements[item.field];
-    return existing !== '' && existing !== item.value;
-  };
+  const existingValueOf = (item: ParsedDetectedItem): string =>
+    item.field === 'conclusions' ? conclusions : measurements[item.field];
+
+  const isConflict = (item: ParsedDetectedItem): boolean =>
+    needsExplicitApproval(item, existingValueOf(item), duplicates);
 
   const isSelected = (item: ParsedDetectedItem, index: number): boolean => {
+    if (isCalculatedItem(item)) return false;
     const defaultSelected = !isConflict(item);
     return toggled.has(index) ? !defaultSelected : defaultSelected;
   };
@@ -74,6 +80,8 @@ export function MeasurementReview({
   };
 
   const selectedItems = parsedMeasurements.filter((item, index) => isSelected(item, index));
+  // Ratios as they will be recalculated from the checked values.
+  const resultingMeasurements = mergeSelectedMeasurements(measurements, selectedItems);
 
   return (
     <section className="panel measurement-review">
@@ -84,10 +92,33 @@ export function MeasurementReview({
 
       <ul className="measurement-review__list">
         {parsedMeasurements.map((item, index) => {
+          const unit = 'unit' in item ? item.unit : undefined;
+          if (isCalculatedItem(item)) {
+            const resultingValue = item.field === 'conclusions' ? '' : resultingMeasurements[item.field];
+            return (
+              <li
+                key={`${item.field}-${index}`}
+                className="measurement-review__row measurement-review__row--calculated"
+              >
+                <div className="measurement-review__item">
+                  <span className="measurement-review__calculated-mark" aria-hidden="true">=</span>
+                  <span className="measurement-review__field">{item.label}</span>
+                  <span className="measurement-review__value">{resultingValue || '—'}</span>
+                  <span
+                    className={`measurement-review__badge measurement-review__badge--${item.confidence}`}
+                  >
+                    {CONFIDENCE_LABELS[item.confidence]}
+                  </span>
+                </div>
+                <p className="measurement-review__source">
+                  {item.sourceText}. Se recalculează din valorile bifate.
+                </p>
+              </li>
+            );
+          }
           const conflict = isConflict(item);
           const selected = isSelected(item, index);
-          const unit = 'unit' in item ? item.unit : undefined;
-          const existingValue = item.field === 'conclusions' ? conclusions : measurements[item.field];
+          const existingValue = existingValueOf(item);
           const rowClass = [
             'measurement-review__row',
             conflict ? 'measurement-review__row--conflict' : '',

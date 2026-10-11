@@ -700,6 +700,48 @@
 
 /* Settings dialog */
 
+.about-dialog {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.about-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-dialog__meta {
+  margin-top: -6px;
+}
+
+.about-dialog__summary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.about-dialog__terms {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.about-dialog__accept {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
 .settings-dialog {
   width: min(520px, calc(100vw - 32px));
   margin: auto;
@@ -801,6 +843,17 @@
 
 .measurement-review__row--low {
   border-color: var(--paused-border);
+}
+
+.measurement-review__row--calculated {
+  background: var(--bg);
+}
+
+.measurement-review__calculated-mark {
+  width: 13px;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .measurement-review__item {

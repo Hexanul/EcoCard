@@ -6,7 +6,10 @@ import {
   changedPatientFields,
   conflictingDuplicateFields,
   getFollowingCurrentNumber,
+  isCalculatedItem,
   mergeParsedPatient,
+  mergeSelectedMeasurements,
+  needsExplicitApproval,
 } from '../dist-parser-tests/src/services/reportState.js';
 import { createEmptyEchoReport, createEmptyPatient } from '../dist-parser-tests/src/types/echoReport.js';
 import { calculateBmi } from '../dist-parser-tests/src/utils/bmi.js';
@@ -66,6 +69,47 @@ test('applying items merges values, conclusions, and recalculates ratios', () =>
   assert.equal(next.measurements.tricuspidEaRatio, '1.5');
   assert.equal(next.conclusions, 'Normal.');
   assert.equal(report.measurements.tricuspidE, '', 'input report is not mutated');
+});
+
+test('ambiguous, mismatched, duplicated or replacing values need explicit approval', () => {
+  const none = new Set();
+  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '', none), false);
+  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), confidence: 'medium' }, '', none), false);
+  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), confidence: 'low' }, '', none), false);
+  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), unitMismatch: true }, '', none), true);
+  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), ambiguousValue: true }, '', none), true);
+  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '', new Set(['mitralE'])), true);
+  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '80', none), false);
+  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '75', none), true);
+});
+
+test('a derived ratio is as uncertain as its least certain dictated source', () => {
+  const items = buildDetectedItems(
+    {
+      measurements: [numeric('mitralE', '80'), { ...numeric('mitralA', '50'), confidence: 'low' }],
+      conclusions: '',
+      patient: emptyPatient,
+    },
+    createEmptyEchoReport().measurements,
+  );
+  const ratio = items.find((item) => item.field === 'mitralEaRatio');
+  assert.equal(ratio.value, '1.6');
+  assert.equal(ratio.confidence, 'low');
+  assert.equal(isCalculatedItem(ratio), true);
+  assert.equal(isCalculatedItem(items[0]), false);
+});
+
+test('ratios follow the applied values, never a selected ratio row', () => {
+  const existing = createEmptyEchoReport().measurements;
+  const ratioRow = { ...numeric('mitralEaRatio', '1.6') };
+  // Only E checked: no A in the form, so no ratio, even if the ratio row is passed.
+  const onlyE = mergeSelectedMeasurements(existing, [numeric('mitralE', '80'), ratioRow]);
+  assert.equal(onlyE.mitralE, '80');
+  assert.equal(onlyE.mitralEaRatio, '');
+  const both = mergeSelectedMeasurements(existing, [numeric('mitralE', '80'), numeric('mitralA', '50')]);
+  assert.equal(both.mitralEaRatio, '1.6');
+  const report = applyDetectedItems(createEmptyEchoReport(), [{ ...numeric('mitralEaRatio', '9') }]);
+  assert.equal(report.measurements.mitralEaRatio, '');
 });
 
 test('only patient fields that changed since the previous parse are reported', () => {

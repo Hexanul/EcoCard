@@ -1,4 +1,5 @@
 import type {
+  ConfidenceLevel,
   ParsedDetectedItem,
   ParsedEchoData,
   ParsedMeasurement,
@@ -46,6 +47,33 @@ export function conflictingDuplicateFields(items: ParsedDetectedItem[]): Set<Par
   return conflicting;
 }
 
+/**
+ * Derived ratios are display-only in the review: they are always recalculated
+ * from the values that actually reach the form, so they cannot be applied or
+ * rejected on their own.
+ */
+export function isCalculatedItem(item: ParsedDetectedItem): boolean {
+  return item.field !== 'conclusions' && DERIVED_MEASUREMENT_KEYS.includes(item.field);
+}
+
+/**
+ * Review rows that start unchecked and need an explicit doctor decision: a
+ * unit or value ambiguity, a field dictated twice with different values, or
+ * a value that would replace a different one already in the form.
+ */
+export function needsExplicitApproval(
+  item: ParsedDetectedItem,
+  existingValue: string,
+  duplicates: Set<ParsedDetectedItem['field']>,
+): boolean {
+  if (duplicates.has(item.field)) return true;
+  if ('unitMismatch' in item && item.unitMismatch === true) return true;
+  if ('ambiguousValue' in item && item.ambiguousValue === true) return true;
+  return existingValue !== '' && existingValue !== item.value;
+}
+
+const CONFIDENCE_ORDER: ConfidenceLevel[] = ['low', 'medium', 'high'];
+
 // A field repeated with the same value is one finding; only the first row is kept.
 function withoutRepeatedValues(items: ParsedMeasurement[]): ParsedMeasurement[] {
   const seen = new Set<string>();
@@ -79,12 +107,16 @@ function addCalculatedMeasurements(
     // an arbitrary result; it is recalculated once the doctor picks a value.
     if (sourceFields.some((sourceField) => duplicates.has(sourceField))) continue;
     if (sourceFields.some((sourceField) => parsedFields.has(sourceField)) && calculated[field] !== '') {
+      // A ratio is only as certain as the least certain dictated value in it.
+      const sourceConfidences = parsedMeasurements
+        .filter((item) => sourceFields.includes(item.field))
+        .map((item) => CONFIDENCE_ORDER.indexOf(item.confidence));
       detected.push({
         field,
         label: MEASUREMENT_FIELDS[field].reviewLabel,
         value: calculated[field],
         kind: 'numeric',
-        confidence: 'high',
+        confidence: CONFIDENCE_ORDER[Math.min(...sourceConfidences)],
         sourceText,
       });
     }
@@ -109,18 +141,29 @@ export function buildDetectedItems(data: ParsedEchoData, existing: Measurements)
   return detected;
 }
 
+/**
+ * The form measurements after applying the selected review items, with the
+ * derived ratios recalculated. Calculated rows in the selection are ignored.
+ */
+export function mergeSelectedMeasurements(
+  existing: Measurements,
+  selected: ParsedDetectedItem[],
+): Measurements {
+  const measurements = { ...existing };
+  for (const item of selected) {
+    if (item.field !== 'conclusions' && !isCalculatedItem(item)) measurements[item.field] = item.value;
+  }
+  return calculateDerivedMeasurements(measurements);
+}
+
 /** Merges the doctor-approved review items into the report. */
 export function applyDetectedItems(report: EchoReport, selected: ParsedDetectedItem[]): EchoReport {
-  const measurements = { ...report.measurements };
-  let conclusions = report.conclusions;
-  for (const item of selected) {
-    if (item.field === 'conclusions') {
-      conclusions = item.value;
-    } else {
-      measurements[item.field] = item.value;
-    }
-  }
-  return { ...report, measurements: calculateDerivedMeasurements(measurements), conclusions };
+  const conclusionsItem = selected.find((item) => item.field === 'conclusions');
+  return {
+    ...report,
+    measurements: mergeSelectedMeasurements(report.measurements, selected),
+    conclusions: conclusionsItem ? conclusionsItem.value : report.conclusions,
+  };
 }
 
 const PATIENT_KEYS = ['lastName', 'firstName', 'age', 'weight', 'height'] as const;

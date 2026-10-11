@@ -1,5 +1,8 @@
 appId: ro.raporteco.desktop
 productName: Raport Eco
+copyright: Copyright © 2026 Raport Eco
+# Refuses to package if any standalone FFmpeg tool slipped into the app.
+afterPack: scripts/check-package.cjs
 directories:
   output: release
 files:
@@ -25,5 +28,7 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: false
   artifactName: Raport-Eco-Setup.exe
+  # Intended purpose, terms and privacy notice (also shown in the app).
+  license: legal/termeni.txt
 portable:
   artifactName: Raport-Eco-Portable.exe

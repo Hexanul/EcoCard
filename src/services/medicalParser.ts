@@ -1337,9 +1337,9 @@ function findNextPunctuation(raw: string, from: number, limit: number): number |
   return match ? from + (match.index ?? 0) : null;
 }
 
-// "Concluzii", "Concluzie", "Concluziile", and Whisper's "CONCLUZI," with the
-// last letter dropped.
-const CONCLUSIONS_MARKER = /\bconcluzi(?:ile|i|e)?\b\s*[:.,-]?\s*/i;
+// "Concluzii", "Concluzie", "Concluzia", "Concluziile", and Whisper's
+// "CONCLUZI," with the last letter dropped.
+const CONCLUSIONS_MARKER = /\bconcluzi(?:ile|i|e|a)?\b\s*[:.,-]?\s*/i;
 
 function extractConclusions(transcript: string): string {
   const match = CONCLUSIONS_MARKER.exec(transcript);
