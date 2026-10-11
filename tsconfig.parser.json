@@ -17,6 +17,7 @@
   "include": [
     "src/config/clinicSettings.ts",
     "src/config/measurementFields.ts",
+    "src/config/measurementLimits.ts",
     "src/config/measurementUnits.ts",
     "src/services/medicalParser.ts",
     "src/services/reportState.ts",
@@ -24,6 +25,7 @@
     "src/services/unitNormalizer.ts",
     "src/types/echoReport.ts",
     "src/utils/bmi.ts",
-    "src/utils/derivedMeasurements.ts"
+    "src/utils/derivedMeasurements.ts",
+    "src/utils/valueChecks.ts"
   ]
 }

@@ -20,6 +20,11 @@ const activeProcesses = new Set<ChildProcess>();
 const sessionRoot = (): string => runtimePaths.tempDir || os.tmpdir();
 
 type ProcessResult = { exitCode: number; stdout: string; stderr: string };
+
+// Windows code integrity (Smart App Control / WDAC) refused to load the
+// unsigned whisper-cli.exe or one of its DLLs (ggml*.dll, whisper.dll):
+// STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION and STATUS_INVALID_IMAGE_HASH.
+const CODE_INTEGRITY_EXIT_CODES = new Set([0xC0E90002, 0xC0000428]);
 function runTrustedProcess(command: string, args: string[], cwd?: string): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -70,10 +75,13 @@ export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string):
     const whisper = await runTrustedProcess(runtimePaths.whisperCliPath, ['-m', runtimePaths.modelPath, '-f', wavPath, '-l', 'ro', '-nt', '-mc', '0', ...vadArgs, '-otxt', '-of', outputPrefix], path.dirname(runtimePaths.whisperCliPath));
     if (whisper.exitCode !== 0) {
       console.error(
-        `[Echo Report] whisper-cli failed with exit code ${whisper.exitCode}:`,
+        `[Echo Report] whisper-cli failed with exit code ${whisper.exitCode} (0x${(whisper.exitCode >>> 0).toString(16).toUpperCase()}):`,
         // stdout is never logged: it can contain transcript text (patient data).
         whisper.stderr || 'No diagnostic output was produced.',
       );
+      if (CODE_INTEGRITY_EXIT_CODES.has(whisper.exitCode >>> 0)) {
+        return failure('WHISPER_BLOCKED_BY_WINDOWS', 'Windows (Smart App Control) a blocat componentele de transcriere, deoarece nu sunt semnate digital. Contactați furnizorul aplicației.');
+      }
       return failure('WHISPER_PROCESS_FAILED', 'Transcrierea locală a eșuat.');
     }
     const transcript = (await readFile(outputTextPath, 'utf8')).trim();

@@ -1,7 +1,7 @@
 // Shared logic for the dictation test loop: loads reading scripts, cached
 // transcripts and known issues from dictation/, and checks a transcript
-// against a script's expected values exactly as the review panel would see
-// it (parseEchoTranscript + buildDetectedItems). Used by
+// against a script's expected values exactly as the form would end up after
+// dictation (parseEchoTranscript + changedDictation + applyDictation). Used by
 // scripts/eval-dictation.mjs and tests/dictation.test.mjs.
 //
 // Requires the compiled parser: `npx tsc -p tsconfig.parser.json`.
@@ -10,9 +10,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MEASUREMENT_FIELDS, MEASUREMENT_SECTIONS, DERIVED_MEASUREMENT_KEYS } from '../dist-parser-tests/src/config/measurementFields.js';
 import { parseEchoTranscript } from '../dist-parser-tests/src/services/medicalParser.js';
-import { buildDetectedItems, conflictingDuplicateFields } from '../dist-parser-tests/src/services/reportState.js';
-import { createEmptyMeasurements } from '../dist-parser-tests/src/types/echoReport.js';
-import { calculateDerivedMeasurements } from '../dist-parser-tests/src/utils/derivedMeasurements.js';
+import { applyDictation, changedDictation, createReportForm } from '../dist-parser-tests/src/services/reportState.js';
+import { createEmptyEchoReport, createEmptyMeasurements } from '../dist-parser-tests/src/types/echoReport.js';
+import { calculateDerivedMeasurements, DERIVED_SOURCES } from '../dist-parser-tests/src/utils/derivedMeasurements.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const DICTATION_DIR = path.join(ROOT, 'dictation');
@@ -154,13 +154,8 @@ function locate(text, key, expectedValue, itemsByField) {
   return { how: 'not found', excerpt: '' };
 }
 
-function uncertainty(item) {
-  const reasons = [];
-  if (item.confidence && item.confidence !== 'high') reasons.push(`confidence ${item.confidence}`);
-  if (item.ambiguousValue) reasons.push('ambiguous value');
-  if (item.unitMismatch) reasons.push(`unit mismatch (${item.unit})`);
-  return reasons;
-}
+// Fields a value depends on: itself, or a calculated ratio's two sources.
+const SOURCES_OF = Object.fromEntries(DERIVED_SOURCES.map(([ratio, ...sources]) => [ratio, sources]));
 
 /**
  * Checks one transcript against a script's expected values. Returns one row
@@ -168,21 +163,22 @@ function uncertainty(item) {
  */
 export function evaluateTranscript(text, expected) {
   const parsed = parseEchoTranscript(text);
-  const items = buildDetectedItems(parsed, createEmptyMeasurements());
-  // A field dictated twice with different values starts unchecked in the
-  // review panel and the doctor picks one, so the row matching the expected
-  // value (if any) stands for the field.
-  const duplicates = conflictingDuplicateFields(items);
+  // The form as dictation fills it, with a note under each uncertain field.
+  const changes = changedDictation(null, parsed);
+  const form = changes ? applyDictation(createReportForm(createEmptyEchoReport()), changes) : createReportForm(createEmptyEchoReport());
+  const formValues = form.report.measurements;
   const expectedValues = expectedMeasurements(expected);
+  // Source text per field, for excerpts.
   const itemsByField = new Map();
-  for (const item of items) {
-    const current = itemsByField.get(item.field);
-    const keepCurrent = current && duplicates.has(item.field)
-      && sameValue(expectedValues[item.field] ?? '', current.value);
-    if (!keepCurrent) itemsByField.set(item.field, item);
+  for (const item of parsed.measurements) {
+    if (!itemsByField.has(item.field)) itemsByField.set(item.field, item);
   }
   const ownerOfValue = (value, exceptKey) =>
     Object.keys(expectedValues).find((key) => key !== exceptKey && asNumber(value) !== null && sameValue(expectedValues[key], value));
+  // Warnings the doctor must resolve before the value counts.
+  const warningsFor = (key) => (SOURCES_OF[key] ?? [key]).flatMap((field) => form.notes[field]?.warnings ?? []);
+  // Other values the doctor can pick under the field (dictated more than once).
+  const choicesFor = (key) => form.notes[key]?.alternatives ?? [];
 
   const rows = [];
 
@@ -203,25 +199,25 @@ export function evaluateTranscript(text, expected) {
     const expectedValue = expectedValues[key];
     if (expectedValue === undefined) continue;
     const item = itemsByField.get(key);
+    const actual = formValues[key] || null;
     const label = MEASUREMENT_FIELDS[key].reviewLabel;
-    const row = { group: 'measurement', key, label, section, expected: expectedValue, actual: item?.value ?? null, status: 'OK', detail: '', excerpt: '', source: item?.sourceText ?? '' };
-    if (item && sameValue(expectedValue, item.value)) {
-      const reasons = uncertainty(item);
-      if (duplicates.has(key)) reasons.push('dictated more than once with different values');
-      if (reasons.length > 0) {
+    const row = { group: 'measurement', key, label, section, expected: expectedValue, actual, status: 'OK', detail: '', excerpt: '', source: item?.sourceText ?? '' };
+    const warnings = warningsFor(key);
+    if (actual && sameValue(expectedValue, actual)) {
+      if (warnings.length > 0) {
         row.status = 'OK*';
-        row.detail = `review row starts unchecked: ${reasons.join(', ')}`;
+        row.detail = `flagged under the field: ${warnings.join(' ')}`;
       }
-    } else if (item) {
+    } else if (choicesFor(key).some((choice) => sameValue(expectedValue, choice))) {
+      row.status = 'OK*';
+      row.detail = `offered under the field (got ${actual}): ${warnings.join(' ')}`;
+    } else if (actual) {
       row.status = 'WRONG';
-      const owner = ownerOfValue(item.value, key);
-      row.detail = owner ? `got the value of ${owner}` : '';
-      const reasons = uncertainty(item);
-      if (duplicates.has(key)) reasons.push('dictated more than once with different values, rows start unchecked');
-      if (reasons.length > 0) row.detail = [row.detail, reasons.join(', ')].filter(Boolean).join('; ');
+      const owner = ownerOfValue(actual, key);
+      row.detail = [owner ? `got the value of ${owner}` : '', warnings.join(' ')].filter(Boolean).join('; ');
       row.excerpt = row.source;
     } else {
-      const misplacedIn = items.find((other) => other.field !== key && other.field !== 'conclusions' && sameValue(expectedValue, other.value) && asNumber(expectedValue) !== null);
+      const misplacedIn = parsed.measurements.find((other) => other.field !== key && sameValue(expectedValue, other.value) && asNumber(expectedValue) !== null);
       if (misplacedIn) {
         row.status = 'MISPLACED';
         row.detail = `value went to ${misplacedIn.field}`;

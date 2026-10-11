@@ -1,9 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import './App.css';
 import { Header } from './components/Header';
 import { PatientForm } from './components/PatientForm';
 import { DictationPanel } from './components/DictationPanel';
-import { MeasurementReview } from './components/MeasurementReview';
 import { MeasurementGroup } from './components/MeasurementGroup';
 import { ConclusionsForm } from './components/ConclusionsForm';
 import { ReportActions } from './components/ReportActions';
@@ -17,24 +16,24 @@ import {
   type ClinicSettings,
 } from './config/clinicSettings';
 import { createTestEchoReport } from './dev/testReport';
-import type {
-  ParsedEchoData,
-  ParsedDetectedItem,
-  ParsedPatientInfo,
-} from './services/medicalParser';
+import type { ParsedPatientInfo } from './services/medicalParser';
 import {
-  applyDetectedItems,
-  buildDetectedItems,
+  applyDictation,
+  createReportForm,
+  editField,
   getFollowingCurrentNumber,
   mergeParsedPatient,
+  resolveNote,
+  type DictatedField,
+  type DictationChanges,
+  type ReportForm,
 } from './services/reportState';
+import { findReportIssues, type Confirmations } from './utils/valueChecks';
 import {
   createEmptyEchoReport,
   type EchoReport,
-  type MeasurementKey,
   type PatientInfo,
 } from './types/echoReport';
-import { calculateDerivedMeasurements } from './utils/derivedMeasurements';
 
 const CURRENT_NUMBER_STORAGE_KEY = 'ecocard-next-current-number';
 
@@ -67,9 +66,9 @@ function createReportWithCurrentNumber(): EchoReport {
 }
 
 function App() {
-  const [report, setReport] = useState<EchoReport>(createReportWithCurrentNumber);
-  // The latest transcript parse awaiting review; null once applied or dismissed.
-  const [pendingParse, setPendingParse] = useState<ParsedEchoData | null>(null);
+  // The report plus the notes on uncertain dictated values (reportState.ts).
+  const [form, setForm] = useState<ReportForm>(() => createReportForm(createReportWithCurrentNumber()));
+  const { report, notes } = form;
   const [view, setView] = useState<'form' | 'preview'>('form');
   // Bumped on "Șterge formularul" to remount the dictation panel, so the
   // previous patient's transcript and recording are discarded with the form.
@@ -78,62 +77,63 @@ function App() {
   const [clinic, setClinic] = useState<ClinicSettings>(loadClinicSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [about, setAbout] = useState<'accept' | 'about' | null>(() => (hasAcceptedTerms() ? null : 'accept'));
+  // Unusual values the doctor confirmed (field id → value); a confirmation
+  // lapses as soon as the value changes.
+  const [confirmed, setConfirmed] = useState<Confirmations>({});
+  // Set by a preview attempt blocked by impossible, unconfirmed or uncertain
+  // dictated values; the list then updates live until every issue is resolved.
+  const [showIssues, setShowIssues] = useState(false);
+  const issues = showIssues ? findReportIssues(report, confirmed, notes) : [];
 
-  const updatePatient = (patient: PatientInfo) => {
-    setReport((prev) => ({ ...prev, patient }));
+  const confirmValue = (id: string, value: string) => {
+    setConfirmed((prev) => ({ ...prev, [id]: value }));
   };
 
-  const updateMeasurement = (key: MeasurementKey, value: string) => {
-    setReport((prev) => ({
-      ...prev,
-      measurements: calculateDerivedMeasurements({ ...prev.measurements, [key]: value }),
-    }));
+  // "Confirmă" under a dictated field keeps the value: it confirms an unusual
+  // value and settles the dictation note in one click.
+  const confirmField = (field: DictatedField, value: string) => {
+    confirmValue(field, value);
+    setForm((prev) => resolveNote(prev, field));
   };
 
-  const updateConclusions = (conclusions: string) => {
-    setReport((prev) => ({ ...prev, conclusions }));
+  const chooseValue = (field: DictatedField, value: string) => {
+    setForm((prev) => resolveNote(prev, field, value));
   };
 
-  // Stable callbacks: the dictation panel reports a parse only when the
-  // transcript changes, never because the form state changed.
-  const handleMeasurementsParsed = useCallback((data: ParsedEchoData) => {
-    setPendingParse(data);
-  }, []);
-
-  // Dictated patient data fills the form directly (like conclusions); only
-  // explicitly spoken fields are touched and the BMI is recalculated.
-  const handlePatientParsed = useCallback((parsed: ParsedPatientInfo) => {
-    setReport((prev) => ({ ...prev, patient: mergeParsedPatient(prev.patient, parsed) }));
-  }, []);
-
-  const pendingMeasurements = useMemo<ParsedDetectedItem[]>(
-    () => (pendingParse ? buildDetectedItems(pendingParse, report.measurements) : []),
-    [pendingParse, report.measurements],
-  );
-
-  // Only measurements explicitly approved in the review panel reach the form;
-  // manually entered values are never overwritten silently.
-  const handleApplyMeasurements = useCallback((selected: ParsedDetectedItem[]) => {
-    if (selected.length === 0) {
+  const handlePreview = () => {
+    if (findReportIssues(report, confirmed, notes).length > 0) {
+      setShowIssues(true);
       return;
     }
-    setReport((prev) => applyDetectedItems(prev, selected));
-    setPendingParse(null);
+    setShowIssues(false);
+    setView('preview');
+  };
+
+  const updatePatient = (patient: PatientInfo) => {
+    setForm((prev) => ({ ...prev, report: { ...prev.report, patient } }));
+  };
+
+  const updateField = (field: DictatedField, value: string) => {
+    setForm((prev) => editField(prev, field, value));
+  };
+
+  // Stable callbacks: the dictation panel reports changes only when the
+  // transcript changes, never because the form state changed.
+  // Dictated values fill the form directly, like the patient data; uncertain
+  // ones carry a note under their field until the doctor resolves it.
+  const handleDictationChanged = useCallback((changes: DictationChanges) => {
+    setForm((prev) => applyDictation(prev, changes));
   }, []);
 
-  const handleDismissReview = useCallback(() => {
-    setPendingParse(null);
+  // Only explicitly spoken patient fields are touched and the BMI is recalculated.
+  const handlePatientParsed = useCallback((parsed: ParsedPatientInfo) => {
+    setForm((prev) => ({ ...prev, report: { ...prev.report, patient: mergeParsedPatient(prev.report.patient, parsed) } }));
   }, []);
-
-  // Remounts the review panel whenever a new transcript parse arrives, so
-  // toggle state resets together with the detected measurement list.
-  const reviewKey = pendingMeasurements
-    .map((item) => `${item.field}|${item.value}|${item.confidence}`)
-    .join('\n');
 
   const handleClear = () => {
-    setReport(createReportWithCurrentNumber());
-    setPendingParse(null);
+    setForm(createReportForm(createReportWithCurrentNumber()));
+    setConfirmed({});
+    setShowIssues(false);
     setDictationKey((key) => key + 1);
   };
 
@@ -169,7 +169,8 @@ function App() {
   const handleLoadTestReport = () => {
     const testReport = createTestEchoReport();
     testReport.patient.currentNumber = String(getNextCurrentNumber());
-    setReport(testReport);
+    setForm(createReportForm(testReport));
+    setConfirmed({});
   };
 
   // The read-only preview renders the same report state — no copy is made,
@@ -197,42 +198,41 @@ function App() {
       <main className="app-main">
         <DictationPanel
           key={dictationKey}
-          onMeasurementsParsed={handleMeasurementsParsed}
+          onDictationChanged={handleDictationChanged}
           onPatientParsed={handlePatientParsed}
         />
-        <PatientForm patient={report.patient} onChange={updatePatient} />
-        {pendingMeasurements.length > 0 && (
-          <MeasurementReview
-            key={reviewKey}
-            measurements={report.measurements}
-            conclusions={report.conclusions}
-            parsedMeasurements={pendingMeasurements}
-            onApply={handleApplyMeasurements}
-            onDismiss={handleDismissReview}
-          />
-        )}
+        <PatientForm
+          patient={report.patient}
+          onChange={updatePatient}
+          confirmed={confirmed}
+          onConfirm={confirmValue}
+        />
 
         <section className="panel measurements-panel">
-          <MeasurementGroup
-            group="echo"
-            title="M ECHO + 2D ECHO"
-            measurements={report.measurements}
-            onChange={updateMeasurement}
-          />
-          <MeasurementGroup
-            group="doppler"
-            title="ECHO DOPPLER"
-            measurements={report.measurements}
-            onChange={updateMeasurement}
-          />
+          {(['echo', 'doppler'] as const).map((group) => (
+            <MeasurementGroup
+              key={group}
+              group={group}
+              title={group === 'echo' ? 'M ECHO + 2D ECHO' : 'ECHO DOPPLER'}
+              measurements={report.measurements}
+              onChange={updateField}
+              confirmed={confirmed}
+              onConfirm={confirmField}
+              notes={notes}
+              onChooseValue={chooseValue}
+            />
+          ))}
         </section>
 
-        <ConclusionsForm value={report.conclusions} onChange={updateConclusions} />
-
-        <ReportActions
-          onClear={handleClear}
-          onPreview={() => setView('preview')}
+        <ConclusionsForm
+          value={report.conclusions}
+          onChange={(value) => updateField('conclusions', value)}
+          note={notes.conclusions}
+          onChooseValue={(value) => chooseValue('conclusions', value)}
+          onConfirm={() => setForm((prev) => resolveNote(prev, 'conclusions'))}
         />
+
+        <ReportActions onClear={handleClear} onPreview={handlePreview} issues={issues} />
 
         {import.meta.env.DEV && (
           <div className="dev-actions">

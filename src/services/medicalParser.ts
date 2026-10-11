@@ -520,6 +520,11 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // Whisper drops the "e": "antroposterior".
       'as diametrul antroposterior',
       'as diametru antroposterior',
+      // Whisper drops the "n" in "antero": "atero-posterior".
+      'as diametrul atero posterior',
+      'as diametru atero posterior',
+      'as diametrul ateroposterior',
+      'as diametru ateroposterior',
       // Whisper fuses "latero"/"antero": "lanteroposterior".
       'as diametrul lanteroposterior',
       'as diametru lanteroposterior',
@@ -533,6 +538,10 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'diametru antero posterior',
       'diametrul antroposterior',
       'diametru antroposterior',
+      'diametrul atero posterior',
+      'diametru atero posterior',
+      'diametrul ateroposterior',
+      'diametru ateroposterior',
     ],
   },
   {
@@ -1368,7 +1377,10 @@ const PATIENT_NAME_STOP_WORDS = new Set([
   'pacient', 'pacientul', 'pacienta', 'pacientului', 'pacientei',
   'varsta', 'vârsta', 'vârstă', 'varstă', 'an', 'ani',
   'greutate', 'greutatea', 'reutate', 'reutatea', 'kg', 'kilograme', 'kilogramele',
-  'inaltime', 'inaltimea', 'înălțime', 'înălțimea', 'cm', 'centimetri',
+  'inaltime', 'inaltimea', 'înălțime', 'înălțimea', 'înălţime', 'înălţimea',
+  'intime', 'intimea', 'înțime', 'înțimea', 'ințime', 'ințimea', 'înţime', 'înţimea',
+  'inţime', 'inţimea',
+  'cm', 'centimetri',
   'data', 'examinare', 'examinarea', 'examinarii', 'examinării',
   'numar', 'număr', 'numărul', 'curent', 'curentul', 'concluzii',
 ]);
@@ -1393,7 +1405,8 @@ const FIRST_NAME_LABEL = patientLabelRegex(
 );
 const AGE_LABEL = patientLabelRegex('v[âa]rst[aă]');
 const WEIGHT_LABEL = patientLabelRegex('(?:g)?reutate[aă]?');
-const HEIGHT_LABEL = patientLabelRegex('[îi]n[ăa]l[tțţ]ime[aă]?');
+// Whisper drops the middle "ăl" ("Înțime" for "Înălțime").
+const HEIGHT_LABEL = patientLabelRegex('[îi]n(?:[ăaâ]l)?[tțţ]ime[aă]?');
 
 function captureNameWords(raw: string, from: number, maxWords: number): string[] {
   const wordPattern = new RegExp(

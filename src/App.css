@@ -171,6 +171,114 @@
   min-width: 48px;
 }
 
+.field input:read-only {
+  background: var(--bg);
+}
+
+/* Plausibility checks (config/measurementLimits.ts) */
+
+.field--reject input {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.field--confirm input,
+.field--confirm textarea {
+  border-color: var(--paused);
+  background: var(--paused-bg);
+}
+
+.field__message,
+.field__warning {
+  margin: 0;
+  font-size: 12px;
+}
+
+.field--reject .field__message {
+  color: var(--danger);
+}
+
+.field--confirm .field__message {
+  color: var(--paused);
+}
+
+.field__warning {
+  color: var(--text-muted);
+}
+
+.field__warning::before {
+  content: '⚠ ';
+  color: var(--paused);
+}
+
+.field__confirm {
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--paused);
+  background: var(--surface);
+  border: 1px solid var(--paused);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.field__confirm:hover {
+  background: var(--paused-bg);
+}
+
+/* Notes on dictated values (reportState.ts DictationNote) */
+
+.field__note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.field__note p {
+  margin: 0;
+}
+
+.field__note-warning {
+  color: var(--paused);
+}
+
+.field__note-info,
+.field__note-source {
+  color: var(--text-muted);
+}
+
+.field__note-source {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.field__note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.field__note-actions .field__confirm {
+  margin-left: 0;
+}
+
+.field__choice {
+  padding: 1px 8px;
+  font-size: 12px;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.field__choice:hover {
+  border-color: var(--border-focus);
+}
+
 /* Dictation panel */
 
 .dictation-panel__header {
@@ -626,9 +734,44 @@
 
 .report-actions {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
   gap: 12px;
   padding-top: 4px;
+}
+
+.report-actions__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.report-actions__issues {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+}
+
+.report-actions__issues p {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.report-actions__issues ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.report-actions__issue {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .dev-actions {
@@ -804,147 +947,6 @@
     width: 100%;
     text-align: center;
   }
-}
-
-/* Measurement review */
-
-.measurement-review__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.measurement-review__header .panel__title {
-  margin-bottom: 0;
-}
-
-.measurement-review__list {
-  list-style: none;
-  margin: 0 0 16px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.measurement-review__row {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 10px 12px;
-  background: var(--surface);
-}
-
-.measurement-review__row--conflict {
-  border-color: var(--danger-border);
-  background: var(--danger-bg);
-}
-
-.measurement-review__row--low {
-  border-color: var(--paused-border);
-}
-
-.measurement-review__row--calculated {
-  background: var(--bg);
-}
-
-.measurement-review__calculated-mark {
-  width: 13px;
-  text-align: center;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.measurement-review__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.measurement-review__checkbox {
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.measurement-review__field {
-  font-weight: 600;
-  flex: 0 0 240px;
-}
-
-.measurement-review__value {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.measurement-review__unit {
-  margin-left: 4px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.measurement-review__kind {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 1px 6px;
-}
-
-.measurement-review__badge {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 3px;
-  margin-left: auto;
-}
-
-.measurement-review__badge--high {
-  color: var(--success);
-  background: var(--success-bg);
-}
-
-.measurement-review__badge--medium {
-  color: var(--paused);
-  background: var(--paused-bg);
-}
-
-.measurement-review__badge--low {
-  color: var(--danger);
-  background: var(--danger-bg);
-}
-
-.measurement-review__source {
-  margin: 6px 0 0 34px;
-  font-size: 12px;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.measurement-review__conflict {
-  margin: 6px 0 0 34px;
-  font-size: 13px;
-  color: var(--danger);
-}
-
-.measurement-review__low-note {
-  margin: 0 0 12px;
-  font-size: 13px;
-  color: var(--paused);
-}
-
-.measurement-review__actions {
-  display: flex;
-  gap: 10px;
-}
-
-.measurement-review__actions .btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .dictation-panel__parsed-hint {

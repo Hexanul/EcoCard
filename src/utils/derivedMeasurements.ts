@@ -1,4 +1,12 @@
-import type { Measurements } from '../types/echoReport.js';
+import type { MeasurementKey, Measurements } from '../types/echoReport.js';
+
+// Each calculated ratio and its [numerator, denominator] fields.
+export const DERIVED_SOURCES: ReadonlyArray<[MeasurementKey, MeasurementKey, MeasurementKey]> = [
+  ['mitralEaRatio', 'mitralE', 'mitralA'],
+  ['tricuspidEaRatio', 'tricuspidE', 'tricuspidA'],
+  ['septalEaPrimeRatio', 'septalEPrime', 'septalAPrime'],
+  ['eePrimeRatio', 'mitralE', 'septalEPrime'],
+];
 
 function divideValues(numerator: string, denominator: string): string {
   const parsedNumerator = Number(numerator.trim().replace(',', '.'));
@@ -18,11 +26,9 @@ function divideValues(numerator: string, denominator: string): string {
 }
 
 export function calculateDerivedMeasurements(measurements: Measurements): Measurements {
-  return {
-    ...measurements,
-    mitralEaRatio: divideValues(measurements.mitralE, measurements.mitralA),
-    tricuspidEaRatio: divideValues(measurements.tricuspidE, measurements.tricuspidA),
-    septalEaPrimeRatio: divideValues(measurements.septalEPrime, measurements.septalAPrime),
-    eePrimeRatio: divideValues(measurements.mitralE, measurements.septalEPrime),
-  };
+  const result = { ...measurements };
+  for (const [ratio, numerator, denominator] of DERIVED_SOURCES) {
+    result[ratio] = divideValues(measurements[numerator], measurements[denominator]);
+  }
+  return result;
 }

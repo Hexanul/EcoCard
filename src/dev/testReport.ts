@@ -1,10 +1,12 @@
 import { createEmptyEchoReport, type EchoReport } from '../types/echoReport';
+import { calculateDerivedMeasurements } from '../utils/derivedMeasurements';
 
 // Temporary development fixture (milestone: report preview + printing).
 // Loaded only via the dev-only "Date test" button; never used in production.
+// Values stay inside the plausibility limits, so the preview is not blocked.
 export function createTestEchoReport(): EchoReport {
   const report = createEmptyEchoReport();
-  report.measurements = {
+  report.measurements = calculateDerivedMeasurements({
     ...report.measurements,
     lvEndDiastolicDiameter: '5.3',
     lvEndSystolicDiameter: '4.4',
@@ -13,13 +15,13 @@ export function createTestEchoReport(): EchoReport {
     lvEjectionFractionTeicholz: '30',
     laAnteroposteriorDiameter: '3',
     lvLateromedialDiameter: '5',
-    rvLateromedialDiameter: '8',
+    rvLateromedialDiameter: '3.5',
     laLateromedialDiameter: '5',
-    raLateromedialDiameter: '94',
+    raLateromedialDiameter: '4.5',
     laArea: '9',
-    raArea: '9.99',
+    raArea: '9.9',
     lvEndDiastolicVolume: '100',
-    lvEndSystolicVolume: '9',
+    lvEndSystolicVolume: '45',
     lvEjectionFractionSimpson: '55',
     wallMotion: 'normală',
     aorticValves: 'îngroșate',
@@ -35,20 +37,16 @@ export function createTestEchoReport(): EchoReport {
     lvotVti: '20',
     aorticValveArea: '1.5',
     aorticRegurgitation: 'absent',
-    mitralE: '4',
-    mitralA: '5',
-    mitralEaRatio: '1.2',
-    mitralDecelerationTime: '9',
-    mitralTriv: '4.5',
-    mitralValveArea: '9',
+    mitralE: '80',
+    mitralA: '65',
+    mitralDecelerationTime: '190',
+    mitralTriv: '90',
+    mitralValveArea: '4',
     mitralRegurgitation: 'absent',
-    tricuspidA: '9',
-    tricuspidEaRatio: '3',
+    tricuspidA: '40',
     tricuspidRegurgitation: 'absent',
-    septalEPrime: '5',
+    septalEPrime: '8',
     septalAPrime: '9',
-    septalEaPrimeRatio: '5',
-    eePrimeRatio: '4',
-  };
+  });
   return report;
 }

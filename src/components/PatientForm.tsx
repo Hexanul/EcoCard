@@ -1,12 +1,17 @@
+import { PATIENT_LIMITS, type PatientLimitKey } from '../config/measurementLimits';
 import type { PatientInfo } from '../types/echoReport';
 import { calculateBmi } from '../utils/bmi';
+import { patientFieldId, type Confirmations } from '../utils/valueChecks';
+import { MeasurementField } from './MeasurementField';
 
 type PatientFormProps = {
   patient: PatientInfo;
   onChange: (patient: PatientInfo) => void;
+  confirmed: Confirmations;
+  onConfirm: (id: string, value: string) => void;
 };
 
-export function PatientForm({ patient, onChange }: PatientFormProps) {
+export function PatientForm({ patient, onChange, confirmed, onConfirm }: PatientFormProps) {
   const update = (field: keyof PatientInfo, value: string) => {
     onChange({ ...patient, [field]: value });
   };
@@ -25,6 +30,27 @@ export function PatientForm({ patient, onChange }: PatientFormProps) {
       height: value,
       bmi: calculateBmi(patient.weight, value),
     });
+  };
+
+  const limitedField = (
+    key: PatientLimitKey,
+    label: string,
+    unit: string,
+    onFieldChange: (value: string) => void,
+  ) => {
+    const id = patientFieldId(key);
+    return (
+      <MeasurementField
+        id={id}
+        label={label}
+        value={patient[key]}
+        onChange={onFieldChange}
+        unit={unit}
+        limits={PATIENT_LIMITS[key]}
+        confirmed={confirmed[id] === patient[key]}
+        onConfirm={() => onConfirm(id, patient[key])}
+      />
+    );
   };
 
   return (
@@ -55,20 +81,7 @@ export function PatientForm({ patient, onChange }: PatientFormProps) {
         </div>
 
         <div className="patient-form__demographics">
-          <div className="field">
-            <label htmlFor="patient-age">Vârstă</label>
-            <div className="field__input-row">
-              <input
-                id="patient-age"
-                type="text"
-                inputMode="decimal"
-                value={patient.age}
-                onChange={(e) => update('age', e.target.value)}
-                autoComplete="off"
-              />
-              <span className="field__unit">ani</span>
-            </div>
-          </div>
+          {limitedField('age', 'Vârstă', 'ani', (value) => update('age', value))}
 
           <div className="field">
             <label htmlFor="examination-date">Data examinării</label>
@@ -91,50 +104,18 @@ export function PatientForm({ patient, onChange }: PatientFormProps) {
           </div>
         </div>
 
-        <div className="field">
-          <label htmlFor="patient-weight">Greutate</label>
-          <div className="field__input-row">
-            <input
-              id="patient-weight"
-              type="text"
-              inputMode="decimal"
-              value={patient.weight}
-              onChange={(e) => updateWeight(e.target.value)}
-              autoComplete="off"
-            />
-            <span className="field__unit">kg</span>
-          </div>
-        </div>
+        {limitedField('weight', 'Greutate', 'kg', updateWeight)}
+        {limitedField('height', 'Înălțime', 'cm', updateHeight)}
 
-        <div className="field">
-          <label htmlFor="patient-height">Înălțime</label>
-          <div className="field__input-row">
-            <input
-              id="patient-height"
-              type="text"
-              inputMode="decimal"
-              value={patient.height}
-              onChange={(e) => updateHeight(e.target.value)}
-              autoComplete="off"
-            />
-            <span className="field__unit">cm</span>
-          </div>
-        </div>
-
-        <div className="field">
-          <label htmlFor="patient-bmi">IMC</label>
-          <div className="field__input-row">
-            <input
-              id="patient-bmi"
-              type="text"
-              inputMode="decimal"
-              value={patient.bmi}
-              onChange={(e) => update('bmi', e.target.value)}
-              autoComplete="off"
-            />
-            <span className="field__unit">kg/m²</span>
-          </div>
-        </div>
+        {/* Calculated from weight and height. */}
+        <MeasurementField
+          id="patient-bmi"
+          label="IMC"
+          value={patient.bmi}
+          onChange={() => undefined}
+          unit="kg/m²"
+          readOnly
+        />
       </div>
     </section>
   );

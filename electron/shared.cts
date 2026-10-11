@@ -9,7 +9,7 @@ export type ConvertedAudio = {
 };
 export type TranscriptionFailure = {
   success: false;
-  errorCode: 'INVALID_AUDIO' | 'WHISPER_CLI_NOT_FOUND' | 'WHISPER_MODEL_NOT_FOUND' | 'WHISPER_PROCESS_FAILED' | 'PROCESS_TIMEOUT' | 'TEMPORARY_STORAGE_ERROR' | 'UNKNOWN_ERROR';
+  errorCode: 'INVALID_AUDIO' | 'WHISPER_CLI_NOT_FOUND' | 'WHISPER_MODEL_NOT_FOUND' | 'WHISPER_PROCESS_FAILED' | 'WHISPER_BLOCKED_BY_WINDOWS' | 'PROCESS_TIMEOUT' | 'TEMPORARY_STORAGE_ERROR' | 'UNKNOWN_ERROR';
   message: string;
 };
 export type TranscriptionSuccess = { success: true; transcript: string; converted: ConvertedAudio };

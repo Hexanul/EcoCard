@@ -1047,6 +1047,10 @@ test('parses all AS anterior/antero-posterior variants', () => {
     'AS diametrul antero-posterior 43',
     'AS diametru antero-posterior 43',
     'AS diametrul anteroposterior 43',
+    'AS diametrul atero-posterior 43',
+    'AS diametru atero-posterior 43',
+    'AS diametrul ateroposterior 43',
+    'AS diametru ateroposterior 43',
   ]) {
     assert.ok(
       parseEchoTranscript(transcript).measurements.some(
@@ -1055,6 +1059,11 @@ test('parses all AS anterior/antero-posterior variants', () => {
       transcript,
     );
   }
+});
+
+test('parses "AS, diametru atero-posterior, 4,1" (Whisper drops the "n")', () => {
+  const result = parsed('As, diametru atero-posterior, 4,1', 'laAnteroposteriorDiameter');
+  assert.equal(result.value, '4.1');
 });
 
 test('parses "VS, diametru lateromedian, 5"', () => {
@@ -1878,6 +1887,14 @@ test('parses a parasternal dictation with Whisper variants (VSE, "3 sistolic", S
 test('converts a patient height dictated in meters to centimeters', () => {
   assert.equal(parseEchoTranscript('Înălțime 1,75 metri.').patient.height, '175');
   assert.equal(parseEchoTranscript('Înălțime 168 cm.').patient.height, '168');
+});
+
+test('detects the Whisper short form "Înțime" for height', () => {
+  assert.equal(parseEchoTranscript('Înțime 50.').patient.height, '50');
+  assert.equal(parseEchoTranscript('Înțime 168 cm.').patient.height, '168');
+  const data = parseEchoTranscript('Nume Popescu, Înțime 170.');
+  assert.equal(data.patient.lastName, 'Popescu');
+  assert.equal(data.patient.height, '170');
 });
 
 test('review labels come from the field registry', () => {

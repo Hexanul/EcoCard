@@ -20,7 +20,7 @@ npm run eval:dictation -- <filter>
 - Exit code 1 just means there are fields to fix.
 - `--json` gives the same data machine-readable; `--all` also lists passing rows.
 
-Statuses: `OK`; `OK*` (right value, but the review row starts unchecked — low confidence / ambiguous / unit mismatch; acceptable, but mention it); `WRONG` (detail names the field whose value it took, if any); `MISPLACED` (the expected value went to another field); `MISSING` (with the transcript excerpt where the label should be).
+Statuses: `OK`; `OK*` (right value, or offered as a choice, but flagged with a warning under the field that the doctor must resolve — dictated several times / ambiguous / hedged / unit mismatch; acceptable, but mention it); `WRONG` (detail names the field whose value it took, if any); `MISPLACED` (the expected value went to another field); `MISSING` (with the transcript excerpt where the label should be).
 
 Record the starting score per transcript for the final report.
 

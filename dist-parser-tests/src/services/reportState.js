@@ -1,141 +1,153 @@
-import { DERIVED_MEASUREMENT_KEYS, MEASUREMENT_FIELDS } from '../config/measurementFields.js';
+import { DERIVED_MEASUREMENT_KEYS } from '../config/measurementFields.js';
 import { calculateBmi } from '../utils/bmi.js';
 import { calculateDerivedMeasurements } from '../utils/derivedMeasurements.js';
 // Pure report-state logic shared by App.tsx; kept free of React and browser
 // APIs so it can be unit tested with node:test.
-// Derived ratio -> [explanation shown as source text, source fields]; labels
-// come from the field registry.
-const DERIVED_DEFINITIONS = [
-    ['mitralEaRatio', 'Calculat automat: Undă E / Undă A', ['mitralE', 'mitralA']],
-    ['tricuspidEaRatio', 'Calculat automat: Undă E / Undă A', ['tricuspidE', 'tricuspidA']],
-    ['septalEaPrimeRatio', "Calculat automat: Undă E' / Undă A'", ['septalEPrime', 'septalAPrime']],
-    ['eePrimeRatio', "Calculat automat: Undă E mitrală / Undă E'", ['mitralE', 'septalEPrime']],
-];
 /** Returns the number that follows a valid positive integer, or null. */
 export function getFollowingCurrentNumber(value) {
     const currentNumber = Number(value.trim());
     return Number.isInteger(currentNumber) && currentNumber > 0 ? currentNumber + 1 : null;
 }
-/**
- * Fields dictated more than once with different values ("VS ... 4,4" and a
- * misheard "VS ... 3,5"). Their rows must never be applied silently: the
- * doctor has to pick one.
- */
-export function conflictingDuplicateFields(items) {
-    const valuesByField = new Map();
+export function createReportForm(report) {
+    return { report, notes: {}, dictated: {} };
+}
+// Dictated ratios are ignored: the form always calculates them.
+function itemsByField(items) {
+    const byField = new Map();
     for (const item of items) {
-        const values = valuesByField.get(item.field) ?? new Set();
-        values.add(item.value);
-        valuesByField.set(item.field, values);
-    }
-    const conflicting = new Set();
-    for (const [field, values] of valuesByField) {
-        if (values.size > 1)
-            conflicting.add(field);
-    }
-    return conflicting;
-}
-/**
- * Derived ratios are display-only in the review: they are always recalculated
- * from the values that actually reach the form, so they cannot be applied or
- * rejected on their own.
- */
-export function isCalculatedItem(item) {
-    return item.field !== 'conclusions' && DERIVED_MEASUREMENT_KEYS.includes(item.field);
-}
-/**
- * Review rows that start unchecked and need an explicit doctor decision: a
- * unit or value ambiguity, a field dictated twice with different values, or
- * a value that would replace a different one already in the form.
- */
-export function needsExplicitApproval(item, existingValue, duplicates) {
-    if (duplicates.has(item.field))
-        return true;
-    if ('unitMismatch' in item && item.unitMismatch === true)
-        return true;
-    if ('ambiguousValue' in item && item.ambiguousValue === true)
-        return true;
-    return existingValue !== '' && existingValue !== item.value;
-}
-const CONFIDENCE_ORDER = ['low', 'medium', 'high'];
-// A field repeated with the same value is one finding; only the first row is kept.
-function withoutRepeatedValues(items) {
-    const seen = new Set();
-    return items.filter((item) => {
-        const key = `${item.field}|${item.value}`;
-        if (seen.has(key))
-            return false;
-        seen.add(key);
-        return true;
-    });
-}
-function addCalculatedMeasurements(dictated, existing) {
-    const parsedMeasurements = withoutRepeatedValues(dictated);
-    const duplicates = conflictingDuplicateFields(parsedMeasurements);
-    const values = { ...existing };
-    const parsedFields = new Set(parsedMeasurements.map((item) => item.field));
-    for (const item of parsedMeasurements) {
-        values[item.field] = item.value;
-    }
-    const calculated = calculateDerivedMeasurements(values);
-    const detected = parsedMeasurements.filter((item) => !DERIVED_MEASUREMENT_KEYS.includes(item.field));
-    for (const [field, sourceText, sourceFields] of DERIVED_DEFINITIONS) {
-        // A ratio built from a field with conflicting dictated values would show
-        // an arbitrary result; it is recalculated once the doctor picks a value.
-        if (sourceFields.some((sourceField) => duplicates.has(sourceField)))
+        if (DERIVED_MEASUREMENT_KEYS.includes(item.field))
             continue;
-        if (sourceFields.some((sourceField) => parsedFields.has(sourceField)) && calculated[field] !== '') {
-            // A ratio is only as certain as the least certain dictated value in it.
-            const sourceConfidences = parsedMeasurements
-                .filter((item) => sourceFields.includes(item.field))
-                .map((item) => CONFIDENCE_ORDER.indexOf(item.confidence));
-            detected.push({
-                field,
-                label: MEASUREMENT_FIELDS[field].reviewLabel,
-                value: calculated[field],
-                kind: 'numeric',
-                confidence: CONFIDENCE_ORDER[Math.min(...sourceConfidences)],
-                sourceText,
-            });
+        byField.set(item.field, [...(byField.get(item.field) ?? []), item]);
+    }
+    return byField;
+}
+// What dictation says for a field, without the surrounding transcript text, so
+// editing another part of the transcript does not count as a change.
+function dictationSignature(items) {
+    return JSON.stringify(items.map((item) => [item.value, item.unit, item.confidence, item.convertedFrom, item.unitMismatch, item.ambiguousValue]));
+}
+/**
+ * Only fields whose dictation changed since the previous parse are applied,
+ * so a correction made in the form survives later edits to unrelated parts of
+ * the transcript. Returns null when nothing changed.
+ */
+export function changedDictation(previous, next) {
+    const before = itemsByField(previous?.measurements ?? []);
+    const measurements = [];
+    for (const [field, items] of itemsByField(next.measurements)) {
+        const previousItems = before.get(field);
+        if (!previousItems || dictationSignature(previousItems) !== dictationSignature(items)) {
+            measurements.push(...items);
         }
     }
-    return detected;
+    const conclusions = next.conclusions && next.conclusions !== previous?.conclusions ? next.conclusions : null;
+    return measurements.length > 0 || conclusions !== null ? { measurements, conclusions } : null;
 }
-/** Builds the review list (measurements, derived ratios, conclusions) for a parse. */
-export function buildDetectedItems(data, existing) {
-    const detected = addCalculatedMeasurements(data.measurements, existing);
-    if (data.conclusions) {
-        detected.push({
-            field: 'conclusions',
-            label: 'Concluzii',
-            value: data.conclusions,
-            kind: 'qualitative',
-            confidence: 'high',
-            sourceText: data.conclusions,
-        });
+// A replaced value the doctor typed (not one dictation put there earlier).
+function replacedValue(form, field, current, next) {
+    return current.trim() !== '' && current !== next && current !== form.dictated[field] ? current : undefined;
+}
+function noteFor(items, previousValue) {
+    const [first] = items;
+    const alternatives = [...new Set(items.map((item) => item.value))];
+    const warnings = [];
+    const info = [];
+    if (alternatives.length > 1) {
+        warnings.push(`Dictat de mai multe ori cu valori diferite (${alternatives.join(' / ')}) — alegeți valoarea corectă.`);
     }
-    return detected;
+    if (first.ambiguousValue) {
+        warnings.push('Mai multe numere dictate pentru acest câmp — a fost propus primul.');
+    }
+    else if (first.confidence === 'low') {
+        warnings.push('Dictat ca nesigur — verificați valoarea.');
+    }
+    if (first.unitMismatch) {
+        warnings.push(`Unitate dictată (${first.unit}) diferită de unitatea câmpului — verificați valoarea.`);
+    }
+    if (previousValue !== undefined) {
+        warnings.push(`A înlocuit valoarea din formular: ${previousValue}.`);
+    }
+    if (first.convertedFrom)
+        info.push(`Convertit automat din ${first.convertedFrom} în ${first.unit}.`);
+    if (first.confidence === 'medium')
+        info.push('Dictat ca aproximativ.');
+    if (warnings.length === 0 && info.length === 0)
+        return null;
+    return {
+        warnings,
+        info,
+        sourceText: first.sourceText,
+        ...(alternatives.length > 1 ? { alternatives } : {}),
+        ...(previousValue !== undefined ? { previousValue } : {}),
+    };
+}
+function withNote(notes, field, note) {
+    const next = { ...notes };
+    if (note)
+        next[field] = note;
+    else
+        delete next[field];
+    return next;
 }
 /**
- * The form measurements after applying the selected review items, with the
- * derived ratios recalculated. Calculated rows in the selection are ignored.
+ * Puts the changed dictated values straight into the form, like the patient
+ * data. Anything uncertain (several values, an ambiguous number, a unit
+ * mismatch, a hedged value, or a replaced value the doctor typed) is kept
+ * with a note under its field until the doctor resolves it.
  */
-export function mergeSelectedMeasurements(existing, selected) {
-    const measurements = { ...existing };
-    for (const item of selected) {
-        if (item.field !== 'conclusions' && !isCalculatedItem(item))
-            measurements[item.field] = item.value;
+export function applyDictation(form, changes) {
+    const measurements = { ...form.report.measurements };
+    let notes = form.notes;
+    const dictated = { ...form.dictated };
+    for (const [field, items] of itemsByField(changes.measurements)) {
+        const value = items[0].value;
+        notes = withNote(notes, field, noteFor(items, replacedValue(form, field, measurements[field], value)));
+        measurements[field] = value;
+        dictated[field] = value;
     }
-    return calculateDerivedMeasurements(measurements);
-}
-/** Merges the doctor-approved review items into the report. */
-export function applyDetectedItems(report, selected) {
-    const conclusionsItem = selected.find((item) => item.field === 'conclusions');
+    let conclusions = form.report.conclusions;
+    if (changes.conclusions !== null) {
+        const previousValue = replacedValue(form, 'conclusions', conclusions, changes.conclusions);
+        notes = withNote(notes, 'conclusions', previousValue === undefined
+            ? null
+            : { warnings: ['A înlocuit textul scris în formular.'], info: [], sourceText: '', previousValue });
+        conclusions = changes.conclusions;
+        dictated.conclusions = conclusions;
+    }
     return {
-        ...report,
-        measurements: mergeSelectedMeasurements(report.measurements, selected),
-        conclusions: conclusionsItem ? conclusionsItem.value : report.conclusions,
+        report: { ...form.report, measurements: calculateDerivedMeasurements(measurements), conclusions },
+        notes,
+        dictated,
     };
+}
+function emptyParsedPatient() {
+    return { lastName: '', firstName: '', age: '', weight: '', height: '' };
+}
+function setField(report, field, value) {
+    if (field === 'conclusions')
+        return { ...report, conclusions: value };
+    return { ...report, measurements: calculateDerivedMeasurements({ ...report.measurements, [field]: value }) };
+}
+/** A value typed by the doctor; it also settles any note on the field. */
+export function editField(form, field, value) {
+    return { ...form, report: setField(form.report, field, value), notes: withNote(form.notes, field, null) };
+}
+/**
+ * The doctor's decision on a note: keep the dictated value (no `value`), or
+ * use another dictated value or the replaced one.
+ */
+export function resolveNote(form, field, value) {
+    if (value === undefined)
+        return { ...form, notes: withNote(form.notes, field, null) };
+    return {
+        report: setField(form.report, field, value),
+        notes: withNote(form.notes, field, null),
+        dictated: { ...form.dictated, [field]: value },
+    };
+}
+/** Fields with a note that still needs a doctor decision. */
+export function hasWarnings(note) {
+    return note !== undefined && note.warnings.length > 0;
 }
 const PATIENT_KEYS = ['lastName', 'firstName', 'age', 'weight', 'height'];
 /**
@@ -144,7 +156,7 @@ const PATIENT_KEYS = ['lastName', 'firstName', 'age', 'weight', 'height'];
  * re-applies values the doctor has since corrected in the form.
  */
 export function changedPatientFields(previous, next) {
-    const changed = { lastName: '', firstName: '', age: '', weight: '', height: '' };
+    const changed = emptyParsedPatient();
     let any = false;
     for (const key of PATIENT_KEYS) {
         if (next[key] && next[key] !== previous?.[key]) {

@@ -9,7 +9,7 @@ import {
   type ParsedPatientInfo,
 } from '../services/medicalParser';
 import { isElectronAvailable, getEchoReportApi } from '../services/electronBridge';
-import { changedPatientFields } from '../services/reportState';
+import { changedDictation, changedPatientFields, type DictationChanges } from '../services/reportState';
 import {
   getPreferredRecordingMimeType,
 } from '../utils/audioInfo';
@@ -101,7 +101,7 @@ function StopIcon() {
 }
 
 type DictationPanelProps = {
-  onMeasurementsParsed?: (data: ParsedEchoData) => void;
+  onDictationChanged?: (changes: DictationChanges) => void;
   onPatientParsed?: (patient: ParsedPatientInfo) => void;
 };
 
@@ -115,7 +115,7 @@ function hasParsedPatient(patient: ParsedPatientInfo): boolean {
   );
 }
 
-export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: DictationPanelProps) {
+export function DictationPanel({ onDictationChanged, onPatientParsed }: DictationPanelProps) {
   const [state, setState] = useState<DictationState>('idle');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -130,17 +130,22 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
       : null,
   );
 
-  // The transcript is re-parsed on every edit so the review panel always
-  // reflects what the doctor sees in the textarea.
+  // The transcript is re-parsed on every edit so the form always reflects
+  // what the doctor sees in the textarea.
   const parsedData = useMemo(() => parseEchoTranscript(transcription), [transcription]);
 
+  // Only dictated values that changed since the previous parse are sent (for
+  // measurements, conclusions and patient fields alike), so a correction made
+  // in the form survives later edits to unrelated parts of the transcript.
+  const lastParseRef = useRef<ParsedEchoData | null>(null);
   useEffect(() => {
-    onMeasurementsParsed?.(parsedData);
-  }, [onMeasurementsParsed, parsedData]);
+    const changes = changedDictation(lastParseRef.current, parsedData);
+    lastParseRef.current = parsedData;
+    if (changes) {
+      onDictationChanged?.(changes);
+    }
+  }, [onDictationChanged, parsedData]);
 
-  // Only dictated patient fields that changed since the previous parse are
-  // sent, so a correction made in the patient form survives later edits to
-  // unrelated parts of the transcript.
   const lastPatientRef = useRef<ParsedPatientInfo | null>(null);
   useEffect(() => {
     const changed = changedPatientFields(lastPatientRef.current, parsedData.patient);
@@ -700,13 +705,13 @@ export function DictationPanel({ onMeasurementsParsed, onPatientParsed }: Dictat
         {parsedData.measurements.length > 0 && (
           <p className="dictation-panel__parsed-hint" role="status">
             {parsedData.measurements.length === 1
-              ? '1 măsurătoare detectată — revizuiește înainte de aplicare.'
-              : `${parsedData.measurements.length} măsurători detectate — revizuiește înainte de aplicare.`}
+              ? '1 măsurătoare detectată și transferată în formular — verificați notele de sub câmpuri.'
+              : `${parsedData.measurements.length} măsurători detectate și transferate în formular — verificați notele de sub câmpuri.`}
           </p>
         )}
         {parsedData.conclusions && (
           <p className="dictation-panel__parsed-hint" role="status">
-            Concluzii detectate — revizuiește înainte de aplicare.
+            Concluzii detectate și transferate în formular.
           </p>
         )}
         {hasParsedPatient(parsedData.patient) && (

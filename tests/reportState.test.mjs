@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  applyDetectedItems,
-  buildDetectedItems,
+  applyDictation,
+  changedDictation,
   changedPatientFields,
-  conflictingDuplicateFields,
+  createReportForm,
+  editField,
   getFollowingCurrentNumber,
-  isCalculatedItem,
+  hasWarnings,
   mergeParsedPatient,
-  mergeSelectedMeasurements,
-  needsExplicitApproval,
+  resolveNote,
 } from '../dist-parser-tests/src/services/reportState.js';
 import { createEmptyEchoReport, createEmptyPatient } from '../dist-parser-tests/src/types/echoReport.js';
 import { calculateBmi } from '../dist-parser-tests/src/utils/bmi.js';
@@ -30,86 +30,122 @@ test('current number advances only from a positive integer', () => {
   assert.equal(getFollowingCurrentNumber('3.5'), null);
 });
 
-test('detected items include derived ratios computed with existing form values', () => {
-  const existing = { ...createEmptyEchoReport().measurements, mitralA: '50' };
-  const items = buildDetectedItems(
-    { measurements: [numeric('mitralE', '100')], conclusions: '', patient: emptyPatient },
-    existing,
-  );
-  assert.deepEqual(items.map((item) => [item.field, item.value]), [
-    ['mitralE', '100'],
-    ['mitralEaRatio', '2'],
-  ]);
+function parse(measurements, conclusions = '') {
+  return { measurements, conclusions, patient: emptyPatient };
+}
+
+// The form after dictating `data` into `form` (an empty report by default).
+function dictate(data, form = createReportForm(createEmptyEchoReport()), previous = null) {
+  const changes = changedDictation(previous, data);
+  return changes ? applyDictation(form, changes) : form;
+}
+
+test('dictated values go straight into the form and ratios are calculated', () => {
+  const form = dictate(parse([numeric('mitralE', '100'), numeric('mitralA', '50')], 'Fără modificări.'));
+  assert.equal(form.report.measurements.mitralE, '100');
+  assert.equal(form.report.measurements.mitralA, '50');
+  assert.equal(form.report.measurements.mitralEaRatio, '2');
+  assert.equal(form.report.conclusions, 'Fără modificări.');
+  assert.deepEqual(form.notes, {});
 });
 
-test('dictated derived ratios are replaced by calculated ones', () => {
-  const items = buildDetectedItems(
-    { measurements: [numeric('mitralEaRatio', '9')], conclusions: '', patient: emptyPatient },
-    createEmptyEchoReport().measurements,
-  );
-  assert.deepEqual(items, []);
+test('dictated ratios are ignored: the form calculates them', () => {
+  const form = dictate(parse([numeric('mitralEaRatio', '9')]));
+  assert.equal(form.report.measurements.mitralEaRatio, '');
+  assert.equal(changedDictation(null, parse([numeric('mitralEaRatio', '9')])), null);
 });
 
-test('conclusions become a review item', () => {
-  const items = buildDetectedItems(
-    { measurements: [], conclusions: 'Fără modificări.', patient: emptyPatient },
-    createEmptyEchoReport().measurements,
-  );
-  assert.deepEqual(items.map((item) => [item.field, item.value]), [['conclusions', 'Fără modificări.']]);
+test('uncertain dictated values are applied with a warning under the field', () => {
+  const form = dictate(parse([
+    { ...numeric('mitralE', '80'), ambiguousValue: true, confidence: 'low' },
+    { ...numeric('mitralA', '50'), confidence: 'low' },
+    { ...numeric('tricuspidE', '60'), unitMismatch: true, unit: 'mmHg' },
+    { ...numeric('lvEndDiastolicDiameter', '4.8'), unit: 'cm', convertedFrom: 'mm' },
+    { ...numeric('septalS', '9'), confidence: 'medium' },
+  ]));
+  assert.equal(form.report.measurements.mitralE, '80');
+  assert.deepEqual(form.notes.mitralE.warnings, ['Mai multe numere dictate pentru acest câmp — a fost propus primul.']);
+  assert.deepEqual(form.notes.mitralA.warnings, ['Dictat ca nesigur — verificați valoarea.']);
+  assert.deepEqual(form.notes.tricuspidE.warnings, ['Unitate dictată (mmHg) diferită de unitatea câmpului — verificați valoarea.']);
+  // Conversions and approximate values are only shown.
+  assert.deepEqual(form.notes.lvEndDiastolicDiameter, {
+    warnings: [], info: ['Convertit automat din mm în cm.'], sourceText: '4.8',
+  });
+  assert.deepEqual(form.notes.septalS.warnings, []);
+  assert.equal(hasWarnings(form.notes.mitralE), true);
+  assert.equal(hasWarnings(form.notes.septalS), false);
 });
 
-test('applying items merges values, conclusions, and recalculates ratios', () => {
-  const report = createEmptyEchoReport();
-  report.measurements.tricuspidA = '40';
-  const next = applyDetectedItems(report, [
-    numeric('tricuspidE', '60'),
-    { field: 'conclusions', label: 'Concluzii', value: 'Normal.', kind: 'qualitative', confidence: 'high', sourceText: '' },
-  ]);
-  assert.equal(next.measurements.tricuspidE, '60');
-  assert.equal(next.measurements.tricuspidEaRatio, '1.5');
-  assert.equal(next.conclusions, 'Normal.');
-  assert.equal(report.measurements.tricuspidE, '', 'input report is not mutated');
+test('a field dictated with different values keeps the first and offers the others', () => {
+  // Whisper heard "VD" as "VS": the VS field received two different values.
+  const form = dictate(parse([
+    numeric('lvLateromedialDiameter', '4.4'),
+    numeric('lvLateromedialDiameter', '3.5'),
+    numeric('mitralE', '80'),
+    numeric('mitralE', '80'),
+  ]));
+  assert.equal(form.report.measurements.lvLateromedialDiameter, '4.4');
+  assert.deepEqual(form.notes.lvLateromedialDiameter.alternatives, ['4.4', '3.5']);
+  assert.equal(hasWarnings(form.notes.lvLateromedialDiameter), true);
+  // The same value twice is one finding.
+  assert.equal(form.notes.mitralE, undefined);
+
+  const chosen = resolveNote(form, 'lvLateromedialDiameter', '3.5');
+  assert.equal(chosen.report.measurements.lvLateromedialDiameter, '3.5');
+  assert.equal(chosen.notes.lvLateromedialDiameter, undefined);
 });
 
-test('ambiguous, mismatched, duplicated or replacing values need explicit approval', () => {
-  const none = new Set();
-  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '', none), false);
-  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), confidence: 'medium' }, '', none), false);
-  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), confidence: 'low' }, '', none), false);
-  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), unitMismatch: true }, '', none), true);
-  assert.equal(needsExplicitApproval({ ...numeric('mitralE', '80'), ambiguousValue: true }, '', none), true);
-  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '', new Set(['mitralE'])), true);
-  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '80', none), false);
-  assert.equal(needsExplicitApproval(numeric('mitralE', '80'), '75', none), true);
+test('a dictated value replacing one the doctor typed can be reverted', () => {
+  let form = createReportForm(createEmptyEchoReport());
+  form = editField(form, 'mitralE', '75');
+  form = dictate(parse([numeric('mitralE', '80')]), form);
+  assert.equal(form.report.measurements.mitralE, '80');
+  assert.equal(form.notes.mitralE.previousValue, '75');
+  assert.deepEqual(form.notes.mitralE.warnings, ['A înlocuit valoarea din formular: 75.']);
+
+  const reverted = resolveNote(form, 'mitralE', '75');
+  assert.equal(reverted.report.measurements.mitralE, '75');
+  assert.equal(reverted.notes.mitralE, undefined);
+  const kept = resolveNote(form, 'mitralE');
+  assert.equal(kept.report.measurements.mitralE, '80');
+  assert.equal(kept.notes.mitralE, undefined);
 });
 
-test('a derived ratio is as uncertain as its least certain dictated source', () => {
-  const items = buildDetectedItems(
-    {
-      measurements: [numeric('mitralE', '80'), { ...numeric('mitralA', '50'), confidence: 'low' }],
-      conclusions: '',
-      patient: emptyPatient,
-    },
-    createEmptyEchoReport().measurements,
-  );
-  const ratio = items.find((item) => item.field === 'mitralEaRatio');
-  assert.equal(ratio.value, '1.6');
-  assert.equal(ratio.confidence, 'low');
-  assert.equal(isCalculatedItem(ratio), true);
-  assert.equal(isCalculatedItem(items[0]), false);
+test('editing a field settles its note and never touches the others', () => {
+  let form = dictate(parse([{ ...numeric('mitralE', '80'), confidence: 'low' }, { ...numeric('mitralA', '50'), confidence: 'low' }]));
+  form = editField(form, 'mitralE', '82');
+  assert.equal(form.report.measurements.mitralE, '82');
+  assert.equal(form.report.measurements.mitralEaRatio, '1.64');
+  assert.equal(form.notes.mitralE, undefined);
+  assert.notEqual(form.notes.mitralA, undefined);
 });
 
-test('ratios follow the applied values, never a selected ratio row', () => {
-  const existing = createEmptyEchoReport().measurements;
-  const ratioRow = { ...numeric('mitralEaRatio', '1.6') };
-  // Only E checked: no A in the form, so no ratio, even if the ratio row is passed.
-  const onlyE = mergeSelectedMeasurements(existing, [numeric('mitralE', '80'), ratioRow]);
-  assert.equal(onlyE.mitralE, '80');
-  assert.equal(onlyE.mitralEaRatio, '');
-  const both = mergeSelectedMeasurements(existing, [numeric('mitralE', '80'), numeric('mitralA', '50')]);
-  assert.equal(both.mitralEaRatio, '1.6');
-  const report = applyDetectedItems(createEmptyEchoReport(), [{ ...numeric('mitralEaRatio', '9') }]);
-  assert.equal(report.measurements.mitralEaRatio, '');
+test('only dictated fields that changed since the previous parse are applied', () => {
+  const first = parse([numeric('mitralE', '80'), numeric('mitralA', '50')], 'Normal.');
+  let form = dictate(first);
+  // The doctor corrects E; editing another part of the transcript keeps the correction.
+  form = editField(form, 'mitralE', '82');
+  const edited = parse([{ ...numeric('mitralE', '80'), sourceText: 'unda E 80' }, numeric('mitralA', '55')], 'Normal.');
+  assert.deepEqual(changedDictation(first, edited), { measurements: [numeric('mitralA', '55')], conclusions: null });
+  form = dictate(edited, form, first);
+  assert.equal(form.report.measurements.mitralE, '82');
+  assert.equal(form.report.measurements.mitralA, '55');
+  // A value that dictation itself put there is replaced without a note.
+  assert.equal(form.notes.mitralA, undefined);
+  assert.equal(changedDictation(edited, edited), null);
+});
+
+test('dictated conclusions replace text the doctor wrote only with a note', () => {
+  let form = dictate(parse([], 'Normal.'));
+  form = dictate(parse([], 'Normal, fără lichid.'), form, parse([], 'Normal.'));
+  assert.equal(form.report.conclusions, 'Normal, fără lichid.');
+  assert.equal(form.notes.conclusions, undefined);
+
+  form = editField(form, 'conclusions', 'Scris de medic.');
+  form = dictate(parse([], 'Altceva.'), form, parse([], 'Normal, fără lichid.'));
+  assert.equal(form.report.conclusions, 'Altceva.');
+  assert.equal(form.notes.conclusions.previousValue, 'Scris de medic.');
+  assert.equal(resolveNote(form, 'conclusions', 'Scris de medic.').report.conclusions, 'Scris de medic.');
 });
 
 test('only patient fields that changed since the previous parse are reported', () => {
@@ -170,47 +206,4 @@ test('the field registry covers every measurement exactly once', async () => {
   assert.equal(MEASUREMENT_FIELDS.aorticVmax.reviewLabel, 'Flux aortic — Vmax');
   assert.equal(MEASUREMENT_FIELDS.aorticRegurgitation.reviewLabel, 'Regurgitare aortică');
   assert.equal(MEASUREMENT_FIELDS.mitralE.reportLabel, 'Unda E');
-});
-
-test('a field dictated twice with different values is a conflict and gets no derived ratio', () => {
-  // Whisper heard "VD" as "VS": the VS field received two different values.
-  const items = buildDetectedItems(
-    {
-      measurements: [
-        numeric('lvLateromedialDiameter', '4.4'),
-        numeric('lvLateromedialDiameter', '3.5'),
-        numeric('mitralE', '80'),
-        numeric('mitralE', '64'),
-        numeric('mitralA', '50'),
-      ],
-      conclusions: '',
-      patient: emptyPatient,
-    },
-    createEmptyEchoReport().measurements,
-  );
-  assert.deepEqual(items.map((item) => [item.field, item.value]), [
-    ['lvLateromedialDiameter', '4.4'],
-    ['lvLateromedialDiameter', '3.5'],
-    ['mitralE', '80'],
-    ['mitralE', '64'],
-    ['mitralA', '50'],
-  ]);
-  assert.deepEqual([...conflictingDuplicateFields(items)].sort(), ['lvLateromedialDiameter', 'mitralE']);
-});
-
-test('a field repeated with the same value is shown once and is not a conflict', () => {
-  const items = buildDetectedItems(
-    {
-      measurements: [numeric('mitralE', '80'), numeric('mitralE', '80'), numeric('mitralA', '64')],
-      conclusions: '',
-      patient: emptyPatient,
-    },
-    createEmptyEchoReport().measurements,
-  );
-  assert.deepEqual(items.map((item) => [item.field, item.value]), [
-    ['mitralE', '80'],
-    ['mitralA', '64'],
-    ['mitralEaRatio', '1.25'],
-  ]);
-  assert.equal(conflictingDuplicateFields(items).size, 0);
 });

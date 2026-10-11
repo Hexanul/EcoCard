@@ -1,3 +1,10 @@
+// Each calculated ratio and its [numerator, denominator] fields.
+export const DERIVED_SOURCES = [
+    ['mitralEaRatio', 'mitralE', 'mitralA'],
+    ['tricuspidEaRatio', 'tricuspidE', 'tricuspidA'],
+    ['septalEaPrimeRatio', 'septalEPrime', 'septalAPrime'],
+    ['eePrimeRatio', 'mitralE', 'septalEPrime'],
+];
 function divideValues(numerator, denominator) {
     const parsedNumerator = Number(numerator.trim().replace(',', '.'));
     const parsedDenominator = Number(denominator.trim().replace(',', '.'));
@@ -11,11 +18,9 @@ function divideValues(numerator, denominator) {
     return (parsedNumerator / parsedDenominator).toFixed(2).replace(/\.00$|(?<=\.[0-9])0$/, '');
 }
 export function calculateDerivedMeasurements(measurements) {
-    return {
-        ...measurements,
-        mitralEaRatio: divideValues(measurements.mitralE, measurements.mitralA),
-        tricuspidEaRatio: divideValues(measurements.tricuspidE, measurements.tricuspidA),
-        septalEaPrimeRatio: divideValues(measurements.septalEPrime, measurements.septalAPrime),
-        eePrimeRatio: divideValues(measurements.mitralE, measurements.septalEPrime),
-    };
+    const result = { ...measurements };
+    for (const [ratio, numerator, denominator] of DERIVED_SOURCES) {
+        result[ratio] = divideValues(measurements[numerator], measurements[denominator]);
+    }
+    return result;
 }
