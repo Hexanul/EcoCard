@@ -53,14 +53,21 @@ export function encodeWav16(samples: Float32Array, sampleRate: number): Uint8Arr
 
 /**
  * Decodes any recording Chromium can play (WebM/Opus from MediaRecorder,
- * M4A/AAC, MP3, OGG, WAV) and returns a 16 kHz mono 16-bit WAV. Throws when
- * the audio cannot be decoded or contains no samples.
+ * M4A/AAC, MP3, OGG, WAV) into 16 kHz mono samples. Throws when the audio
+ * cannot be decoded or contains no samples. A paused MediaRecorder's chunks so
+ * far decode too, to the same samples as the start of the full recording
+ * (except the last ~30 ms, at the resampler's edge).
  */
-export async function convertToWhisperWav(encoded: ArrayBuffer): Promise<Uint8Array> {
+export async function decodeToWhisperSamples(encoded: ArrayBuffer): Promise<Float32Array> {
   // decodeAudioData resamples to the context's rate (Chromium's sinc resampler).
   const context = new OfflineAudioContext(1, 1, WHISPER_SAMPLE_RATE);
   const decoded = await context.decodeAudioData(encoded);
   if (decoded.length === 0) throw new Error('The recording contains no audio.');
   const channels = Array.from({ length: decoded.numberOfChannels }, (_, index) => decoded.getChannelData(index));
-  return encodeWav16(downmixToMono(channels), WHISPER_SAMPLE_RATE);
+  return downmixToMono(channels);
+}
+
+/** Decodes a recording (see decodeToWhisperSamples) and returns a 16 kHz mono 16-bit WAV. */
+export async function convertToWhisperWav(encoded: ArrayBuffer): Promise<Uint8Array> {
+  return encodeWav16(await decodeToWhisperSamples(encoded), WHISPER_SAMPLE_RATE);
 }

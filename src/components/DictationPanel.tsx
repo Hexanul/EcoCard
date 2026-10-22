@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  NO_SPEECH_MESSAGE,
   TranscriptionError,
-  transcribeAudio,
+  decodeRecording,
+  transcribeSamples,
 } from '../services/transcriptionService';
+import {
+  createSegmentedTranscription,
+  type SegmentedTranscription,
+} from '../services/segmentedTranscription';
 import {
   parseEchoTranscript,
   type ParsedEchoData,
@@ -38,6 +44,25 @@ function supportsPauseResume(): boolean {
     typeof MediaRecorder.prototype.pause === 'function' &&
     typeof MediaRecorder.prototype.resume === 'function'
   );
+}
+
+// Makes the recorder hand over the audio it still buffers (up to the 250 ms
+// timeslice); resolves once that data has arrived, or after 1 s.
+function flushRecordedChunks(recorder: MediaRecorder): Promise<void> {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 1000);
+    const done = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    recorder.addEventListener('dataavailable', done, { once: true });
+    try {
+      recorder.requestData();
+    } catch {
+      recorder.removeEventListener('dataavailable', done);
+      done();
+    }
+  });
 }
 
 function getMicrophoneErrorMessage(error: unknown): string {
@@ -124,6 +149,8 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
   const [isPlaybackPlaying, setIsPlaybackPlaying] = useState(false);
   const [transcription, setTranscription] = useState('');
+  // Pieces being transcribed while dictation is paused.
+  const [pausePieces, setPausePieces] = useState(0);
   const [pipelineHint, setPipelineHint] = useState<string | null>(() =>
     !isElectronAvailable() && import.meta.env.DEV
       ? 'Pentru transcriere locală, rulați aplicația cu Electron: npm run dev'
@@ -166,6 +193,10 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
   const elapsedMsRef = useRef(0);
   const segmentStartRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  // Transcribes the recording piece by piece: what was recorded before each
+  // pause is transcribed during the pause, so "Oprește" only leaves the rest.
+  const transcriberRef = useRef<SegmentedTranscription<Blob> | null>(null);
+  const hasPausedTextRef = useRef(false);
 
   const stopStreamTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -258,34 +289,78 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     };
   }, [audioUrl]);
 
+  // The text transcribed during pauses stays visible while the rest is processed.
   const runTranscription = useCallback(async (blob: Blob) => {
+    const transcriber = transcriberRef.current;
+    if (!transcriber) {
+      return;
+    }
     setState('processing');
-    setTranscription('');
     setErrorMessage(null);
 
     try {
-      const result = await transcribeAudio(blob);
-      if (!isMountedRef.current) {
+      const text = await transcriber.finish(blob);
+      if (!isMountedRef.current || transcriberRef.current !== transcriber) {
         return;
       }
-      setTranscription(result.text);
+      if (!text) {
+        throw new TranscriptionError(NO_SPEECH_MESSAGE);
+      }
+      setTranscription(text);
       setState('transcribed');
     } catch (error) {
-      if (!isMountedRef.current) {
+      if (!isMountedRef.current || transcriberRef.current !== transcriber) {
         return;
       }
       const message =
         error instanceof TranscriptionError
           ? error.message
           : 'Transcrierea a eșuat. Încearcă din nou.';
-      setErrorMessage(message);
+      setErrorMessage(
+        hasPausedTextRef.current
+          ? `${message} Textul de mai sus conține doar partea dinaintea ultimei pauze.`
+          : message,
+      );
       setState('error');
+    } finally {
+      if (transcriberRef.current === transcriber) {
+        transcriberRef.current = null;
+        setPausePieces(0);
+      }
     }
+  }, []);
+
+  const transcribeRecordedSoFar = useCallback(async (recorder: MediaRecorder) => {
+    const transcriber = transcriberRef.current;
+    if (!transcriber) {
+      return;
+    }
+    await flushRecordedChunks(recorder);
+    if (transcriberRef.current !== transcriber) {
+      return;
+    }
+    // The first chunk carries the WebM header, so the chunks so far decode on their own.
+    const recordedSoFar = new Blob(chunksRef.current.slice(), {
+      type: recorder.mimeType || 'audio/webm',
+    });
+    setPausePieces((count) => count + 1);
+    const text = await transcriber.transcribeUpTo(recordedSoFar);
+    if (!isMountedRef.current || transcriberRef.current !== transcriber) {
+      return;
+    }
+    setPausePieces((count) => count - 1);
+    hasPausedTextRef.current = text !== '';
+    setTranscription(text);
   }, []);
 
   const discardRecording = useCallback(() => {
     shouldFinalizeRef.current = false;
     clearTimer();
+
+    transcriberRef.current?.cancel();
+    transcriberRef.current = null;
+    hasPausedTextRef.current = false;
+    setPausePieces(0);
 
     const recorder = mediaRecorderRef.current;
     if (recorder?.state === 'recording' || recorder?.state === 'paused') {
@@ -363,6 +438,10 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
       };
 
       mediaRecorderRef.current = recorder;
+      transcriberRef.current = createSegmentedTranscription<Blob>({
+        decode: decodeRecording,
+        transcribe: transcribeSamples,
+      });
       recorder.start(250);
       resetElapsed();
       startElapsedSegment();
@@ -401,8 +480,10 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
       setState('paused');
     } catch {
       setErrorMessage('Nu s-a putut întrerupe înregistrarea. Încearcă din nou.');
+      return;
     }
-  }, [pauseElapsedSegment]);
+    void transcribeRecordedSoFar(recorder);
+  }, [pauseElapsedSegment, transcribeRecordedSoFar]);
 
   const resumeRecording = useCallback(() => {
     setErrorMessage(null);
@@ -464,6 +545,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     return () => {
       isMountedRef.current = false;
       shouldFinalizeRef.current = false;
+      transcriberRef.current?.cancel();
       const recorder = mediaRecorderRef.current;
       if (recorder?.state === 'recording' || recorder?.state === 'paused') {
         recorder.stop();
@@ -480,8 +562,10 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     state === 'recording'
       ? 'Înregistrare...'
       : state === 'paused'
-        ? 'Pauză...'
-          : state === 'processing'
+        ? pausePieces > 0
+          ? 'Pauză — se procesează local...'
+          : 'Pauză...'
+        : state === 'processing'
           ? 'Se procesează local...'
           : state === 'transcribed'
             ? 'Transcriere finalizată'
@@ -700,7 +784,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
                 : 'Transcrierea va apărea aici după procesare.'
           }
           rows={5}
-          aria-busy={state === 'processing'}
+          aria-busy={state === 'processing' || pausePieces > 0}
         />
         {parsedData.measurements.length > 0 && (
           <p className="dictation-panel__parsed-hint" role="status">

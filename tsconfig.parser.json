@@ -22,6 +22,7 @@
     "src/services/medicalParser.ts",
     "src/services/reportState.ts",
     "src/services/romanianNumberParser.ts",
+    "src/services/segmentedTranscription.ts",
     "src/services/unitNormalizer.ts",
     "src/types/echoReport.ts",
     "src/utils/bmi.ts",

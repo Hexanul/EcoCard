@@ -85,7 +85,9 @@ export async function transcribeAudio(audioBytes: Uint8Array, mimeType: string):
       return failure('WHISPER_PROCESS_FAILED', 'Transcrierea locală a eșuat.');
     }
     const transcript = (await readFile(outputTextPath, 'utf8')).trim();
-    if (!transcript) return failure('WHISPER_PROCESS_FAILED', 'Transcrierea locală a eșuat.');
+    // Not a failure for a piece transcribed at a pause (e.g. only a cough);
+    // the renderer decides whether the whole dictation was empty.
+    if (!transcript) return failure('NO_SPEECH', 'Nu s-a detectat vorbire în înregistrare.');
     return { success: true, transcript, converted };
   } catch (error) {
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'PROCESS_TIMEOUT') return failure('PROCESS_TIMEOUT', 'Transcrierea locală a depășit timpul permis.');

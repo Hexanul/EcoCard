@@ -8,11 +8,6 @@ export type ConvertedAudioInfo = {
   sizeFormatted: string;
 };
 
-export type TranscriptionResult = {
-  text: string;
-  convertedAudio?: ConvertedAudioInfo;
-};
-
 export type PipelineStatus = {
   whisperCliFound: boolean;
   modelFound: boolean;
