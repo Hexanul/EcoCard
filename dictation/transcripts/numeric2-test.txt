@@ -1,0 +1,4 @@
+VSE, diametrul 3, diastoric, 4,8. VSE, diametrul 3, sistoric, 3,1. SIV, diametrul diastoric, 0,9. Perete posterior, diametrul diastoric, 1,1. Fracție de ejecție, VSE, Taich, Scholz, 64. Fracție de scurtare, 35. Masa VSE, 112. Aorta liner, 2,4. Aorta ascendentă, 3,5. AS, diametrul anterior, posterior, 3,7. Aorta la nivelul crossei, 2,6.
+ară 1,9. WS, diametrul lateromedian, 4,4. VD, diametrul lateromedian, 3,3. AS, diametrul lateromedian, 4,2. AD, diametrul lateromedian, 3,6. MAPSE, 16. TAPSE, 25. ARA AS, 21. ARAD, 15. Volum 3, diastoric WS, 105. Volum 3, sistoric WS, 38. Facție de ejecție Simpson, 63.
+flux mitral, unda E82, unda A70, TDE180, TRIV95, are valve mitral de 3.9, flux tricuspidian, VMAX 260, PMAX 27, PSVD 32, unda E48, unda A39, flux aortic, VMAX 125, PMAX 6, PMAX 4, flux luvot, VMAX 93, PMAX 3, VTI 19.
+area valvei aortice 20 la 8 flux pulmonar Vmax 72 Pmax 2 VTI 14 Doppler tisular Unda E prim 13 Unda A prim 11 Unda S 8

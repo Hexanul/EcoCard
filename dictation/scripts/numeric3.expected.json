@@ -1,0 +1,58 @@
+{
+  "scope": "numeric",
+  "measurements": {
+    "lvEndDiastolicDiameter": "5.6",
+    "lvEndSystolicDiameter": "3.8",
+    "ivsDiastolicDiameter": "1.3",
+    "posteriorWallDiastolicDiameter": "1.2",
+    "lvEjectionFractionTeicholz": "55",
+    "shorteningFraction": "29",
+    "lvMass": "134",
+    "aortaAnnulus": "2.2",
+    "ascendingAorta": "3.4",
+    "laAnteroposteriorDiameter": "4.3",
+    "aortaAtArch": "2.9",
+    "pulmonaryArtery": "2.1",
+
+    "lvLateromedialDiameter": "4.7",
+    "rvLateromedialDiameter": "3.5",
+    "laLateromedialDiameter": "4.5",
+    "raLateromedialDiameter": "4.1",
+    "mapse": "13",
+    "tapse": "20",
+    "laArea": "22",
+    "raArea": "18",
+    "lvEndDiastolicVolume": "132",
+    "lvEndSystolicVolume": "61",
+    "lvEjectionFractionSimpson": "54",
+
+    "tricuspidVmax": "240",
+    "tricuspidPmax": "23",
+    "psvd": "28",
+    "tricuspidE": "51",
+    "tricuspidA": "44",
+
+    "pulmonaryVmax": "94",
+    "pulmonaryPmax": "4",
+    "pulmonaryVti": "17",
+
+    "mitralE": "68",
+    "mitralA": "75",
+    "mitralDecelerationTime": "210",
+    "mitralTriv": "102",
+    "mitralValveArea": "3.6",
+
+    "lvotVmax": "110",
+    "lvotPmax": "5",
+    "lvotVti": "24",
+    "aorticValveArea": "3.2",
+
+    "aorticVmax": "150",
+    "aorticPmax": "9",
+    "aorticPmean": "6",
+
+    "septalEPrime": "12",
+    "septalAPrime": "14",
+    "septalS": "10"
+  }
+}

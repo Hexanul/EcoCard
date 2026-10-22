@@ -68,5 +68,14 @@
     "lvEndSystolicVolume": "telesistolic heard as a third 'Volum T, diastoric V, S'; its 50 is offered as a second, unchecked telediastolic value",
     "lvEjectionFractionSimpson": "whisper wrote '5,7' for 57",
     "tricuspidPmax": "whisper wrote 'Pmax 2 140' for 24; '2' is proposed unchecked as ambiguous"
+  },
+  "numeric2-test": {
+    "pulmonaryArtery": "'Artera pulmonară' cut to 'ară'; too short to alias safely",
+    "aorticPmean": "'Pmediu 4' heard as 'PMAX 4'; 4 is offered as a second aortic Pmax value",
+    "lvotVmax": "whisper wrote '93' for 92",
+    "aorticValveArea": "'2,8' heard as '20 la 8'; 20 is proposed as ambiguous"
+  },
+  "numeric3-test": {
+    "lvEndSystolicVolume": "both volumes heard as 'Volum trediastoric V.S.'; its 61 is offered as a second telediastolic value"
   }
 }

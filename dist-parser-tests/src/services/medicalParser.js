@@ -155,6 +155,10 @@ const NUMERIC_FIELDS = [
             'vs diametrul 3 diastolic',
             'vse diametru 3 diastolic',
             'vse diametrul 3 diastolic',
+            'vs diametru 3 diastoric',
+            'vs diametrul 3 diastoric',
+            'vse diametru 3 diastoric',
+            'vse diametrul 3 diastoric',
             'vse diametru telediastolic',
             'vse diametru telediastoric',
             'vse diametrul tele diastolic',
@@ -249,6 +253,10 @@ const NUMERIC_FIELDS = [
             'vs diametrul 3 sistolic',
             'vse diametru 3 sistolic',
             'vse diametrul 3 sistolic',
+            'vs diametru 3 sistoric',
+            'vs diametrul 3 sistoric',
+            'vse diametru 3 sistoric',
+            'vse diametrul 3 sistoric',
             'vse diametru telesistolic',
         ],
     },
@@ -409,6 +417,8 @@ const NUMERIC_FIELDS = [
             'aortelainel',
             'aortel a inel',
             'aortel inel',
+            // Whisper fuses "la inel" into "liner" ("Aorta liner, 2,4").
+            'aorta liner',
             // Whisper "inere" for "inel"
             'aorta la inere',
             'aorta la inare',
@@ -612,11 +622,13 @@ const NUMERIC_FIELDS = [
     // Alte măsurători
     {
         field: 'laArea',
-        aliases: ['aria as', 'aria s', 'area as', 'are as', 'aria atriului stang'],
+        // Whisper "ARA AS" for "Aria AS".
+        aliases: ['aria as', 'aria s', 'area as', 'are as', 'ara as', 'aria atriului stang'],
     },
     {
         field: 'raArea',
-        aliases: ['aria ad', 'aria d', 'area ad', 'are ad', 'aria atriului drept'],
+        // Whisper fuses "Aria AD" into "ARAD".
+        aliases: ['aria ad', 'aria d', 'area ad', 'are ad', 'ara ad', 'arad', 'aria atriului drept'],
     },
     {
         field: 'lvEndDiastolicVolume',
@@ -642,6 +654,13 @@ const NUMERIC_FIELDS = [
             'volumul telediastoric vs',
             'volum telediastoric',
             'vs volum telediastoric',
+            // Whisper hears "tele" as the digit 3 ("Volum 3, diastoric WS").
+            'volum 3 diastoric vs',
+            'volum 3 diastolic vs',
+            // Whisper "Volum trediastoric V.S." (also heard for the telesistolic
+            // volume, whose value then shows up as a second choice here).
+            'volum trediastoric vs',
+            'volum trediastolic vs',
         ],
     },
     {
@@ -667,6 +686,8 @@ const NUMERIC_FIELDS = [
             'volum telesistoric',
             'vs volum telesistoric',
             'vs volum tele sistolic',
+            'volum 3 sistoric vs',
+            'volum 3 sistolic vs',
         ],
     },
     {
@@ -679,6 +700,9 @@ const NUMERIC_FIELDS = [
             'fractiile de ejectie simpson',
             'fractie ejectie simpson',
             'fractia ejectie simpson',
+            // Whisper drops the "r": "Facție de ejecție Simpson".
+            'factie de ejectie simpson',
+            'factia de ejectie simpson',
             'fatie de ejectie simpsong',
             'fatia de ejectie simpsong',
             'fe simpson',
@@ -736,6 +760,11 @@ const NUMERIC_FIELDS = [
             'area valve mitrale',
             'aria valva mitrala',
             'area valva mitrala',
+            // Whisper "are valve mitral de 3.9".
+            'are valve mitral',
+            'are valve mitrala',
+            'are valve mitrale',
+            'are valvei mitrale',
         ],
     },
     // Doppler — flux aortic
@@ -975,6 +1004,8 @@ const TYPO_REPLACEMENTS = [
     // Whisper hears "latero-median" as "anteromedian" (same length, so the
     // raw index stays aligned).
     { pattern: /\banteromedian\b/g, target: 'lateromedian' },
+    // Whisper spells "VS" as "WS" ("WS, diametrul lateromedian"); same length.
+    { pattern: /\bws\b/g, target: 'vs' },
 ];
 function normalize(text) {
     return normalizeWithIndex(text).text;
