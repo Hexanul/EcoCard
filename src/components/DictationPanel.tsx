@@ -13,6 +13,7 @@ import { changedDictation, changedPatientFields, type DictationChanges } from '.
 import {
   getPreferredRecordingMimeType,
 } from '../utils/audioInfo';
+import { AutoStopDialog, type AutoStopReason } from './AutoStopDialog';
 
 type DictationState =
   | 'idle'
@@ -20,7 +21,14 @@ type DictationState =
   | 'paused'
   | 'processing'
   | 'transcribed'
-  | 'error';
+  | 'error'
+  | 'autoStopped';
+
+// Failsafe for a dictation left on by mistake: past either limit the
+// recording stops (microphone off) and the doctor decides whether it is
+// analyzed. A normal dictation takes 2–5 minutes.
+const MAX_RECORDING_MS = 30 * 60 * 1000;
+const MAX_PAUSE_MS = 30 * 60 * 1000;
 
 // Recorded audio is kept in memory only (React state + Blob).
 // It will later be passed to local whisper.cpp for offline transcription.
@@ -124,6 +132,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
   const [isPlaybackPlaying, setIsPlaybackPlaying] = useState(false);
   const [transcription, setTranscription] = useState('');
+  const [autoStopReason, setAutoStopReason] = useState<AutoStopReason | null>(null);
   const [pipelineHint, setPipelineHint] = useState<string | null>(() =>
     !isElectronAvailable() && import.meta.env.DEV
       ? 'Pentru transcriere locală, rulați aplicația cu Electron: npm run dev'
@@ -166,6 +175,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
   const elapsedMsRef = useRef(0);
   const segmentStartRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const autoStopReasonRef = useRef<AutoStopReason | null>(null);
 
   const stopStreamTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -285,6 +295,8 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
 
   const discardRecording = useCallback(() => {
     shouldFinalizeRef.current = false;
+    autoStopReasonRef.current = null;
+    setAutoStopReason(null);
     clearTimer();
 
     const recorder = mediaRecorderRef.current;
@@ -359,6 +371,14 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
         audioUrlRef.current = url;
         setAudioUrl(url);
         syncElapsedDisplay();
+
+        const autoStopped = autoStopReasonRef.current;
+        if (autoStopped) {
+          autoStopReasonRef.current = null;
+          setAutoStopReason(autoStopped);
+          setState('autoStopped');
+          return;
+        }
         void runTranscription(blob);
       };
 
@@ -439,6 +459,34 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     }
   }, [accumulateElapsed, clearTimer, syncElapsedDisplay]);
 
+  useEffect(() => {
+    if (state !== 'recording' && state !== 'paused') {
+      return;
+    }
+    const reason: AutoStopReason = state === 'recording' ? 'maxLength' : 'longPause';
+    const delay = state === 'recording' ? MAX_RECORDING_MS - getElapsedMs() : MAX_PAUSE_MS;
+    const timeout = setTimeout(() => {
+      autoStopReasonRef.current = reason;
+      stopRecording();
+    }, Math.max(0, delay));
+    return () => clearTimeout(timeout);
+  }, [getElapsedMs, state, stopRecording]);
+
+  const analyzeAutoStopped = useCallback(() => {
+    setAutoStopReason(null);
+    const blob = audioBlobRef.current;
+    if (blob) {
+      void runTranscription(blob);
+    } else {
+      setState('idle');
+    }
+  }, [runTranscription]);
+
+  const discardAutoStopped = useCallback(() => {
+    discardRecording();
+    setState('idle');
+  }, [discardRecording]);
+
   const handleRecordAgain = useCallback(() => {
     discardRecording();
     setState('idle');
@@ -487,7 +535,9 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
             ? 'Transcriere finalizată'
             : state === 'error'
               ? 'Transcrierea locală a eșuat.'
-              : 'Microfon pregătit';
+              : state === 'autoStopped'
+                ? 'Înregistrare oprită automat'
+                : 'Microfon pregătit';
 
   const showTimer = state === 'recording' || state === 'paused';
   const showPlayback =
@@ -532,6 +582,15 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
         <div className="dictation-panel__hint" role="status">
           {pipelineHint}
         </div>
+      )}
+
+      {state === 'autoStopped' && autoStopReason && (
+        <AutoStopDialog
+          reason={autoStopReason}
+          minutes={Math.round((autoStopReason === 'maxLength' ? MAX_RECORDING_MS : MAX_PAUSE_MS) / 60000)}
+          onAnalyze={analyzeAutoStopped}
+          onDiscard={discardAutoStopped}
+        />
       )}
 
       {errorMessage && (

@@ -885,6 +885,13 @@
   cursor: pointer;
 }
 
+.auto-stop-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
 .settings-dialog {
   width: min(520px, calc(100vw - 32px));
   margin: auto;

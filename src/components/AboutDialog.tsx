@@ -24,8 +24,16 @@ export function AboutDialog({ requireAcceptance, onAccept, onClose }: AboutDialo
     <dialog
       ref={dialogRef}
       className="settings-dialog about-dialog"
+      // Chromium ignores preventDefault on `cancel` when nobody has clicked
+      // since the dialog opened (as on first start), so the Esc keydown itself
+      // is cancelled and the terms gate reopens if it is closed anyway.
+      onKeyDown={(event) => { if (requireAcceptance && event.key === 'Escape') event.preventDefault(); }}
       onCancel={(event) => { if (requireAcceptance) event.preventDefault(); }}
-      onClose={onClose}
+      onClose={() => {
+        const dialog = dialogRef.current;
+        if (!requireAcceptance) onClose();
+        else if (dialog?.isConnected && !dialog.open) dialog.showModal();
+      }}
       aria-labelledby="about-title"
     >
       <h2 id="about-title" className="settings-dialog__title">

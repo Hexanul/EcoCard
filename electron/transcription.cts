@@ -6,7 +6,9 @@ import path from 'node:path';
 import { runtimePaths } from './config.cjs';
 import type { ConvertedAudio, TranscriptionFailure, TranscriptionResponse } from './shared.cjs';
 
-const PROCESS_TIMEOUT_MS = 10 * 60 * 1000;
+// A dictation can last up to 30 minutes (the recording failsafe in
+// DictationPanel), and whisper may run slower than real time on a slow PC.
+const PROCESS_TIMEOUT_MS = 60 * 60 * 1000;
 const SESSION_PREFIX = 'echoreport-';
 // No session can still be in use after the longest possible whisper run.
 const STALE_SESSION_AGE_MS = PROCESS_TIMEOUT_MS + 5 * 60 * 1000;
