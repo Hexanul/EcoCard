@@ -1,0 +1,4 @@
+Vs, diametru 3 diastolic, 5,2. Vs, diametru 3 diastolic, 3,4. Tiv, diametru diastolic, 1,1. Perete posterior, diametru diastolic, 0,8. Fracție de ejecție, Vs, tai, holt, 61. Fracție de scurtare, 33. Masă Vs, 156. Aorta la inel, 2. Aorta ascendente, 3,1. As, diametru anteroposterior, 3,9. Aorta la nivelul cross.
+2,7, artera pulmonară 2,3, flux aortic Vmax 135, Pmax 7, Pmediu 5, flux de vot Vmax 98, Pmax 4, VTI 21, area valvei aortice 2,9, doppler tisular, unda E' 11, unda A' 9, unda S 8, flux pulmonar Vmax 86, Pmax 3, VTI 18,
+A-D, diametru lateromedian, 3,2. A-D, diametru lateromedian, 3,8. Map-S, 15. Tap-S, 22. Area-S, 19. Area-D, 16. Volum T-L, diastolic V-S, 118. Volum T-L, diastolic V-S, 47. Fracție de ejecție Simpson, 60. Lux mitral. Unda E, 74.
+Unda A 63 TDE 195 TRIV 88 area valve mitrale 4,2 flux tricuspidian Vmax 280 Pmax 31 PSVD 36 Unda E 45 Unda A 36 T

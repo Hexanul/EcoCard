@@ -77,5 +77,21 @@
   },
   "numeric3-test": {
     "lvEndSystolicVolume": "both volumes heard as 'Volum trediastoric V.S.'; its 61 is offered as a second telediastolic value"
+  },
+  "numeric4-test": {
+    "lvEndSystolicDiameter": "both diameters heard as 'Vs, diametru 3 diastolic'; its 3,4 is offered as a second telediastolic value",
+    "lvLateromedialDiameter": "whisper dropped 'Apical 4 camere' and 'VS diametrul latero-median 4,6'",
+    "rvLateromedialDiameter": "'VD' heard as 'A-D': its 3,2 is offered as a second AD value",
+    "laLateromedialDiameter": "whisper dropped 'AS diametrul latero-median 4,1'",
+    "lvEndSystolicVolume": "both volumes heard as 'Volum T-L, diastolic V-S'; its 47 is offered as a second telediastolic value",
+    "tricuspidA": "whisper wrote '36' for 37",
+    "tricuspidEaRatio": "derived from the misheard tricuspid A"
+  },
+  "numeric5-test": {
+    "tricuspidVmax": "whisper dropped the 'Flux tricuspidian' heading; bare 'Vmax'/'Pmax'/'Unda E'/'Unda A' have no section",
+    "tricuspidPmax": "whisper dropped the 'Flux tricuspidian' heading; bare 'Vmax'/'Pmax'/'Unda E'/'Unda A' have no section",
+    "tricuspidE": "whisper dropped the 'Flux tricuspidian' heading; bare 'Vmax'/'Pmax'/'Unda E'/'Unda A' have no section",
+    "tricuspidA": "whisper dropped the 'Flux tricuspidian' heading; bare 'Vmax'/'Pmax'/'Unda E'/'Unda A' have no section",
+    "tricuspidEaRatio": "whisper dropped the 'Flux tricuspidian' heading; bare 'Vmax'/'Pmax'/'Unda E'/'Unda A' have no section"
   }
 }

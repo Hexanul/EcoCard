@@ -130,7 +130,8 @@ const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
     'calea de ejectie',
     'caiile de ejectie',
   ],
-  mitral: ['flux mitral', 'fluxul mitral'],
+  // Whisper drops the "F": "Lux mitral".
+  mitral: ['flux mitral', 'fluxul mitral', 'lux mitral'],
   tricuspid: [
     'flux tricuspidian',
     'fluxul tricuspidian',
@@ -161,6 +162,8 @@ const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
     // Whisper may drop "Doppler" and keep only "tisular"; the word only
     // ever names this section.
     'tisular',
+    // ... or only its end: "Sular, Unda E prim 10".
+    'sular',
   ],
   apical4c: ['apical 4c', 'apical 4 camere', 'apicala 4 camere'],
 };
@@ -363,6 +366,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'siv diam siastolic',
       'siv diametrul diasolic',
       'siv diam diasolic',
+      // Whisper "Tiv, diametru diastolic".
+      'tiv diametru diastolic',
+      'tiv diametrul diastolic',
       // Whisper hears "SIV" as "SIF".
       'sif diametrul diastolic',
       'sif diametru diastolic',
@@ -462,12 +468,27 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'fe vse',
       'fractie de ejectie vse',
       'fractia de ejectie vse',
+      // Whisper kept only the end of "Teicholz": "Colt. Z. 62".
+      'colt. z.',
+      // Whisper dropped "Fracție de ejecție VS" and kept "Taiholtz, 62";
+      // the name alone only ever means this field.
+      'taiholtz',
+      'teicholz',
+      'teicholtz',
     ],
   },
   {
     field: 'shorteningFraction',
     // Whisper drops the "r": "FACție de scurtare".
-    aliases: ['fractie de scurtare', 'fractia de scurtare', 'factie de scurtare', 'factia de scurtare'],
+    // Whisper also writes "Frații de scurtare".
+    aliases: [
+      'fractie de scurtare',
+      'fractia de scurtare',
+      'factie de scurtare',
+      'factia de scurtare',
+      'fratie de scurtare',
+      'fratii de scurtare',
+    ],
   },
   {
     field: 'lvMass',
@@ -525,6 +546,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // "anterior posterior" is a known spoken variant of "antero-posterior".
       'as diametrul anterior posterior',
       'as diametru anterior posterior',
+      // Whisper "Asă. Diametru anterior-posterior."
+      'asa. diametru anterior posterior',
+      'asa diametru anterior posterior',
       'as diametrul anterior postior',
       'as diametru anterior postior',
       // Whisper drops the "e": "antroposterior".
@@ -563,6 +587,8 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'aorta la nivelul crossie',
       'aorta la nivelul crosie',
       'aorta la nivelul crosii',
+      // Whisper "Aorta la nivelul cross."
+      'aorta la nivelul cross',
       'aorta la nivelul crossii',
       'la nivelul crossei',
       'la nivelul cossei',
@@ -682,23 +708,25 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'mapse',
-    aliases: ['mapse'],
+    // Whisper "Map-S".
+    aliases: ['mapse', 'map s'],
   },
   {
     field: 'tapse',
-    aliases: ['tapse'],
+    // Whisper "Tap-S".
+    aliases: ['tapse', 'tap s'],
   },
 
   // Alte măsurători
   {
     field: 'laArea',
     // Whisper "ARA AS" for "Aria AS".
-    aliases: ['aria as', 'aria s', 'area as', 'are as', 'ara as', 'aria atriului stang'],
+    aliases: ['aria as', 'aria s', 'area as', 'area s', 'are as', 'ara as', 'aria atriului stang'],
   },
   {
     field: 'raArea',
     // Whisper fuses "Aria AD" into "ARAD".
-    aliases: ['aria ad', 'aria d', 'area ad', 'are ad', 'ara ad', 'arad', 'aria atriului drept'],
+    aliases: ['aria ad', 'aria d', 'area ad', 'area d', 'are ad', 'ara ad', 'arad', 'aria atriului drept'],
   },
   {
     field: 'lvEndDiastolicVolume',
@@ -727,6 +755,8 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // Whisper hears "tele" as the digit 3 ("Volum 3, diastoric WS").
       'volum 3 diastoric vs',
       'volum 3 diastolic vs',
+      // Whisper "Volum T-L, diastolic V-S" (also heard for the telesistolic one).
+      'volum t l diastolic vs',
       // Whisper "Volum trediastoric V.S." (also heard for the telesistolic
       // volume, whose value then shows up as a second choice here).
       'volum trediastoric vs',
@@ -773,6 +803,8 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       // Whisper drops the "r": "Facție de ejecție Simpson".
       'factie de ejectie simpson',
       'factia de ejectie simpson',
+      // Whisper drops the "c": "Frație de ejecție Simpson".
+      'fratie de ejectie simpson',
       'fatie de ejectie simpsong',
       'fatia de ejectie simpsong',
       'fe simpson',
@@ -828,6 +860,9 @@ const NUMERIC_FIELDS: NumericFieldDef[] = [
       'aria valve mitrale',
       'area valve mitrala',
       'area valve mitrale',
+      // Whisper "Area valvele mitrale".
+      'area valvele mitrale',
+      'aria valvele mitrale',
       'aria valva mitrala',
       'area valva mitrala',
       // Whisper "are valve mitral de 3.9".
@@ -1093,6 +1128,10 @@ const TYPO_REPLACEMENTS: TextReplacement[] = [
   { pattern: /\banteromedian\b/g, target: 'lateromedian' },
   // Whisper spells "VS" as "WS" ("WS, diametrul lateromedian"); same length.
   { pattern: /\bws\b/g, target: 'vs' },
+  // Whisper "diametrio" for "diametrul"; same length.
+  { pattern: /\bdiametrio\b/g, target: 'diametrul' },
+  // ... and "diametro" for "diametru"; same length.
+  { pattern: /\bdiametro\b/g, target: 'diametru' },
 ];
 
 function normalize(text: string): string {

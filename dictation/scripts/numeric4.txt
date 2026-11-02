@@ -1,0 +1,21 @@
+Secțiune longitudinală parasternală. 
+
+VS diametrul telediastolic 5,2. VS diametrul telesistolic 3,4. SIV diametrul diastolic 1,1. Perete posterior diametrul diastolic 0,8. Fracție de ejecție VS Teicholz 61. Fracție de scurtare 33.
+Masa VS 156. Aorta la inel 2,0. Aorta ascendentă 3,1. AS diametrul antero-posterior 3,9. Aorta la nivelul crosei 2,7. Artera pulmonară 2,3.
+
+Flux aortic. Vmax 135. Pmax 7. Pmediu 5.
+
+Flux LVOT. Vmax 98. Pmax 4. VTI 21. Aria valvei aortice 2,9.
+
+Doppler tisular. Unda E prim 11. Unda A prim 9. Unda S 8.
+
+Flux pulmonar. Vmax 86. Pmax 3. VTI 18.
+
+Apical 4 camere. 
+
+VS diametrul latero-median 4,6. VD diametrul latero-median 3,2. AS diametrul latero-median 4,1. AD diametrul latero-median 3,8. 
+MAPSE 15. TAPSE 22. Aria AS 19. Aria AD 16. Volum telediastolic VS 118. Volum telesistolic VS 47. Fracție de ejecție Simpson 60.
+
+Flux mitral. Unda E 74. Unda A 63. TDE 195. TRIV 88. Aria valvei mitrale 4,2.
+
+Flux tricuspidian. Vmax 280. Pmax 31. PSVD 36. Unda E 45. Unda A 37.
