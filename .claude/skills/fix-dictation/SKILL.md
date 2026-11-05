@@ -5,7 +5,7 @@ description: Transcribe new dictation test recordings, report which fields the m
 
 # Fix dictation
 
-Closes the loop between a real dictation of `dictation/scripts/<script>.txt` and the parser in `src/services/medicalParser.ts`. Read the "Medical parser" and "Dictation test loop" sections of CLAUDE.md first.
+Closes the loop between a real dictation of `dictation/scripts/<script>.txt` and the parser (`src/services/parserAliases.ts` for aliases and whisper rewrites, `src/services/medicalParser.ts` for the matching). Read the "Medical parser" and "Dictation test loop" sections of CLAUDE.md first.
 
 Arguments: an optional name filter (e.g. `standard-2026-10-04`) limits the run to matching recordings/transcripts.
 
@@ -26,10 +26,10 @@ Record the starting score per transcript for the final report.
 
 ## 2. Fix each failure — narrowest change first
 
-Work from the excerpt. Typical causes and fixes, in order of preference:
+Work from the excerpt. Causes 1–3 are data in `src/services/parserAliases.ts`; the matching logic in `medicalParser.ts` rarely needs to change. Typical causes and fixes, in order of preference:
 
 1. **Whisper spelled one label differently** ("crossie", "SIF", "Taps") → add an alias to that field's definition in `NUMERIC_FIELDS` / `QUALITATIVE_FIELDS`, written in normalized form (lowercase, no diacritics, `ș/ț` → `s/t`). Add the obvious sibling forms (with/without the article: "diametru"/"diametrul").
-2. **A misspelling that recurs across many labels** ("ase" for "as", "vese" for "vse") → one rule in `TYPO_REPLACEMENTS` / `ABBREVIATION_REPLACEMENTS`, only if the misspelled form is not a real Romanian word; a length-changing rule must keep `rawIndex` aligned (see `normalizeWithIndex`).
+2. **A misspelling that recurs across many labels** ("ase" for "as", "vese" for "vse") → one rule in `TYPO_REPLACEMENTS` / `ABBREVIATION_REPLACEMENTS`, only if the misspelled form is not a real Romanian word (length-changing rules are mapped automatically by `mapRewriteIndices`).
 3. **Section heading not recognized** (Doppler values missing or misplaced as a block) → add to `CONTEXT_ALIASES`.
 4. **Number or unit not understood** (number words, decimal phrasing, a new unit wording) → `romanianNumberParser.ts` / `unitNormalizer.ts`.
 5. **`MISPLACED`/`WRONG` with "got the value of …"** → usually the next label was not recognized, so its number leaked into this field's window: fix the *next* field's alias (cause 1), not this one.

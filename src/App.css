@@ -386,16 +386,6 @@
   border-color: #9b2c2c;
 }
 
-.dictation-panel__record-btn--active {
-  background: var(--recording);
-  border-color: var(--recording);
-}
-
-.dictation-panel__record-btn--active:hover {
-  background: #9b2c2c;
-  border-color: #9b2c2c;
-}
-
 .dictation-panel__mic-icon {
   width: 20px;
   height: 20px;
@@ -542,11 +532,6 @@
   gap: 8px;
 }
 
-.dictation-panel--stopped {
-  border-color: #b7dfc9;
-  background: #f8fcf9;
-}
-
 @keyframes pulse {
   0%,
   100% {
@@ -591,13 +576,6 @@
   background: var(--danger);
 }
 
-.dictation-panel__audio-debug {
-  margin: 0 0 12px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
 .dictation-panel__transcription-header {
   display: flex;
   align-items: center;
@@ -611,17 +589,6 @@
   margin-bottom: 0;
 }
 
-.mock-badge {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 3px 8px;
-  color: #9b2c2c;
-  background: #fff5f5;
-  border: 1px solid #feb2b2;
-  border-radius: 3px;
-}
-
 .dictation-panel__hint {
   margin-bottom: 12px;
   padding: 10px 12px;
@@ -630,38 +597,6 @@
   background: #f5f8fc;
   border: 1px solid #d8e2ef;
   border-radius: 3px;
-}
-
-.dictation-panel__audio-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.dictation-panel__audio-details-block {
-  padding: 12px;
-  background: #fafbfc;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-}
-
-.dictation-panel__audio-details-title {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 8px;
-  color: var(--text-h);
-}
-
-.dictation-panel__audio-details-block ul {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.dictation-panel__audio-details-block li + li {
-  margin-top: 4px;
 }
 
 .dictation-panel__transcription label {
@@ -885,7 +820,8 @@
   cursor: pointer;
 }
 
-.auto-stop-dialog[open] {
+/* Short question dialogs (auto-stopped recording, clearing the form). */
+.message-dialog[open] {
   display: flex;
   flex-direction: column;
   gap: 12px;

@@ -2,10 +2,18 @@ import { convertToWhisperWav } from '../audio/whisperWav';
 import type { TranscriptionResult } from '../types/audioPipeline';
 import { getEchoReportApi } from './electronBridge';
 
+// Failures where transcribing the same recording again can succeed (whisper
+// crashed, ran out of time or could not write its files). Unusable audio,
+// silence or a missing whisper install fail the same way every time.
+const RETRYABLE_ERROR_CODES = new Set(['WHISPER_PROCESS_FAILED', 'PROCESS_TIMEOUT', 'TEMPORARY_STORAGE_ERROR', 'UNKNOWN_ERROR']);
+
 export class TranscriptionError extends Error {
-  constructor(message: string) {
+  readonly retryable: boolean;
+
+  constructor(message: string, retryable = false) {
     super(message);
     this.name = 'TranscriptionError';
+    this.retryable = retryable;
   }
 }
 
@@ -43,19 +51,13 @@ export async function transcribeAudio(audio: Blob): Promise<TranscriptionResult>
     const result = await api.transcribeAudio(wav, 'audio/wav');
 
     if (!result.success) {
-      throw new TranscriptionError(result.message);
+      throw new TranscriptionError(result.message, RETRYABLE_ERROR_CODES.has(result.errorCode));
     }
 
-    return {
-      text: result.transcript,
-      convertedAudio: result.converted,
-    };
+    return { text: result.transcript };
   } catch (error) {
     if (error instanceof TranscriptionError) throw error;
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Transcrierea locală a eșuat.';
-    throw new TranscriptionError(message);
+    // The IPC call itself failed; the main process may be fine on a retry.
+    throw new TranscriptionError('Transcrierea locală a eșuat.', true);
   }
 }

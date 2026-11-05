@@ -2024,3 +2024,59 @@ test('parses Whisper "Aorta la enel", "lanteroposterior", "B, D", "Flux L, vot" 
     ],
   );
 });
+
+test('reads "<digits> virgulă <digits>" as one decimal value', () => {
+  const result = parsed('VS diametrul telediastolic 4 virgulă 8.', 'lvEndDiastolicDiameter');
+  assert.equal(result.value, '4.8');
+  assert.equal(result.ambiguousValue, undefined);
+  assert.equal(findRomanianNumber('2 punct 5 cm').value, '2.5');
+});
+
+test('the articles "o" and "un" are not the number 1', () => {
+  const result = parsed('VS diametrul telediastolic are o valoare de 4,8 cm.', 'lvEndDiastolicDiameter');
+  assert.equal(result.value, '4.8');
+  assert.equal(result.ambiguousValue, undefined);
+  assert.equal(parseRomanianNumber('un milimetru'), null);
+  // Still numbers before "sută" and inside compounds.
+  assert.equal(parseRomanianNumber('o sută douăzeci'), '120');
+  assert.equal(parseRomanianNumber('un sute'), '100');
+  assert.equal(parseRomanianNumber('douăzeci și una'), '21');
+  assert.equal(parseRomanianNumber('unu'), '1');
+});
+
+test('a dictated "minus" keeps the sign so the value is flagged as impossible', () => {
+  assert.equal(parsed('VS diametrul telediastolic minus 5.', 'lvEndDiastolicDiameter').value, '-5');
+  assert.equal(parseRomanianNumber('minus patru virgulă opt'), '-4.8');
+});
+
+test('a hedge at the end of a sentence does not mark the next field', () => {
+  const data = parseEchoTranscript('Aorta la inel 2,2 nu sunt sigur. VS diametrul telediastolic 4,8.');
+  const annulus = data.measurements.find((m) => m.field === 'aortaAnnulus');
+  const diameter = data.measurements.find((m) => m.field === 'lvEndDiastolicDiameter');
+  assert.equal(annulus.confidence, 'low');
+  assert.equal(diameter.confidence, 'high');
+  // A hedge before the label in the same sentence still counts.
+  assert.equal(parsed('Aorta la inel 2,2. Probabil VS diametrul telediastolic 4,8.', 'lvEndDiastolicDiameter').confidence, 'low');
+});
+
+test('"este" after a patient label is not part of the value', () => {
+  const data = parseEchoTranscript('Numele pacientului este Popescu, prenumele este Ion, vârsta este de 54 de ani.');
+  assert.equal(data.patient.lastName, 'Popescu');
+  assert.equal(data.patient.firstName, 'Ion');
+  assert.equal(data.patient.age, '54');
+});
+
+test('an age in months or days is left for the doctor', () => {
+  assert.equal(parseEchoTranscript('Vârsta 7 luni. Greutate 8 kg.').patient.age, '');
+  assert.equal(parseEchoTranscript('Vârsta zece zile.').patient.age, '');
+  assert.equal(parseEchoTranscript('Vârsta 7 ani.').patient.age, '7');
+});
+
+test('an age dictated as its own clause without "vârsta"', () => {
+  assert.equal(parseEchoTranscript('Nume Ionescu, prenume Maria, 54 de ani, greutate 70 kg.').patient.age, '54');
+  assert.equal(parseEchoTranscript('Nume Ionescu Maria. Șaizeci și cinci de ani.').patient.age, '65');
+  // A duration inside a longer clause is not the age.
+  assert.equal(parseEchoTranscript('Nume Ionescu, pacient cunoscut cu HTA de 10 ani.').patient.age, '');
+  // "2,5 ani" is not split at its decimal comma into "5 ani".
+  assert.equal(parseEchoTranscript('Nume Ionescu, HTA 2,5 ani.').patient.age, '');
+});

@@ -30,14 +30,36 @@ type DictationState =
 const MAX_RECORDING_MS = 30 * 60 * 1000;
 const MAX_PAUSE_MS = 30 * 60 * 1000;
 
-// Recorded audio is kept in memory only (React state + Blob).
-// It will later be passed to local whisper.cpp for offline transcription.
+// Chromium's voice processing is off, so the app records what a voice
+// recorder records and the recorder files in dictation/recordings test what
+// the app hears. Echo cancellation has nothing to cancel (nothing plays while
+// recording). Accuracy was measured on 2026-11-03 by playing the six test
+// recordings through this capture path (fake microphone): off scored 291 and
+// on 280 fields over 8 runs, a difference within whisper's run-to-run noise.
+const MICROPHONE_CONSTRAINTS: MediaTrackConstraints = {
+  echoCancellation: false,
+  noiseSuppression: false,
+  autoGainControl: false,
+};
+
+// Recorded audio is kept in memory only (React state + Blob) and transcribed
+// by the local whisper.cpp through the main process (transcriptionService).
 // No network requests, no persistent storage, no cloud services.
 
 function formatElapsed(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+// Dev download name: "dictare-2026-11-03-1942.webm", to be renamed
+// "<script>-…" for dictation/recordings/.
+function devRecordingName(mimeType: string): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const extension = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'm4a' : 'webm';
+  return `dictare-${stamp}.${extension}`;
 }
 
 function supportsPauseResume(): boolean {
@@ -111,6 +133,9 @@ function StopIcon() {
 type DictationPanelProps = {
   onDictationChanged?: (changes: DictationChanges) => void;
   onPatientParsed?: (patient: ParsedPatientInfo) => void;
+  // True while there is audio that is not in the form yet (recording, paused,
+  // transcribing, or waiting for the auto-stop decision). Must be stable.
+  onAudioPendingChange?: (pending: boolean) => void;
 };
 
 function hasParsedPatient(patient: ParsedPatientInfo): boolean {
@@ -123,11 +148,19 @@ function hasParsedPatient(patient: ParsedPatientInfo): boolean {
   );
 }
 
-export function DictationPanel({ onDictationChanged, onPatientParsed }: DictationPanelProps) {
+export function DictationPanel({ onDictationChanged, onPatientParsed, onAudioPendingChange }: DictationPanelProps) {
   const [state, setState] = useState<DictationState>('idle');
+  const audioPending = state === 'recording' || state === 'paused' || state === 'processing' || state === 'autoStopped';
+  useEffect(() => {
+    onAudioPendingChange?.(audioPending);
+  }, [audioPending, onAudioPendingChange]);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // The last transcription failed in a way a second attempt can fix; the
+  // recording is still in memory (audioBlobRef).
+  const [canRetry, setCanRetry] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [devDownloadName, setDevDownloadName] = useState('dictare.webm');
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [playbackSeconds, setPlaybackSeconds] = useState(0);
   const [isPlaybackPlaying, setIsPlaybackPlaying] = useState(false);
@@ -272,6 +305,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     setState('processing');
     setTranscription('');
     setErrorMessage(null);
+    setCanRetry(false);
 
     try {
       const result = await transcribeAudio(blob);
@@ -289,6 +323,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
           ? error.message
           : 'Transcrierea a eșuat. Încearcă din nou.';
       setErrorMessage(message);
+      setCanRetry(error instanceof TranscriptionError ? error.retryable : true);
       setState('error');
     }
   }, []);
@@ -311,6 +346,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     resetElapsed();
     setTranscription('');
     setErrorMessage(null);
+    setCanRetry(false);
   }, [clearTimer, resetElapsed, revokeAudioUrl, stopStreamTracks]);
 
   const startRecording = useCallback(async () => {
@@ -325,7 +361,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     discardRecording();
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: MICROPHONE_CONSTRAINTS });
       streamRef.current = stream;
 
       const mimeType = getPreferredRecordingMimeType();
@@ -370,6 +406,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
         const url = URL.createObjectURL(blob);
         audioUrlRef.current = url;
         setAudioUrl(url);
+        if (import.meta.env.DEV) setDevDownloadName(devRecordingName(blob.type));
         syncElapsedDisplay();
 
         const autoStopped = autoStopReasonRef.current;
@@ -487,6 +524,13 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
     setState('idle');
   }, [discardRecording]);
 
+  // Transcribes the same recording again, so a crash or timeout does not
+  // make the doctor dictate everything a second time.
+  const retryTranscription = useCallback(() => {
+    const blob = audioBlobRef.current;
+    if (blob) void runTranscription(blob);
+  }, [runTranscription]);
+
   const handleRecordAgain = useCallback(() => {
     discardRecording();
     setState('idle');
@@ -500,7 +544,9 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
       void getEchoReportApi()
         ?.getPipelineStatus()
         .then((status) => {
-          if (!status.modelFound) {
+          if (!status.whisperCliFound) {
+            setPipelineHint('Programul de transcriere (whisper-cli.exe) nu este instalat local. Reinstalați aplicația.');
+          } else if (!status.modelFound) {
             setPipelineHint(
               `Modelul Whisper ${status.model} nu este instalat local. Plasați ggml-${status.model}.bin în folderul configurat.`,
             );
@@ -722,10 +768,21 @@ export function DictationPanel({ onDictationChanged, onPatientParsed }: Dictatio
             <a
               className="btn btn--secondary no-print"
               href={audioUrl}
-              download="dictation.webm"
+              download={devDownloadName}
+              title="Redenumiți fișierul <script>-… și puneți-l în dictation/recordings/ (npm run eval:dictation)."
             >
               ⬇ Descarcă înregistrarea (dev)
             </a>
+          )}
+          {/* Hidden once the doctor types the dictation by hand: a retry would replace that text. */}
+          {state === 'error' && canRetry && transcription.trim() === '' && (
+            <button
+              type="button"
+              className="btn btn--primary dictation-panel__record-again-btn"
+              onClick={retryTranscription}
+            >
+              ↻ Reîncearcă transcrierea
+            </button>
           )}
           {(state === 'transcribed' || state === 'error') && (
             <button

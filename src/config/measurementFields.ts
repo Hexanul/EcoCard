@@ -1,8 +1,8 @@
 import type { MeasurementKey } from '../types/echoReport.js';
 
 // Single source of truth for every measurement's labels, unit and form
-// placement. Used by the form components, the printed report, the review
-// panel (via the parser) and unit conversion.
+// placement. Used by the form components, the printed report, the list of
+// values that block the preview, the parser and unit conversion.
 
 export type MeasurementInputType = 'numeric' | 'textarea' | 'derived';
 
@@ -20,8 +20,8 @@ export type MeasurementFieldDef = {
 export type MeasurementSectionDef = {
   group: 'echo' | 'doppler';
   title: string;
-  // Prepended to numeric labels in the review panel ("Flux aortic — Vmax"),
-  // where the section heading is not visible.
+  // Prepended to numeric labels where the section heading is not visible
+  // ("Flux aortic — Vmax" in the list of values that block the preview).
   reviewPrefix?: string;
   fields: MeasurementFieldDef[];
 };

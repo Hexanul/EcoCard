@@ -20,7 +20,6 @@ if (!testAudioPath) {
     console.error(`${result.errorCode}: ${result.message}`);
     process.exitCode = 1;
   } else {
-    console.log('Conversion:', result.converted);
     console.log('Romanian transcript:', result.transcript);
   }
 }

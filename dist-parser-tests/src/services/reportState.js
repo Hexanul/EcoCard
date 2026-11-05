@@ -11,6 +11,18 @@ export function getFollowingCurrentNumber(value) {
 export function createReportForm(report) {
     return { report, notes: {}, dictated: {} };
 }
+function sameValues(a, b) {
+    return Object.keys(a).every((key) => a[key] === b[key]);
+}
+/**
+ * Whether two reports hold the same values. The app compares the report with
+ * the one last exported (or just started) to know if leaving would lose work.
+ */
+export function isSameReport(a, b) {
+    return a === b || (a.conclusions === b.conclusions &&
+        sameValues(a.patient, b.patient) &&
+        sameValues(a.measurements, b.measurements));
+}
 // Dictated ratios are ignored: the form always calculates them.
 function itemsByField(items) {
     const byField = new Map();

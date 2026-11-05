@@ -51,6 +51,22 @@ export function createReportForm(report: EchoReport): ReportForm {
   return { report, notes: {}, dictated: {} };
 }
 
+function sameValues<T extends object>(a: T, b: T): boolean {
+  return (Object.keys(a) as (keyof T)[]).every((key) => a[key] === b[key]);
+}
+
+/**
+ * Whether two reports hold the same values. The app compares the report with
+ * the one last exported (or just started) to know if leaving would lose work.
+ */
+export function isSameReport(a: EchoReport, b: EchoReport): boolean {
+  return a === b || (
+    a.conclusions === b.conclusions &&
+    sameValues(a.patient, b.patient) &&
+    sameValues(a.measurements, b.measurements)
+  );
+}
+
 /** The fields of a parse whose dictated values changed since the previous parse. */
 export type DictationChanges = {
   // Every dictated item of each changed measurement, in transcript order.

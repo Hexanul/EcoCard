@@ -131,7 +131,9 @@ export async function exportReportPdf(contents: WebContents, suggestedName?: str
   try {
     await fs.writeFile(filePath, Buffer.from(pdfData));
   } catch (error) {
-    console.error('[Echo Report] PDF save failed:', error instanceof Error ? error.message : 'unknown');
+    // Only the error code: the message holds the file path, which holds the patient's name.
+    const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : 'unknown';
+    console.error('[Echo Report] PDF save failed:', code);
     return fail('PDF_SAVE_FAILED', 'Salvarea fișierului PDF a eșuat.');
   }
   console.log('[Echo Report] PDF generation completed');

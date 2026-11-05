@@ -16,7 +16,7 @@ app/
     ggml-silero-v5.1.2.bin   # voice activity detection (optional), from huggingface.co/ggml-org/whisper-vad
 ```
 
-Those files are excluded from Git. For a different development location, copy `echoReport.paths.example.json` to the ignored `echoReport.paths.json` and set absolute paths there. The `ECHOREPORT_WHISPER_CLI`, `ECHOREPORT_MODEL`, `ECHOREPORT_VAD_MODEL`, and `ECHOREPORT_TEMP_DIR` environment variables override that file.
+Those files are excluded from Git. For a different development location, copy `echoReport.paths.example.json` to the ignored `echoReport.paths.json` and set absolute paths there. The `ECHOREPORT_WHISPER_CLI`, `ECHOREPORT_MODEL`, `ECHOREPORT_VAD_MODEL`, and `ECHOREPORT_TEMP_DIR` environment variables override that file during development; the packaged app ignores them and reads only an `echoReport.paths.json` placed in its `resources` folder.
 
 ## Commands
 

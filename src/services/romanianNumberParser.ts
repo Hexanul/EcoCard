@@ -52,13 +52,18 @@ const NUMBER_WORDS: Record<string, number> = {
   ...TENS,
 };
 
+// "o", "un" and "una" are also articles ("are o valoare de 4,8"): they count
+// as 1 only before "sută/sute" or inside a compound ("douăzeci și una").
+const ARTICLE_ONES = new Set(['o', 'un', 'una']);
+
 type Token = {
   value: string;
   start: number;
   end: number;
 };
 
-function normalize(text: string): string {
+/** The normalization the number positions (`start`, `end`) refer to. */
+export function normalizeNumberText(text: string): string {
   return text
     .toLocaleLowerCase('ro-RO')
     .normalize('NFD')
@@ -71,7 +76,7 @@ function normalize(text: string): string {
 }
 
 function tokenize(text: string): Token[] {
-  const normalized = normalize(text);
+  const normalized = normalizeNumberText(text);
   return [...normalized.matchAll(/\d+(?:[.,]\d+)?|[a-z]+/g)].map((match) => ({
     value: match[0],
     start: match.index ?? 0,
@@ -105,6 +110,7 @@ function parseInteger(tokens: Token[], start: number): { value: number; next: nu
 
     const number = NUMBER_WORDS[token];
     if (number === undefined) break;
+    if (ARTICLE_ONES.has(token) && !consumed && !/^sut[ae]$/.test(tokens[index + 1]?.value ?? '')) break;
 
     current += number;
     consumed = true;
@@ -136,44 +142,49 @@ function fractionText(tokens: Token[], start: number): { value: string; next: nu
   return integer ? { value: String(integer.value), next: integer.next } : null;
 }
 
+const isDecimalWord = (token: Token | undefined): boolean => token?.value === 'virgula' || token?.value === 'punct';
+
 /**
  * Finds the first numeric expression in a Romanian phrase, including spoken
- * decimals ("patru virgulă opt") and already-digit forms ("4,8", "4.8", "21").
- * Returns null when the text contains no number.
+ * decimals ("patru virgulă opt", "4 virgulă 8") and already-digit forms
+ * ("4,8", "4.8", "21"). A spoken "minus" keeps its sign, so the value is
+ * flagged as impossible rather than silently made positive. Returns null when
+ * the text contains no number.
  */
 export function findRomanianNumber(text: string): ParsedNumber | null {
   const tokens = tokenize(text);
 
   for (let index = 0; index < tokens.length; index += 1) {
     const direct = tokens[index];
+    let integerValue: string;
+    let next: number;
     if (/^\d+(?:[.,]\d+)?$/.test(direct.value)) {
-      return {
-        value: direct.value.replace(',', '.'),
-        start: direct.start,
-        end: direct.end,
-        sourceText: text.slice(direct.start, direct.end),
-      };
+      integerValue = direct.value.replace(',', '.');
+      next = index + 1;
+    } else {
+      const integer = parseInteger(tokens, index);
+      if (!integer) continue;
+      integerValue = String(integer.value);
+      next = integer.next;
     }
 
-    const integer = parseInteger(tokens, index);
-    if (!integer) continue;
-
-    let endToken = tokens[integer.next - 1];
-    let value = String(integer.value);
-
-    if (tokens[integer.next]?.value === 'virgula' || tokens[integer.next]?.value === 'punct') {
-      const fraction = fractionText(tokens, integer.next + 1);
+    let endToken = tokens[next - 1];
+    let value = integerValue;
+    if (/^\d+$/.test(integerValue) && isDecimalWord(tokens[next])) {
+      const fraction = fractionText(tokens, next + 1);
       if (fraction) {
-        value = `${integer.value}.${fraction.value}`;
+        value = `${integerValue}.${fraction.value}`;
         endToken = tokens[fraction.next - 1];
       }
     }
 
+    const minus = tokens[index - 1]?.value === 'minus';
+    const start = minus ? tokens[index - 1].start : direct.start;
     return {
-      value,
-      start: tokens[index].start,
+      value: minus ? `-${value}` : value,
+      start,
       end: endToken.end,
-      sourceText: text.slice(tokens[index].start, endToken.end),
+      sourceText: text.slice(start, endToken.end),
     };
   }
 

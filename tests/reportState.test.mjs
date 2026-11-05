@@ -8,6 +8,7 @@ import {
   editField,
   getFollowingCurrentNumber,
   hasWarnings,
+  isSameReport,
   mergeParsedPatient,
   resolveNote,
 } from '../dist-parser-tests/src/services/reportState.js';
@@ -193,6 +194,24 @@ test('the default examination date is the local calendar date', () => {
   const now = new Date();
   const expected = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   assert.equal(createEmptyPatient().examinationDate, expected);
+});
+
+test('a report counts as changed only when one of its values differs', () => {
+  const started = createEmptyEchoReport();
+  // A copy with the same values (e.g. a field typed and then erased) is unchanged.
+  const copy = {
+    patient: { ...started.patient },
+    measurements: { ...started.measurements },
+    conclusions: started.conclusions,
+  };
+  assert.equal(isSameReport(copy, started), true);
+
+  const form = createReportForm(started);
+  assert.equal(isSameReport(editField(form, 'aorticVmax', '120').report, started), false);
+  assert.equal(isSameReport(editField(form, 'conclusions', 'VS nedilatat.').report, started), false);
+  assert.equal(isSameReport({ ...started, patient: { ...started.patient, lastName: 'Popescu' } }, started), false);
+  // Notes and confirmations are not report values.
+  assert.equal(isSameReport(resolveNote(form, 'aorticVmax').report, started), true);
 });
 
 test('the field registry covers every measurement exactly once', async () => {

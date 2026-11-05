@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { Header } from './components/Header';
 import { PatientForm } from './components/PatientForm';
@@ -9,6 +9,7 @@ import { ReportActions } from './components/ReportActions';
 import { ReportPreviewPage } from './components/ReportPreviewPage';
 import { SettingsDialog } from './components/SettingsDialog';
 import { AboutDialog } from './components/AboutDialog';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { TERMS_ACCEPTED_STORAGE_KEY, TERMS_REVISION } from './config/appInfo';
 import {
   CLINIC_SETTINGS_STORAGE_KEY,
@@ -22,6 +23,7 @@ import {
   createReportForm,
   editField,
   getFollowingCurrentNumber,
+  isSameReport,
   mergeParsedPatient,
   resolveNote,
   type DictatedField,
@@ -85,6 +87,25 @@ function App() {
   const [showIssues, setShowIssues] = useState(false);
   const issues = showIssues ? findReportIssues(report, confirmed, notes) : [];
 
+  // The report as just started or last exported to PDF. Different values, or
+  // audio that is not transcribed into the form yet, would be lost by
+  // clearing the form, closing the window or reloading it, so those ask first.
+  const [savedReport, setSavedReport] = useState<EchoReport>(form.report);
+  const [audioPending, setAudioPending] = useState(false);
+  const hasUnsavedWork = audioPending || !isSameReport(report, savedReport);
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  // Cancelling the unload makes the main process ask before the window
+  // closes or reloads (main.cts, 'will-prevent-unload').
+  useEffect(() => {
+    if (!hasUnsavedWork) return;
+    const keepReport = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', keepReport);
+    return () => window.removeEventListener('beforeunload', keepReport);
+  }, [hasUnsavedWork]);
+
   const confirmValue = (id: string, value: string) => {
     setConfirmed((prev) => ({ ...prev, [id]: value }));
   };
@@ -130,17 +151,26 @@ function App() {
     setForm((prev) => ({ ...prev, report: { ...prev.report, patient: mergeParsedPatient(prev.report.patient, parsed) } }));
   }, []);
 
-  const handleClear = () => {
-    setForm(createReportForm(createReportWithCurrentNumber()));
+  const clearForm = () => {
+    const next = createReportWithCurrentNumber();
+    setForm(createReportForm(next));
+    setSavedReport(next);
     setConfirmed({});
     setShowIssues(false);
+    setConfirmClear(false);
     setDictationKey((key) => key + 1);
+  };
+
+  const handleClear = () => {
+    if (hasUnsavedWork) setConfirmClear(true);
+    else clearForm();
   };
 
   // The register number is consumed only by a successful export. The report
   // keeps its number, so re-exporting the same patient never skips one; the
   // next number is shown when a new report is started.
   const handlePdfExported = () => {
+    setSavedReport(report);
     const nextNumber = getFollowingCurrentNumber(report.patient.currentNumber);
     if (nextNumber !== null) {
       window.localStorage.setItem(CURRENT_NUMBER_STORAGE_KEY, String(nextNumber));
@@ -170,6 +200,8 @@ function App() {
     const testReport = createTestEchoReport();
     testReport.patient.currentNumber = String(getNextCurrentNumber());
     setForm(createReportForm(testReport));
+    // A loaded fixture is not the doctor's work.
+    setSavedReport(testReport);
     setConfirmed({});
   };
 
@@ -194,12 +226,27 @@ function App() {
       {settingsOpen && (
         <SettingsDialog clinic={clinic} onSave={handleSaveClinic} onClose={() => setSettingsOpen(false)} />
       )}
+      {confirmClear && (
+        <ConfirmDialog
+          title="Ștergeți formularul?"
+          confirmLabel="Șterge formularul"
+          onConfirm={clearForm}
+          onCancel={() => setConfirmClear(false)}
+        >
+          <p>
+            {audioPending
+              ? 'O dictare este în curs. Înregistrarea, datele pacientului, valorile și concluziile vor fi șterse.'
+              : 'Raportul nu a fost exportat în PDF. Datele pacientului, valorile, concluziile și transcrierea vor fi șterse.'}
+          </p>
+        </ConfirmDialog>
+      )}
 
       <main className="app-main">
         <DictationPanel
           key={dictationKey}
           onDictationChanged={handleDictationChanged}
           onPatientParsed={handlePatientParsed}
+          onAudioPendingChange={setAudioPending}
         />
         <PatientForm
           patient={report.patient}

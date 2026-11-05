@@ -34,7 +34,7 @@ export function AutoStopDialog({ reason, minutes, onAnalyze, onDiscard }: AutoSt
   return (
     <dialog
       ref={dialogRef}
-      className="settings-dialog auto-stop-dialog"
+      className="settings-dialog message-dialog"
       onKeyDown={(event) => { if (event.key === 'Escape') event.preventDefault(); }}
       onCancel={(event) => event.preventDefault()}
       onClose={() => {
