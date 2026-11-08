@@ -1,0 +1,4 @@
+flux pulmonar Vmax 77, Pmax 2, VTI 13, flux aortic Vmax 128, Pmax 7, Pmediu 5, Doppler tisular, unda E'9, unda A'11, unda S6, Vs, diametrul 3 diastoric 5,1, Vs, diametrul 3 sistoric 3,3, Siv, diametrul 3 diastoric 0,9, perete posterior, diametrul diastoric 1,1, fracție de ejecție Vs, Teicholz, 65,
+Tractie de scurtare, 35. Masa VS, 824. Aorta la liniel, 2,3. Aorta ascendentă, 3,5. AS, diametrul anteroposterior, 3,8. Aorta la nivelul crosse, 2,6. Artera pulmonară, 2,2. Flux, tricuspidian. VMAX, 250. PMAX, 25. SVD, 30. Unda E, 57. Unda A, 46. PS, diametrul ateromedian, 4,5. VD, diametrul ateromedian, 3,4.
+A, S, diametru lateromedian, 4,2. A, D, diametru lateromedian, 3,7. M, A, S, E, 16. T, A, S, E, 23. A, S, E, 20. A, D, 15. Voluntele diastoric, V, S, 110. Voluntele sistoric, V, S, 40. Fracție de ejecție, Simpson, 64. Flux de vot, Vmax, 96. Pmax, 4. V, T, 22. A, D, 27. Flux mitral, Unda E, 77.
+Unda A60 TDE 190 Triv 84 Area valve mitrale 4,3

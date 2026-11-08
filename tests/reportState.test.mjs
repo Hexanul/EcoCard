@@ -77,6 +77,18 @@ test('uncertain dictated values are applied with a warning under the field', () 
   assert.equal(hasWarnings(form.notes.septalS), false);
 });
 
+test('a value moved from a repeated telediastolic label is flagged for review', () => {
+  const form = dictate(parse([
+    numeric('lvEndDiastolicDiameter', '5.1'),
+    { ...numeric('lvEndSystolicDiameter', '3.3'), heardAs: 'lvEndDiastolicDiameter' },
+  ]));
+  assert.equal(form.report.measurements.lvEndSystolicDiameter, '3.3');
+  assert.deepEqual(form.notes.lvEndSystolicDiameter.warnings, [
+    'Transcris tot ca „VS — diametrul telediastolic” — propus aici fiind a doua valoare, mai mică; verificați.',
+  ]);
+  assert.equal(form.notes.lvEndDiastolicDiameter, undefined);
+});
+
 test('a field dictated with different values keeps the first and offers the others', () => {
   // Whisper heard "VD" as "VS": the VS field received two different values.
   const form = dictate(parse([

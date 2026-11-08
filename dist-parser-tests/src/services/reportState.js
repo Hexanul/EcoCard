@@ -1,4 +1,4 @@
-import { DERIVED_MEASUREMENT_KEYS } from '../config/measurementFields.js';
+import { DERIVED_MEASUREMENT_KEYS, MEASUREMENT_FIELDS } from '../config/measurementFields.js';
 import { calculateBmi } from '../utils/bmi.js';
 import { calculateDerivedMeasurements } from '../utils/derivedMeasurements.js';
 // Pure report-state logic shared by App.tsx; kept free of React and browser
@@ -36,7 +36,15 @@ function itemsByField(items) {
 // What dictation says for a field, without the surrounding transcript text, so
 // editing another part of the transcript does not count as a change.
 function dictationSignature(items) {
-    return JSON.stringify(items.map((item) => [item.value, item.unit, item.confidence, item.convertedFrom, item.unitMismatch, item.ambiguousValue]));
+    return JSON.stringify(items.map((item) => [
+        item.value,
+        item.unit,
+        item.confidence,
+        item.convertedFrom,
+        item.unitMismatch,
+        item.ambiguousValue,
+        item.heardAs,
+    ]));
 }
 /**
  * Only fields whose dictation changed since the previous parse are applied,
@@ -72,6 +80,9 @@ function noteFor(items, previousValue) {
     }
     else if (first.confidence === 'low') {
         warnings.push('Dictat ca nesigur — verificați valoarea.');
+    }
+    if (first.heardAs) {
+        warnings.push(`Transcris tot ca „${MEASUREMENT_FIELDS[first.heardAs].reviewLabel}” — propus aici fiind a doua valoare, mai mică; verificați.`);
     }
     if (first.unitMismatch) {
         warnings.push(`Unitate dictată (${first.unit}) diferită de unitatea câmpului — verificați valoarea.`);

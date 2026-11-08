@@ -129,6 +129,10 @@ export const UNASSIGNED_FIELD_ALIASES = [
   'fractie de ejectie',
   'fractia de ejectie',
   'fratie de ejectie',
+  // Whisper drops "Aria" and spells "AS" as "A, S, E" ("A, S, E, 20"): end
+  // the previous field's window there so the bare "E, 20" is not read as a
+  // wave E, without guessing between the AS area and the AS diameter.
+  'as e',
 ];
 
 export const NUMERIC_FIELDS: NumericFieldDef[] = [
@@ -316,6 +320,9 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'siv diametru diastoric',
       'siv diam diastolic',
       'siv diam. diastolic',
+      // Whisper hears "tele" as the digit 3 ("Siv, diametrul 3 diastoric").
+      'siv diametrul 3 diastoric',
+      'siv diametru 3 diastoric',
       'siv diastolic',
       'siv diastoric',
       // Known Whisper transcription variants of "diastolic".
@@ -445,6 +452,9 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'factia de scurtare',
       'fratie de scurtare',
       'fratii de scurtare',
+      // Whisper "Tracție de scurtare".
+      'tractie de scurtare',
+      'tractia de scurtare',
     ],
   },
   {
@@ -474,6 +484,8 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'aorta la enelul',
       'aortel inere',
       'aortelainere',
+      // Whisper "Aorta la liniel".
+      'aorta la liniel',
     ],
   },
   {
@@ -547,6 +559,7 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       // Whisper "Aorta la nivelul cross."
       'aorta la nivelul cross',
       'aorta la nivelul crossii',
+      'aorta la nivelul crosse',
       'la nivelul crossei',
       'la nivelul cossei',
       'aorta la crosa',
@@ -585,6 +598,11 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vs diametrul ateromedian',
       'vs diametru ateromedian',
       'vs diam ateromedian',
+      // Whisper "PS" for "VS" ("PS, diametrul ateromedian").
+      'ps diametrul lateromedian',
+      'ps diametru lateromedian',
+      'ps diametrul ateromedian',
+      'ps diametru ateromedian',
       // Whisper fuses "latero"/"antero": "lanteromedian".
       'vs diametrul lanteromedian',
       'vs diametru lanteromedian',
@@ -665,13 +683,15 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
   },
   {
     field: 'mapse',
-    // Whisper "Map-S".
-    aliases: ['mapse', 'map s'],
+    // Whisper "Map-S", "M, A, S, E" (normalized "m as e") and the fully
+    // spelled "M, A, P, S, E" (normalized "m a ps e").
+    aliases: ['mapse', 'map s', 'm as e', 'm a ps e'],
   },
   {
     field: 'tapse',
-    // Whisper "Tap-S".
-    aliases: ['tapse', 'tap s'],
+    // Whisper "Tap-S", "T, A, S, E" (normalized "t as e") and the fully
+    // spelled "T, A, P, S, E" (normalized "t a ps e").
+    aliases: ['tapse', 'tap s', 't as e', 't a ps e'],
   },
 
   // Alte măsurători
@@ -718,6 +738,9 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       // volume, whose value then shows up as a second choice here).
       'volum trediastoric vs',
       'volum trediastolic vs',
+      // Whisper "Voluntele diastoric, V, S" (distinct from the systolic one).
+      'voluntele diastoric vs',
+      'voluntele diastolic vs',
     ],
   },
   {
@@ -745,6 +768,9 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'vs volum tele sistolic',
       'volum 3 sistoric vs',
       'volum 3 sistolic vs',
+      // Whisper "Voluntele sistoric, V, S".
+      'voluntele sistoric vs',
+      'voluntele sistolic vs',
     ],
   },
   {
@@ -838,7 +864,8 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Doppler — flux LVOT
   { field: 'lvotVmax', aliases: ['vmax', 'v max'], context: 'lvot' },
   { field: 'lvotPmax', aliases: ['pmax', 'p max'], context: 'lvot' },
-  { field: 'lvotVti', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'lvot' },
+  // Whisper also drops the "I": "V, T, 22".
+  { field: 'lvotVti', aliases: ['vti', 'v t i', 'v t', 'pti', 'p t i', 'fti', 'f t i'], context: 'lvot' },
 
   // Doppler — flux mitral
   // Bare "e"/"a"/"ea" are only matched while the mitral context is active, so
@@ -865,7 +892,7 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Doppler — flux pulmonar
   { field: 'pulmonaryVmax', aliases: ['vmax', 'v max'], context: 'pulmonary' },
   { field: 'pulmonaryPmax', aliases: ['pmax', 'p max'], context: 'pulmonary' },
-  { field: 'pulmonaryVti', aliases: ['vti', 'v t i', 'pti', 'p t i', 'fti', 'f t i'], context: 'pulmonary' },
+  { field: 'pulmonaryVti', aliases: ['vti', 'v t i', 'v t', 'pti', 'p t i', 'fti', 'f t i'], context: 'pulmonary' },
 
   // Doppler tisular (sept) — in this section "Unda E"/"Unda A"/"EA"/"EE" mean
   // E', A', E'/A' and E/E' respectively (not the mitral waves).

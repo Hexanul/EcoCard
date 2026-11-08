@@ -39,6 +39,10 @@ export type ParsedMeasurement = {
   // The value window held more than one number (usually a misheard label
   // after this one); the first number is proposed and needs review.
   ambiguousValue?: boolean;
+  // The label was heard as this field (Whisper wrote "telediastolic" twice
+  // in a row); the value was moved to its end-systolic partner and needs
+  // review.
+  heardAs?: MeasurementKey;
 };
 
 export type ParsedPatientInfo = {
@@ -711,5 +715,38 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
     });
   }
 
-  return { measurements, conclusions, patient };
+  return { measurements: reassignRepeatedDiastolic(measurements), conclusions, patient };
+}
+
+// The end-systolic partner of each end-diastolic measurement.
+const END_SYSTOLIC_PARTNER: Partial<Record<MeasurementKey, MeasurementKey>> = {
+  lvEndDiastolicDiameter: 'lvEndSystolicDiameter',
+  lvEndDiastolicVolume: 'lvEndSystolicVolume',
+};
+
+/**
+ * Whisper often writes "telesistolic" as "telediastolic" ("Vs, diametrul 3
+ * diastoric" for both diameters), so the end-systolic value arrives as a
+ * second end-diastolic one. When the end-diastolic label is dictated exactly
+ * twice, back to back, the end-systolic field got nothing, and the second
+ * value is smaller (end-systolic is always below end-diastolic), the second
+ * value is moved to the end-systolic field, flagged with `heardAs` so the
+ * doctor confirms it.
+ */
+function reassignRepeatedDiastolic(measurements: ParsedMeasurement[]): ParsedMeasurement[] {
+  return measurements.map((item, index) => {
+    const partner = END_SYSTOLIC_PARTNER[item.field];
+    if (!partner || index === 0) return item;
+    const previous = measurements[index - 1];
+    if (previous.field !== item.field) return item;
+    if (measurements.filter((m) => m.field === item.field).length !== 2) return item;
+    if (measurements.some((m) => m.field === partner)) return item;
+    if (!(Number(item.value) < Number(previous.value))) return item;
+    return {
+      ...item,
+      field: partner,
+      label: MEASUREMENT_FIELDS[partner].reviewLabel,
+      heardAs: item.field,
+    };
+  });
 }

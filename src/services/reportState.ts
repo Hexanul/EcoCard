@@ -4,7 +4,7 @@ import type {
   ParsedPatientInfo,
 } from './medicalParser.js';
 import type { EchoReport, MeasurementKey, PatientInfo } from '../types/echoReport.js';
-import { DERIVED_MEASUREMENT_KEYS } from '../config/measurementFields.js';
+import { DERIVED_MEASUREMENT_KEYS, MEASUREMENT_FIELDS } from '../config/measurementFields.js';
 import { calculateBmi } from '../utils/bmi.js';
 import { calculateDerivedMeasurements } from '../utils/derivedMeasurements.js';
 
@@ -89,7 +89,15 @@ function itemsByField(items: ParsedMeasurement[]): Map<MeasurementKey, ParsedMea
 // editing another part of the transcript does not count as a change.
 function dictationSignature(items: ParsedMeasurement[]): string {
   return JSON.stringify(
-    items.map((item) => [item.value, item.unit, item.confidence, item.convertedFrom, item.unitMismatch, item.ambiguousValue]),
+    items.map((item) => [
+      item.value,
+      item.unit,
+      item.confidence,
+      item.convertedFrom,
+      item.unitMismatch,
+      item.ambiguousValue,
+      item.heardAs,
+    ]),
   );
 }
 
@@ -128,6 +136,11 @@ function noteFor(items: ParsedMeasurement[], previousValue: string | undefined):
     warnings.push('Mai multe numere dictate pentru acest câmp — a fost propus primul.');
   } else if (first.confidence === 'low') {
     warnings.push('Dictat ca nesigur — verificați valoarea.');
+  }
+  if (first.heardAs) {
+    warnings.push(
+      `Transcris tot ca „${MEASUREMENT_FIELDS[first.heardAs].reviewLabel}” — propus aici fiind a doua valoare, mai mică; verificați.`,
+    );
   }
   if (first.unitMismatch) {
     warnings.push(`Unitate dictată (${first.unit}) diferită de unitatea câmpului — verificați valoarea.`);

@@ -2080,3 +2080,58 @@ test('an age dictated as its own clause without "vârsta"', () => {
   // "2,5 ani" is not split at its decimal comma into "5 ani".
   assert.equal(parseEchoTranscript('Nume Ionescu, HTA 2,5 ani.').patient.age, '');
 });
+
+test('a second back-to-back "telediastolic" with a smaller value is proposed as telesistolic', () => {
+  // Whisper wrote "3 diastoric" for "telesistolic" (numeric6, retested in the app).
+  const data = parseEchoTranscript(
+    'Vs, diametrul 3 diastoric, 5,1. Vs, diametrul 3 diastoric, 3,3. Siv, diametrul 3 diastoric, 0,9.',
+  );
+  assert.deepEqual(
+    data.measurements.map(({ field, value, heardAs }) => ({ field, value, heardAs })),
+    [
+      { field: 'lvEndDiastolicDiameter', value: '5.1', heardAs: undefined },
+      { field: 'lvEndSystolicDiameter', value: '3.3', heardAs: 'lvEndDiastolicDiameter' },
+      { field: 'ivsDiastolicDiameter', value: '0.9', heardAs: undefined },
+    ],
+  );
+  const volumes = 'Voluntele diastoric, V, S, 110. Voluntele diastoric, V, S, 40.';
+  assert.equal(parsed(volumes, 'lvEndDiastolicVolume').value, '110');
+  assert.equal(parsed(volumes, 'lvEndSystolicVolume').value, '40');
+});
+
+test('a repeated "telediastolic" stays a second choice when it cannot be the telesistolic one', () => {
+  const fields = (transcript) => parseEchoTranscript(transcript).measurements.map(({ field }) => field);
+  // Larger second value: a correction, not the end-systolic value.
+  assert.deepEqual(fields('VS diametrul telediastolic 4,9. VS diametrul telediastolic 5,1.'), [
+    'lvEndDiastolicDiameter', 'lvEndDiastolicDiameter',
+  ]);
+  // The end-systolic value was dictated as well.
+  assert.deepEqual(fields('VS diametrul telediastolic 5,1. VS diametrul telediastolic 4,9. VS diametrul telesistolic 3,3.'), [
+    'lvEndDiastolicDiameter', 'lvEndDiastolicDiameter', 'lvEndSystolicDiameter',
+  ]);
+  // Not back to back.
+  assert.deepEqual(fields('VS diametrul telediastolic 5,1. SIV diametrul diastolic 0,9. VS diametrul telediastolic 3,3.'), [
+    'lvEndDiastolicDiameter', 'ivsDiastolicDiameter', 'lvEndDiastolicDiameter',
+  ]);
+  // Heard three times: no way to tell which one is end-systolic.
+  assert.deepEqual(fields('Volum telediastolic VS 120. Volum telediastolic VS 50. Volum telediastolic VS 45.'), [
+    'lvEndDiastolicVolume', 'lvEndDiastolicVolume', 'lvEndDiastolicVolume',
+  ]);
+});
+
+test('MAPSE and TAPSE spelled letter by letter', () => {
+  // Whisper "M, A, P, S, E, 16. T, A, P, S, E, 23." (tested in the app) and
+  // "M, A, S, E" (numeric6-test), after a tricuspid section whose bare "E"
+  // must not take these values.
+  for (const transcript of [
+    'Flux tricuspidian. Unda A, 46. M, A, P, S, E, 16. T, A, P, S, E, 23.',
+    'Flux tricuspidian. Unda A, 46. M, A, S, E, 16. T, A, S, E, 23.',
+  ]) {
+    const data = parseEchoTranscript(transcript);
+    assert.deepEqual(
+      data.measurements.map(({ field, value }) => `${field}=${value}`),
+      ['tricuspidA=46', 'mapse=16', 'tapse=23'],
+      transcript,
+    );
+  }
+});
