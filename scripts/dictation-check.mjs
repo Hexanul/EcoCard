@@ -86,19 +86,41 @@ export function loadScripts() {
     });
 }
 
-export function loadTranscripts(scripts) {
-  if (!fs.existsSync(TRANSCRIPTS_DIR)) return [];
+/**
+ * Word error rate of a transcript against the text that was read: word-level
+ * edit distance (substitutions, insertions, deletions) divided by the number
+ * of reference words, after normalizeText(). It measures the speech
+ * recognition alone, independently of what the parser makes of it.
+ */
+export function wordErrorRate(reference, hypothesis) {
+  const ref = normalizeText(reference).split(' ').filter(Boolean);
+  const hyp = normalizeText(hypothesis).split(' ').filter(Boolean);
+  if (ref.length === 0) return hyp.length === 0 ? 0 : 1;
+  let previous = Array.from({ length: hyp.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= ref.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= hyp.length; j += 1) {
+      const substitution = previous[j - 1] + (ref[i - 1] === hyp[j - 1] ? 0 : 1);
+      current.push(Math.min(substitution, previous[j] + 1, current[j - 1] + 1));
+    }
+    previous = current;
+  }
+  return previous[hyp.length] / ref.length;
+}
+
+export function loadTranscripts(scripts, dir = TRANSCRIPTS_DIR) {
+  if (!fs.existsSync(dir)) return [];
   const names = scripts.map((script) => script.name);
   return fs
-    .readdirSync(TRANSCRIPTS_DIR)
+    .readdirSync(dir)
     .filter((file) => file.endsWith('.txt'))
     .sort()
     .map((file) => {
       const name = file.slice(0, -'.txt'.length);
       return {
         name,
-        path: path.join(TRANSCRIPTS_DIR, file),
-        text: fs.readFileSync(path.join(TRANSCRIPTS_DIR, file), 'utf8'),
+        path: path.join(dir, file),
+        text: fs.readFileSync(path.join(dir, file), 'utf8'),
         script: scriptNameFor(name, names),
       };
     });

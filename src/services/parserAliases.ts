@@ -338,6 +338,10 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'sif diametru diastolic',
       'sif diam diastolic',
       'sif diastolic',
+      // ... with "diastoric" ("Sif, diametrul diastoric 3").
+      'sif diametrul diastoric',
+      'sif diametru diastoric',
+      'sif diastoric',
       'sept interventricular diametrul diastolic',
       'sept interventricular diametrul diastoric',
     ],
@@ -577,6 +581,8 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'atera pulmonara',
       'cartera pulmonara',
       'aorta la pulmonara',
+      // Whisper "altera pulmonară" (numeric6, recorded in the app).
+      'altera pulmonara',
     ],
   },
 
@@ -790,6 +796,8 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
       'fratie de ejectie simpson',
       'fatie de ejectie simpsong',
       'fatia de ejectie simpsong',
+      // Whisper "Practice de ejecție Simpson" (numeric6, recorded in the app).
+      'practice de ejectie simpson',
       'fe simpson',
     ],
   },
@@ -1077,6 +1085,11 @@ export const TYPO_REPLACEMENTS: TextReplacement[] = [
   { pattern: /\banteromedian\b/g, target: 'lateromedian' },
   // Whisper spells "VS" as "WS" ("WS, diametrul lateromedian"); same length.
   { pattern: /\bws\b/g, target: 'vs' },
+  // ... and as "vâsă" ("Vâsă, diametrul 3, diastoric 1"); not a Romanian word.
+  { pattern: /\bvasa\b/g, target: 'vs' },
+  // Whisper "onda" for "unda" in every Doppler section ("onda E' 9"); not a
+  // Romanian word, same length.
+  { pattern: /\bonda\b/g, target: 'unda' },
   // Whisper "diametrio" for "diametrul"; same length.
   { pattern: /\bdiametrio\b/g, target: 'diametrul' },
   // ... and "diametro" for "diametru"; same length.

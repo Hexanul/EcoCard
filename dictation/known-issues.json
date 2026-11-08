@@ -96,6 +96,7 @@
     "aorticValveArea": "'Aria valvei aortice 2,7' heard as 'A, D, 27'",
     "mitralE": "whisper wrote '77' for 72",
     "mitralEaRatio": "derived from the misheard mitral E",
-    "eePrimeRatio": "derived from the misheard mitral E"
+    "eePrimeRatio": "derived from the misheard mitral E",
+    "mitralTriv": "recorded when the script read 'TRIV 84'; the script now reads 94"
   }
 }

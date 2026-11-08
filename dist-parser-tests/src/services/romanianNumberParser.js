@@ -118,6 +118,23 @@ function fractionText(tokens, start) {
 }
 const isDecimalWord = (token) => token?.value === 'virgula' || token?.value === 'punct';
 /**
+ * Whisper writes some spoken compounds half in digits: "cincizeci și șapte"
+ * as "50 și 7". A whole ten (20–90), "și" and a single digit are one number.
+ */
+function digitTensAndUnit(tokens, index) {
+    const tens = tokens[index]?.value;
+    if (!tens || !/^[2-9]0$/.test(tens) || tokens[index + 1]?.value !== 'si')
+        return null;
+    const unitToken = tokens[index + 2]?.value ?? '';
+    // After "și", "una"/"unu" can only be 1; "o"/"un" may be articles ("50 și o undă").
+    const unit = /^[1-9]$/.test(unitToken)
+        ? Number(unitToken)
+        : unitToken === 'o' || unitToken === 'un' ? undefined : SINGLE_DIGITS[unitToken];
+    if (unit === undefined || unit === 0)
+        return null;
+    return { value: String(Number(tens) + unit), next: index + 3 };
+}
+/**
  * Finds the first numeric expression in a Romanian phrase, including spoken
  * decimals ("patru virgulă opt", "4 virgulă 8") and already-digit forms
  * ("4,8", "4.8", "21"). A spoken "minus" keeps its sign, so the value is
@@ -131,8 +148,9 @@ export function findRomanianNumber(text) {
         let integerValue;
         let next;
         if (/^\d+(?:[.,]\d+)?$/.test(direct.value)) {
-            integerValue = direct.value.replace(',', '.');
-            next = index + 1;
+            const compound = digitTensAndUnit(tokens, index);
+            integerValue = compound?.value ?? direct.value.replace(',', '.');
+            next = compound?.next ?? index + 1;
         }
         else {
             const integer = parseInteger(tokens, index);

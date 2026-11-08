@@ -2135,3 +2135,55 @@ test('MAPSE and TAPSE spelled letter by letter', () => {
     );
   }
 });
+
+test('Whisper "vâsă" for VS, "sif" for SIV and a height of "1, 82" meters', () => {
+  // Dictated in the app; "tele" heard as the digit 3 and split off by a comma.
+  const data = parseEchoTranscript(
+    ', greutate 62, înălțime 1, 82, vâsă, diametrul 3, diastoric 1, vâsă, diametrul 3, sistoric 2, sif, diametrul diastoric 3,',
+  );
+  assert.equal(data.patient.weight, '62');
+  assert.equal(data.patient.height, '182');
+  assert.deepEqual(
+    data.measurements.map(({ field, value, confidence }) => `${field}=${value} ${confidence}`),
+    ['lvEndDiastolicDiameter=1 high', 'lvEndSystolicDiameter=2 high', 'ivsDiastolicDiameter=3 high'],
+  );
+  // The spaced decimal is only read as meters for 1 or 2 before the comma.
+  assert.equal(parseEchoTranscript('Înălțime 1, 8.').patient.height, '180');
+  assert.equal(parseEchoTranscript('Înălțime 175, greutate 70.').patient.height, '175');
+});
+
+test('Whisper splits "prenume" into "pre nume"', () => {
+  // Dictated in the app: "nume Duma pre nume Mihai".
+  for (const transcript of [
+    'nume Duma pre nume Mihai',
+    'Nume Duma, pre nume Mihai, vârsta 54 de ani.',
+    'Nume Duma, pre-nume Mihai.',
+    'Pre nume Mihai, nume Duma.',
+    'Nume și pre nume Duma Mihai.',
+  ]) {
+    const { lastName, firstName } = parseEchoTranscript(transcript).patient;
+    assert.deepEqual({ lastName, firstName }, { lastName: 'Duma', firstName: 'Mihai' }, transcript);
+  }
+});
+
+test('Whisper writes a spoken compound number half in digits ("50 și 7")', () => {
+  // numeric6, recorded in the app: "Unda E cincizeci și șapte" → "unda E 50 și 7".
+  assert.equal(findRomanianNumber('50 și 7').value, '57');
+  assert.equal(findRomanianNumber('20 și una').value, '21');
+  const waveE = parsed('Flux tricuspidian. Unda E 50 și 7, unda A 46.', 'tricuspidE');
+  assert.equal(waveE.value, '57');
+  assert.equal(waveE.ambiguousValue, undefined);
+  // Only a whole ten, "și" and one digit form a number.
+  assert.equal(findRomanianNumber('55 și 7').value, '55');
+  assert.equal(findRomanianNumber('50 și o undă').value, '50');
+  assert.equal(findRomanianNumber('50 și 70').value, '50');
+});
+
+test('Whisper "onda" for "unda" in the Doppler sections', () => {
+  // numeric6, recorded in the app without voice processing.
+  const data = parseEchoTranscript("Doppler tisular, onda E' 9, onda A' 11, onda S6. Flux tricuspidian, onda E 57, onda A 46.");
+  assert.deepEqual(
+    data.measurements.map(({ field, value }) => `${field}=${value}`),
+    ['septalEPrime=9', 'septalAPrime=11', 'septalS=6', 'tricuspidE=57', 'tricuspidA=46'],
+  );
+});

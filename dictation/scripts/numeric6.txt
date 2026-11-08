@@ -6,7 +6,8 @@ Doppler tisular. Unda E prim 9. Unda A prim 11. Unda S 6.
 
 Secțiune longitudinală parasternală.
 
-VS diametrul telediastolic 5,1. VS diametrul telesistolic 3,3. SIV diametrul diastolic 0,9. Perete posterior diametrul diastolic 1,1. Fracție de ejecție VS Teicholz 65. Fracție de scurtare 35.
+VS diametrul telediastolic 5,1. VS diametrul telesistolic 3,3. SIV diametrul diastolic 0,9. Perete posterior diametrul diastolic 1,1.
+Fracție de ejecție VS Teicholz 65. Fracție de scurtare 35.
 Masa VS 124. Aorta la inel 2,3. Aorta ascendentă 3,5. AS diametrul antero-posterior 3,8. Aorta la nivelul crosei 2,6. Artera pulmonară 2,2.
 
 Flux tricuspidian. Vmax 250. Pmax 25. PSVD 30. Unda E 57. Unda A 46.
@@ -18,4 +19,4 @@ MAPSE 16. TAPSE 23. Aria AS 20. Aria AD 15. Volum telediastolic VS 110. Volum te
 
 Flux LVOT. Vmax 96. Pmax 4. VTI 22. Aria valvei aortice 2,7.
 
-Flux mitral. Unda E 72. Unda A 60. TDE 190. TRIV 84. Aria valvei mitrale 4,3.
+Flux mitral. Unda E 72. Unda A 60. TDE 190. TRIV 94. Aria valvei mitrale 4,3.

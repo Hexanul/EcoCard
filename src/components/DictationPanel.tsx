@@ -30,17 +30,34 @@ type DictationState =
 const MAX_RECORDING_MS = 30 * 60 * 1000;
 const MAX_PAUSE_MS = 30 * 60 * 1000;
 
-// Chromium's voice processing is off, so the app records what a voice
-// recorder records and the recorder files in dictation/recordings test what
-// the app hears. Echo cancellation has nothing to cancel (nothing plays while
-// recording). Accuracy was measured on 2026-11-03 by playing the six test
-// recordings through this capture path (fake microphone): off scored 291 and
-// on 280 fields over 8 runs, a difference within whisper's run-to-run noise.
+// Chromium's voice processing stays on. Doctors dictate into the laptop's
+// built-in microphone at arm's length, and its gain control is what makes that
+// audio loud enough for whisper. Turning it off (2026-11-05) was measured by
+// playing phone recordings through a fake microphone, which cannot show this,
+// and in-app transcripts got worse. In development a checkbox records without
+// it, so both can be compared on the same dictation (dictation/recordings/
+// <script>-app-agc-… vs <script>-app-raw-…).
 const MICROPHONE_CONSTRAINTS: MediaTrackConstraints = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+};
+const RAW_MICROPHONE_CONSTRAINTS: MediaTrackConstraints = {
   echoCancellation: false,
   noiseSuppression: false,
   autoGainControl: false,
 };
+const DEV_VOICE_PROCESSING_KEY = 'ecocard-dev-voice-processing';
+
+// Always on in the packaged app; the dev checkbox may turn it off.
+function readVoiceProcessing(): boolean {
+  if (!import.meta.env.DEV) return true;
+  try {
+    return window.localStorage.getItem(DEV_VOICE_PROCESSING_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
 
 // Recorded audio is kept in memory only (React state + Blob) and transcribed
 // by the local whisper.cpp through the main process (transcriptionService).
@@ -52,14 +69,15 @@ function formatElapsed(seconds: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-// Dev download name: "dictare-2026-11-03-1942.webm", to be renamed
-// "<script>-…" for dictation/recordings/.
-function devRecordingName(mimeType: string): string {
+// Dev download name: "dictare-app-agc-2026-11-03-1942.webm" ("raw" when
+// recorded without voice processing); replace "dictare" with the script name
+// for dictation/recordings/.
+function devRecordingName(mimeType: string, voiceProcessing: boolean): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
   const extension = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'm4a' : 'webm';
-  return `dictare-${stamp}.${extension}`;
+  return `dictare-app-${voiceProcessing ? 'agc' : 'raw'}-${stamp}.${extension}`;
 }
 
 function supportsPauseResume(): boolean {
@@ -166,6 +184,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed, onAudioPen
   const [isPlaybackPlaying, setIsPlaybackPlaying] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [autoStopReason, setAutoStopReason] = useState<AutoStopReason | null>(null);
+  const [voiceProcessing, setVoiceProcessing] = useState(readVoiceProcessing);
   const [pipelineHint, setPipelineHint] = useState<string | null>(() =>
     !isElectronAvailable() && import.meta.env.DEV
       ? 'Pentru transcriere locală, rulați aplicația cu Electron: npm run dev'
@@ -361,7 +380,9 @@ export function DictationPanel({ onDictationChanged, onPatientParsed, onAudioPen
     discardRecording();
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: MICROPHONE_CONSTRAINTS });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: voiceProcessing ? MICROPHONE_CONSTRAINTS : RAW_MICROPHONE_CONSTRAINTS,
+      });
       streamRef.current = stream;
 
       const mimeType = getPreferredRecordingMimeType();
@@ -406,7 +427,7 @@ export function DictationPanel({ onDictationChanged, onPatientParsed, onAudioPen
         const url = URL.createObjectURL(blob);
         audioUrlRef.current = url;
         setAudioUrl(url);
-        if (import.meta.env.DEV) setDevDownloadName(devRecordingName(blob.type));
+        if (import.meta.env.DEV) setDevDownloadName(devRecordingName(blob.type, voiceProcessing));
         syncElapsedDisplay();
 
         const autoStopped = autoStopReasonRef.current;
@@ -437,7 +458,17 @@ export function DictationPanel({ onDictationChanged, onPatientParsed, onAudioPen
     startElapsedSegment,
     stopStreamTracks,
     syncElapsedDisplay,
+    voiceProcessing,
   ]);
+
+  const changeVoiceProcessing = (enabled: boolean) => {
+    setVoiceProcessing(enabled);
+    try {
+      window.localStorage.setItem(DEV_VOICE_PROCESSING_KEY, enabled ? 'on' : 'off');
+    } catch {
+      // Kept for this session only.
+    }
+  };
 
   const pauseRecording = useCallback(() => {
     setErrorMessage(null);
@@ -715,6 +746,19 @@ export function DictationPanel({ onDictationChanged, onPatientParsed, onAudioPen
           )}
         </div>
       </div>
+
+      {/* Dev-only A/B test of Chromium's voice processing (see MICROPHONE_CONSTRAINTS). */}
+      {import.meta.env.DEV && (
+        <label className="dictation-panel__dev-option">
+          <input
+            type="checkbox"
+            checked={voiceProcessing}
+            disabled={state === 'recording' || state === 'paused'}
+            onChange={(event) => changeVoiceProcessing(event.target.checked)}
+          />
+          Procesare voce Chromium (dev)
+        </label>
+      )}
 
       {showTimer && (
         <div className="dictation-panel__recording-timeline" aria-label="Lungimea înregistrării curente">

@@ -335,16 +335,24 @@ const LABEL_CONNECTOR = '\\s*[:.,-]?\\s*(?:(?:este|e)\\s+)?';
 function patientLabelRegex(source) {
     return new RegExp(`${NO_LETTER_BEFORE}${source}${NO_LETTER_AFTER}${LABEL_CONNECTOR}(?:de\\s+)?`, 'i');
 }
-const COMBINED_NAME_LABEL = new RegExp(`${NO_LETTER_BEFORE}nume[\\s,]+(?:și|si)[\\s,]+prenume${NO_LETTER_AFTER}${LABEL_CONNECTOR}`, 'i');
-const LAST_NAME_LABEL = patientLabelRegex('nume(?:le)?(?:\\s+de\\s+familie)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
-// Whisper sometimes writes "prânume".
-const FIRST_NAME_LABEL = patientLabelRegex('pr[eâa]nume(?:le)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
+// "prenume"; Whisper also writes "prânume" and splits it ("pre nume", "pre-nume").
+const FIRST_NAME_WORD = 'pr[eâa][\\s-]*nume';
+// The start of a first-name label ends a dictated last name ("Duma pre nume").
+const STARTS_FIRST_NAME_LABEL = new RegExp(`^${FIRST_NAME_WORD}${NO_LETTER_AFTER}`, 'i');
+const COMBINED_NAME_LABEL = new RegExp(`${NO_LETTER_BEFORE}nume[\\s,]+(?:și|si)[\\s,]+${FIRST_NAME_WORD}${NO_LETTER_AFTER}${LABEL_CONNECTOR}`, 'i');
+// Not the "nume" of a split "pre nume".
+const LAST_NAME_LABEL = patientLabelRegex('(?<!pr[eâa][\\s-]*)nume(?:le)?(?:\\s+de\\s+familie)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?');
+const FIRST_NAME_LABEL = patientLabelRegex(`${FIRST_NAME_WORD}(?:le)?(?:\\s+pacientului|\\s+pacientei|\\s+pacienta|\\s+pacientul)?`);
 const AGE_LABEL = patientLabelRegex('v[âa]rst[aă]');
 const WEIGHT_LABEL = patientLabelRegex('(?:g)?reutate[aă]?');
 // Whisper drops the middle "ăl" ("Înțime" for "Înălțime").
 const HEIGHT_LABEL = patientLabelRegex('[îi]n(?:[ăaâ]l)?[tțţ]ime[aă]?');
 // Units after an age number that are not years.
 const AGE_NOT_IN_YEARS = /^\s*(?:de\s+)?(?:luni|luna|zile|zi|saptamani|saptamana)\b/;
+// Whisper puts a space after the decimal comma of a height in meters
+// ("înălțime 1, 82"), as it does for measurements (repaired in
+// normalizeWithIndex): 1,82 m, not 1 m.
+const SPACED_METERS = /^(\s*[12]),\s+(\d{1,2})(?!\d)/;
 // Punctuation that separates clauses; a comma or period between two digits
 // is a decimal separator.
 const CLAUSE_BREAK = /(?<!\d)[.,;:!?\n]|[.,;:!?\n](?!\d)/;
@@ -376,6 +384,8 @@ function captureNameWords(raw, from, maxWords) {
         if (!match || match.index >= limit)
             break;
         if (PATIENT_NAME_STOP_WORDS.has(match[0].toLocaleLowerCase('ro-RO')))
+            break;
+        if (STARTS_FIRST_NAME_LABEL.test(raw.slice(match.index)))
             break;
         words.push(match[0]);
     }
@@ -431,7 +441,8 @@ function extractPatientInfo(transcript) {
         if (!match)
             return;
         const start = match.index + match[0].length;
-        const window = scope.slice(start, start + 60);
+        const rawWindow = scope.slice(start, start + 60);
+        const window = key === 'height' ? rawWindow.replace(SPACED_METERS, '$1,$2') : rawWindow;
         const found = findRomanianNumber(window);
         if (!found)
             return;
