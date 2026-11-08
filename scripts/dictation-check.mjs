@@ -108,19 +108,19 @@ export function wordErrorRate(reference, hypothesis) {
   return previous[hyp.length] / ref.length;
 }
 
-export function loadTranscripts(scripts, dir = TRANSCRIPTS_DIR) {
-  if (!fs.existsSync(dir)) return [];
+export function loadTranscripts(scripts) {
+  if (!fs.existsSync(TRANSCRIPTS_DIR)) return [];
   const names = scripts.map((script) => script.name);
   return fs
-    .readdirSync(dir)
+    .readdirSync(TRANSCRIPTS_DIR)
     .filter((file) => file.endsWith('.txt'))
     .sort()
     .map((file) => {
       const name = file.slice(0, -'.txt'.length);
       return {
         name,
-        path: path.join(dir, file),
-        text: fs.readFileSync(path.join(dir, file), 'utf8'),
+        path: path.join(TRANSCRIPTS_DIR, file),
+        text: fs.readFileSync(path.join(TRANSCRIPTS_DIR, file), 'utf8'),
         script: scriptNameFor(name, names),
       };
     });

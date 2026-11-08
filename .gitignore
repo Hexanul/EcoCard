@@ -38,10 +38,3 @@ app/models/*.bin
 # Dictation test recordings (audio stays local; transcripts are committed)
 dictation/recordings/*
 !dictation/recordings/.gitkeep
-
-# Alternative speech recognition engines for the dictation benchmark
-# (scripts/asr-engines.mjs): sherpa-onnx and its model folders stay local.
-app/bin/sherpa-onnx/
-app/models/*/
-dictation/transcripts-*/
-dictation/timings.json
