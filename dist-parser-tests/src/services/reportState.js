@@ -44,6 +44,7 @@ function dictationSignature(items) {
         item.unitMismatch,
         item.ambiguousValue,
         item.heardAs,
+        item.heardAsReason,
     ]));
 }
 /**
@@ -82,7 +83,12 @@ function noteFor(items, previousValue) {
         warnings.push('Dictat ca nesigur — verificați valoarea.');
     }
     if (first.heardAs) {
-        warnings.push(`Transcris tot ca „${MEASUREMENT_FIELDS[first.heardAs].reviewLabel}” — propus aici fiind a doua valoare, mai mică; verificați.`);
+        const heardLabel = MEASUREMENT_FIELDS[first.heardAs].reviewLabel;
+        warnings.push(first.heardAsReason === 'unit'
+            ? `Transcris ca „${heardLabel}”, dar dictat în ${first.unit} — propus aici; verificați.`
+            : first.heardAsReason === 'larger'
+                ? `Transcris tot ca „${heardLabel}” — propus aici fiind prima valoare, mai mare; verificați.`
+                : `Transcris tot ca „${heardLabel}” — propus aici fiind a doua valoare, mai mică; verificați.`);
     }
     if (first.unitMismatch) {
         warnings.push(`Unitate dictată (${first.unit}) diferită de unitatea câmpului — verificați valoarea.`);

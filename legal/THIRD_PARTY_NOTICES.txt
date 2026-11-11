@@ -1,0 +1,147 @@
+RAPORT ECO — LICENȚELE COMPONENTELOR TERȚE / THIRD-PARTY NOTICES
+
+Raport Eco include componentele de mai jos. Fiecare este distribuită sub propria
+licență, al cărei text complet este reprodus în acest fișier. Licențele Electron
+și Chromium se află în fișierele LICENSE.electron.txt și LICENSES.chromium.html
+din dosarul aplicației.
+
+Raport Eco includes the components below, each under its own licence, whose full
+text is reproduced in this file. The Electron and Chromium licences are in
+LICENSE.electron.txt and LICENSES.chromium.html in the application folder.
+
+Componente / Components
+-----------------------
+
+1. whisper.cpp 1.9.2 and ggml — speech recognition engine
+   https://github.com/ggml-org/whisper.cpp — MIT License (text A)
+   Files: resources/app/bin/whisper-cli.exe, whisper.dll, ggml.dll,
+   ggml-base.dll, ggml-cpu-x64.dll, ggml-cpu-sse42.dll,
+   ggml-cpu-sandybridge.dll, ggml-cpu-haswell.dll, ggml-cpu-skylakex.dll,
+   ggml-cpu-icelake.dll, ggml-cpu-cascadelake.dll, ggml-cpu-cannonlake.dll,
+   ggml-cpu-alderlake.dll
+   whisper-cli.exe contains miniaudio (https://miniaud.io), released into the
+   public domain or, alternatively, under the MIT No Attribution licence.
+
+2. Whisper large-v3-turbo model weights (OpenAI), in ggml format
+   https://github.com/openai/whisper — MIT License (text B)
+   File: resources/app/models/ggml-large-v3-turbo.bin
+
+3. Silero VAD v5.1.2 voice activity detection model, in ggml format
+   https://github.com/snakers4/silero-vad — MIT License (text C)
+   File: resources/app/models/ggml-silero-v5.1.2.bin
+
+4. React 19.3.1, React DOM 19.3.1 and Scheduler 0.28.0
+   https://github.com/facebook/react — MIT License (text D)
+   Bundled in the application's JavaScript code.
+
+5. Electron 44.10.1 and Chromium
+   https://www.electronjs.org — MIT License and the licences listed in
+   LICENSE.electron.txt and LICENSES.chromium.html.
+
+
+==============================================================================
+Text A — whisper.cpp and ggml
+==============================================================================
+
+MIT License
+
+Copyright (c) 2023-2026 The ggml authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+==============================================================================
+Text B — Whisper model (OpenAI)
+==============================================================================
+
+MIT License
+
+Copyright (c) 2022 OpenAI
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+==============================================================================
+Text C — Silero VAD
+==============================================================================
+
+MIT License
+
+Copyright (c) 2020-present Silero Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+==============================================================================
+Text D — React, React DOM and Scheduler
+==============================================================================
+
+MIT License
+
+Copyright (c) Meta Platforms, Inc. and affiliates.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

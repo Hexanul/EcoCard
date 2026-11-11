@@ -116,6 +116,10 @@ export const CONTEXT_ALIASES: Record<FlowContext, string[]> = {
     'doppler trisular sept',
     'doppler trisular',
     'dopplerul trisular',
+    // Whisper "doper tisular": the heading must start at "doper", or the
+    // word ends up in the previous field's value ("absentă, doper").
+    'doper tisular',
+    'dopler tisular',
     // Whisper may drop "Doppler" and keep only "tisular"; the word only
     // ever names this section.
     'tisular',
@@ -577,6 +581,7 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
     aliases: [
       'artera pulmonara',
       'artera pulmonare',
+      'artera volmonara',
       'arterea pulmonare',
       'atera pulmonara',
       'cartera pulmonara',
@@ -703,8 +708,8 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
   // Alte măsurători
   {
     field: 'laArea',
-    // Whisper "ARA AS" for "Aria AS".
-    aliases: ['aria as', 'aria s', 'area as', 'area s', 'are as', 'ara as', 'aria atriului stang'],
+    // Whisper "ARA AS" and "ARIA VS" for "Aria AS" (there is no LV area field).
+    aliases: ['aria as', 'aria s', 'area as', 'area s', 'are as', 'ara as', 'aria vs', 'aria atriului stang'],
   },
   {
     field: 'raArea',
@@ -833,6 +838,22 @@ export const NUMERIC_FIELDS: NumericFieldDef[] = [
     ],
     // The aortic valve area belongs to the LVOT section, never to "Flux aortic".
     context: 'lvot',
+  },
+  {
+    field: 'aorticValveArea',
+    // When whisper drops the "Flux LVOT" heading the area is heard while the
+    // aortic context is still active; only the forms that name the aortic
+    // valve are accepted there (the short "aria valve" stays LVOT-only).
+    aliases: [
+      'aria valvei aortice',
+      'area valvei aortice',
+      'aria valve aortice',
+      'area valve aortice',
+      'aria valva aortica',
+      'area valva aortica',
+      'aria valvulei aortice',
+    ],
+    context: 'aortic',
   },
   {
     field: 'mitralValveArea',

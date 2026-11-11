@@ -1,3 +1,4 @@
+import noticesText from '../../legal/THIRD_PARTY_NOTICES.txt?raw';
 import termsText from '../../legal/termeni.txt?raw';
 
 declare const __APP_VERSION__: string;
@@ -14,3 +15,7 @@ export const TERMS_TEXT = termsText.replace(/^\uFEFF/, '');
 export const TERMS_REVISION = /Versiunea termenilor:\s*(\S+)/.exec(TERMS_TEXT)?.[1] ?? '';
 
 export const TERMS_ACCEPTED_STORAGE_KEY = 'ecocard-terms-accepted';
+
+// Full licence texts of the bundled components, shown in "Despre". The same
+// file ships next to the executable (extraFiles in electron-builder.yml).
+export const THIRD_PARTY_NOTICES = noticesText.replace(/^\uFEFF/, '');

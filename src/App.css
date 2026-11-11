@@ -812,6 +812,15 @@
   border-radius: 4px;
 }
 
+.about-dialog__notices summary {
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.about-dialog__notices[open] summary {
+  margin-bottom: 8px;
+}
+
 .about-dialog__accept {
   display: flex;
   align-items: center;
@@ -890,16 +899,6 @@
     width: 100%;
     text-align: center;
   }
-}
-
-.dictation-panel__dev-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--text-muted);
-  opacity: 0.75;
 }
 
 .dictation-panel__parsed-hint {

@@ -1,5 +1,5 @@
 ﻿RAPORT ECO — SCOPUL UTILIZĂRII, TERMENI DE UTILIZARE ȘI NOTĂ DE CONFIDENȚIALITATE
-Versiunea termenilor: 2026-10-09
+Versiunea termenilor: 2026-11-08
 
 1. SCOPUL UTILIZĂRII
 
@@ -45,8 +45,9 @@ Aplicația include următoarele componente, fiecare sub propria licență:
 - React (MIT);
 - whisper.cpp și ggml (MIT);
 - modelul de recunoaștere vocală Whisper large-v3-turbo (MIT);
-- modelul de detecție a vocii Silero VAD (MIT);
-- SDL2 (zlib).
+- modelul de detecție a vocii Silero VAD (MIT).
+
+Textele complete ale acestor licențe se află în fișierul THIRD_PARTY_NOTICES.txt din dosarul aplicației și în fereastra „Despre”.
 
 7. LEGEA APLICABILĂ
 

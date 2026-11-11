@@ -89,6 +89,20 @@ test('a value moved from a repeated telediastolic label is flagged for review', 
   assert.equal(form.notes.lvEndDiastolicDiameter, undefined);
 });
 
+test('the review warning says why a heard label was moved', () => {
+  const form = dictate(parse([
+    { ...numeric('lvEndDiastolicDiameter', '5.2'), heardAs: 'lvEndSystolicDiameter', heardAsReason: 'larger' },
+    numeric('lvEndSystolicDiameter', '3.6'),
+    { ...numeric('tricuspidPmax', '29'), unit: 'mmHg', heardAs: 'tricuspidVmax', heardAsReason: 'unit' },
+  ]));
+  assert.deepEqual(form.notes.lvEndDiastolicDiameter.warnings, [
+    'Transcris tot ca „VS — diametrul telesistolic” — propus aici fiind prima valoare, mai mare; verificați.',
+  ]);
+  assert.deepEqual(form.notes.tricuspidPmax.warnings, [
+    'Transcris ca „Flux tricuspidian — Vmax”, dar dictat în mmHg — propus aici; verificați.',
+  ]);
+});
+
 test('a field dictated with different values keeps the first and offers the others', () => {
   // Whisper heard "VD" as "VS": the VS field received two different values.
   const form = dictate(parse([

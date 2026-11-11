@@ -17,7 +17,17 @@ extraResources:
       # Audio is converted by Chromium in the renderer; a leftover local
       # ffmpeg.exe must never be shipped (GPL licence, unused).
       - '!bin/ffmpeg.exe'
+      # Part of the whisper.cpp release but not needed by whisper-cli
+      # (verified 2026-11-08: a full transcription runs without them).
+      - '!bin/SDL2.dll'
+      - '!bin/parakeet.dll'
       - '!**/.gitkeep'
+# Full licence texts of every bundled component, next to Electron's own
+# LICENSE.electron.txt and LICENSES.chromium.html. scripts/check-package.cjs
+# fails the build if a shipped binary or model is not listed in it.
+extraFiles:
+  - from: legal/THIRD_PARTY_NOTICES.txt
+    to: THIRD_PARTY_NOTICES.txt
 win:
   target:
     - target: nsis

@@ -1,0 +1,76 @@
+{
+  "patient": {
+    "lastName": "Popescu",
+    "firstName": "Andrei",
+    "age": "64",
+    "weight": "81",
+    "height": "176"
+  },
+  "measurements": {
+    "lvEndDiastolicDiameter": "5.2",
+    "lvEndSystolicDiameter": "3.6",
+    "ivsDiastolicDiameter": "1.2",
+    "posteriorWallDiastolicDiameter": "1.0",
+    "lvEjectionFractionTeicholz": "57",
+    "shorteningFraction": "31",
+    "lvMass": "102",
+    "aortaAnnulus": "2.3",
+    "ascendingAorta": "3.8",
+    "laAnteroposteriorDiameter": "4.1",
+    "aortaAtArch": "2.7",
+    "pulmonaryArtery": "2.5",
+
+    "lvLateromedialDiameter": "4.6",
+    "rvLateromedialDiameter": "3.4",
+    "laLateromedialDiameter": "4.3",
+    "raLateromedialDiameter": "3.9",
+    "mapse": "14",
+    "tapse": "19",
+    "laArea": "22",
+    "raArea": "17",
+    "lvEndDiastolicVolume": "126",
+    "lvEndSystolicVolume": "58",
+    "lvEjectionFractionSimpson": "54",
+
+    "wallMotion": "hipokinetică",
+    "aorticValves": "calcificate",
+    "mitralValves": "îngroșate",
+    "tricuspidValves": "normale",
+    "pulmonaryValves": "suple",
+    "pericardialFluid": "absent",
+
+    "aorticVmax": "160",
+    "aorticPmax": "10",
+    "aorticPmean": "6",
+
+    "lvotVmax": "98",
+    "lvotPmax": "4",
+    "lvotVti": "21",
+    "aorticValveArea": "2.1",
+    "aorticRegurgitation": "ușoară",
+
+    "mitralE": "66",
+    "mitralA": "78",
+    "mitralDecelerationTime": "235",
+    "mitralTriv": "106",
+    "mitralValveArea": "3.7",
+    "mitralRegurgitation": "moderată",
+
+    "tricuspidVmax": "270",
+    "tricuspidPmax": "29",
+    "psvd": "37",
+    "tricuspidE": "47",
+    "tricuspidA": "53",
+    "tricuspidRegurgitation": "ușoară",
+
+    "pulmonaryVmax": "85",
+    "pulmonaryPmax": "3",
+    "pulmonaryVti": "15",
+    "pulmonaryRegurgitation": "absentă",
+
+    "septalEPrime": "7",
+    "septalAPrime": "12",
+    "septalS": "8"
+  },
+  "conclusions": "ventricul stâng ușor dilatat, cu funcție sistolică ușor redusă. Disfuncție diastolică de tip relaxare întârziată. Valvă aortică calcificată, fără stenoză semnificativă. Regurgitare mitrală moderată. Hipertensiune pulmonară ușoară."
+}

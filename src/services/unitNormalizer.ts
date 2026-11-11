@@ -18,10 +18,12 @@ function normalized(text: string): string {
 // "milimetri", and "mmHg" over "mm".
 const UNIT_PATTERNS: UnitPattern[] = [
   [/%|la\s+suta|procente?/, '%'],
-  [/\bmilimetr[ui]?\s+(?:coloana\s+)?de\s+mercur\b|\bmm\s*hg\b|\bmmhg\b/, 'mmHg'],
-  [/\bmilimetr[ui]?\s+pe\s+secunda\b|\bmm\s*\/\s*s\b/, 'mm/s'],
-  [/\bcentimetr[ui]?\s+pe\s+secunda\b|\bcm\s*\/\s*s\b/, 'cm/s'],
-  [/\bmetr[ui]?\s+pe\s+secunda\b|\bm\s*\/\s*s\b/, 'm/s'],
+  // Whisper abbreviates the spoken units ("4 mm coloane de mercur", "98 cm pe
+  // secundă") and garbles "coloană" ("colană").
+  [/\b(?:milimetr[ui]?|mm)\s+(?:col[a-z]*\s+)?de\s+mercur\b|\bmm\s*hg\b|\bmmhg\b/, 'mmHg'],
+  [/\b(?:milimetr[ui]?|mm)\s+pe\s+secunda\b|\bmm\s*\/\s*s\b/, 'mm/s'],
+  [/\b(?:centimetr[ui]?|cm)\s+pe\s+secunda\b|\bcm\s*\/\s*s\b/, 'cm/s'],
+  [/\b(?:metr[ui]?|m)\s+pe\s+secunda\b|\bm\s*\/\s*s\b/, 'm/s'],
   [/\bcentimetr[ui]?\s+patrati\b|\bcm\s*patrati\b|\bcm2\b|cm²/, 'cm²'],
   [/\bgram(?:a|e)?\s+pe\s+metru\s+patrat\b|\bg\s*\/\s*m2\b|\bg\s*\/\s*m²(?!\w)/, 'g/m²'],
   [/\bmilisecund(?:a|e)?\b|\bmsec\b|\bms\b/, 'msec'],

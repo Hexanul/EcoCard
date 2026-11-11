@@ -39,11 +39,16 @@ export type ParsedMeasurement = {
   // The value window held more than one number (usually a misheard label
   // after this one); the first number is proposed and needs review.
   ambiguousValue?: boolean;
-  // The label was heard as this field (Whisper wrote "telediastolic" twice
-  // in a row); the value was moved to its end-systolic partner and needs
-  // review.
+  // The label was heard as this field and the value was moved to the field
+  // it most likely belongs to; it needs review. `heardAsReason` says why:
+  // "smaller"/"larger" — the end-diastolic (or end-systolic) label came twice
+  // in a row; "unit" — the spoken unit belongs to the sibling field ("Vmax 29
+  // mmHg" is a Pmax).
   heardAs?: MeasurementKey;
+  heardAsReason?: HeardAsReason;
 };
+
+export type HeardAsReason = 'smaller' | 'larger' | 'unit';
 
 export type ParsedPatientInfo = {
   lastName: string;
@@ -727,38 +732,100 @@ export function parseEchoTranscript(transcript: string): ParsedEchoData {
     });
   }
 
-  return { measurements: reassignRepeatedDiastolic(measurements), conclusions, patient };
+  return {
+    measurements: reassignByUnit(reassignRepeatedLabels(measurements)),
+    conclusions,
+    patient,
+  };
 }
 
-// The end-systolic partner of each end-diastolic measurement.
+function movedTo(item: ParsedMeasurement, field: MeasurementKey, reason: HeardAsReason): ParsedMeasurement {
+  return {
+    ...item,
+    field,
+    label: MEASUREMENT_FIELDS[field].reviewLabel,
+    heardAs: item.field,
+    heardAsReason: reason,
+  };
+}
+
+// The end-systolic partner of each end-diastolic measurement, and back.
 const END_SYSTOLIC_PARTNER: Partial<Record<MeasurementKey, MeasurementKey>> = {
   lvEndDiastolicDiameter: 'lvEndSystolicDiameter',
   lvEndDiastolicVolume: 'lvEndSystolicVolume',
 };
+const END_DIASTOLIC_PARTNER: Partial<Record<MeasurementKey, MeasurementKey>> = Object.fromEntries(
+  Object.entries(END_SYSTOLIC_PARTNER).map(([diastolic, systolic]) => [systolic, diastolic]),
+);
 
 /**
  * Whisper often writes "telesistolic" as "telediastolic" ("Vs, diametrul 3
- * diastoric" for both diameters), so the end-systolic value arrives as a
- * second end-diastolic one. When the end-diastolic label is dictated exactly
- * twice, back to back, the end-systolic field got nothing, and the second
- * value is smaller (end-systolic is always below end-diastolic), the second
- * value is moved to the end-systolic field, flagged with `heardAs` so the
- * doctor confirms it.
+ * diastoric" for both diameters), and sometimes the other way round, so both
+ * values arrive under the same label. When an end-diastolic or end-systolic
+ * label is dictated exactly twice, back to back, and its partner field got
+ * nothing, the values are split by size (end-systolic is always below
+ * end-diastolic): a smaller second end-diastolic value moves to end-systolic,
+ * a larger first end-systolic value moves to end-diastolic. The moved value
+ * is flagged with `heardAs` so the doctor confirms it.
  */
-function reassignRepeatedDiastolic(measurements: ParsedMeasurement[]): ParsedMeasurement[] {
+function reassignRepeatedLabels(measurements: ParsedMeasurement[]): ParsedMeasurement[] {
+  const repeatedTwice = (field: MeasurementKey) => measurements.filter((m) => m.field === field).length === 2;
+  const absent = (field: MeasurementKey) => !measurements.some((m) => m.field === field);
   return measurements.map((item, index) => {
-    const partner = END_SYSTOLIC_PARTNER[item.field];
-    if (!partner || index === 0) return item;
+    const systolic = END_SYSTOLIC_PARTNER[item.field];
     const previous = measurements[index - 1];
-    if (previous.field !== item.field) return item;
-    if (measurements.filter((m) => m.field === item.field).length !== 2) return item;
-    if (measurements.some((m) => m.field === partner)) return item;
-    if (!(Number(item.value) < Number(previous.value))) return item;
-    return {
-      ...item,
-      field: partner,
-      label: MEASUREMENT_FIELDS[partner].reviewLabel,
-      heardAs: item.field,
-    };
+    if (
+      systolic &&
+      previous?.field === item.field &&
+      repeatedTwice(item.field) &&
+      absent(systolic) &&
+      Number(item.value) < Number(previous.value)
+    ) {
+      return movedTo(item, systolic, 'smaller');
+    }
+    const diastolic = END_DIASTOLIC_PARTNER[item.field];
+    const next = measurements[index + 1];
+    if (
+      diastolic &&
+      next?.field === item.field &&
+      repeatedTwice(item.field) &&
+      absent(diastolic) &&
+      Number(item.value) > Number(next.value)
+    ) {
+      return movedTo(item, diastolic, 'larger');
+    }
+    return item;
+  });
+}
+
+// Vmax (cm/s) and Pmax (mmHg) of the same flow, both ways.
+const VELOCITY_PRESSURE_PAIRS: [MeasurementKey, MeasurementKey][] = [
+  ['aorticVmax', 'aorticPmax'],
+  ['lvotVmax', 'lvotPmax'],
+  ['tricuspidVmax', 'tricuspidPmax'],
+  ['pulmonaryVmax', 'pulmonaryPmax'],
+];
+const UNIT_SIBLING: Partial<Record<MeasurementKey, MeasurementKey>> = Object.fromEntries(
+  VELOCITY_PRESSURE_PAIRS.flatMap(([vmax, pmax]) => [
+    [vmax, pmax],
+    [pmax, vmax],
+  ]),
+);
+
+/**
+ * Whisper often hears "Pmax" as "Vmax" (and back): "Vmax 270 cm pe secundă.
+ * Vmax 29 mm coloană de mercur". When a value's spoken unit cannot belong to
+ * its field but is exactly the unit of the same flow's sibling field, and that
+ * sibling got no value of its own, the value moves there, flagged with
+ * `heardAs` so the doctor confirms it.
+ */
+function reassignByUnit(measurements: ParsedMeasurement[]): ParsedMeasurement[] {
+  return measurements.map((item) => {
+    const sibling = UNIT_SIBLING[item.field];
+    if (!sibling || !item.unitMismatch || item.unit !== MEASUREMENT_UNITS[sibling]) return item;
+    if (measurements.some((m) => m.field === sibling)) return item;
+    const moved = movedTo(item, sibling, 'unit');
+    delete moved.unitMismatch;
+    return moved;
   });
 }

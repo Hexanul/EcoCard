@@ -2099,6 +2099,64 @@ test('a second back-to-back "telediastolic" with a smaller value is proposed as 
   assert.equal(parsed(volumes, 'lvEndSystolicVolume').value, '40');
 });
 
+test('a first back-to-back "telesistolic" with a larger value is proposed as telediastolic', () => {
+  // Whisper wrote "telesistolic" for both diameters (full, recorded in the app).
+  const data = parseEchoTranscript(
+    'vâsă, diametrul telesistolic, 5,2 centimetri, vâsă, diametrul telesistolic, 3,6 centimetri, siv, diametrul diastolic, 1,2 centimetri,',
+  );
+  assert.deepEqual(
+    data.measurements.map(({ field, value, heardAs, heardAsReason }) => ({ field, value, heardAs, heardAsReason })),
+    [
+      { field: 'lvEndDiastolicDiameter', value: '5.2', heardAs: 'lvEndSystolicDiameter', heardAsReason: 'larger' },
+      { field: 'lvEndSystolicDiameter', value: '3.6', heardAs: undefined, heardAsReason: undefined },
+      { field: 'ivsDiastolicDiameter', value: '1.2', heardAs: undefined, heardAsReason: undefined },
+    ],
+  );
+  // A smaller first value is a correction, not the end-diastolic one.
+  const fields = parseEchoTranscript('VS diametrul telesistolic 3,4. VS diametrul telesistolic 3,6.')
+    .measurements.map(({ field }) => field);
+  assert.deepEqual(fields, ['lvEndSystolicDiameter', 'lvEndSystolicDiameter']);
+});
+
+test('a Vmax dictated in mmHg is proposed as the same flow\'s Pmax, and back', () => {
+  // Whisper heard "Pmax" as "Vmax" (full, recorded in the app).
+  const tricuspid = 'Flux tricuspidian Vmax 270 cm pe secundă. Vmax 29 mm colană de mercur. PSVD 37 mm colană de mercur.';
+  assert.deepEqual(parsed(tricuspid, 'tricuspidVmax').value, '270');
+  const pmax = parsed(tricuspid, 'tricuspidPmax');
+  assert.equal(pmax.value, '29');
+  assert.equal(pmax.unit, 'mmHg');
+  assert.equal(pmax.heardAs, 'tricuspidVmax');
+  assert.equal(pmax.heardAsReason, 'unit');
+  assert.equal(pmax.unitMismatch, undefined);
+  const vmax = parsed('Flux pulmonar. Pmax 85 cm pe secundă. Pmax 3 mm coloană de mercur.', 'pulmonaryVmax');
+  assert.equal(vmax.value, '85');
+  assert.equal(vmax.heardAs, 'pulmonaryPmax');
+  // The sibling already has a value: the mismatch stays a warning on the field.
+  const kept = parseEchoTranscript('Flux aortic. Vmax 160 cm pe secundă. Pmax 10 mmHg. Pmax 98 cm pe secundă.')
+    .measurements.filter(({ field }) => field === 'aorticPmax');
+  assert.deepEqual(kept.map(({ value, unitMismatch }) => ({ value, unitMismatch })), [
+    { value: '10', unitMismatch: undefined },
+    { value: '98', unitMismatch: true },
+  ]);
+});
+
+test('abbreviated spoken units: "cm pe secundă", "mm coloane de mercur"', () => {
+  const data = 'Flux aortic. Vmax 160 cm pe secundă. Pmax 10 mm coloane de mercur. Pmediu 6 mm coloană de mercur.';
+  assert.equal(parsed(data, 'aorticVmax').unit, 'cm/s');
+  assert.equal(parsed(data, 'aorticVmax').unitMismatch, undefined);
+  assert.equal(parsed(data, 'aorticPmax').unit, 'mmHg');
+  assert.equal(parsed(data, 'aorticPmean').unit, 'mmHg');
+});
+
+test('whisper variants from the full recording', () => {
+  assert.equal(parsed('Artera volmonară 2,5 centimetri.', 'pulmonaryArtery').value, '2.5');
+  assert.equal(parsed('TAPSE 19 mm. ARIA VS 22 cm2. ARIA AD 17 cm2.', 'laArea').value, '22');
+  // "Flux LVOT" lost: the area that names the aortic valve is still found.
+  assert.equal(parsed('Flux aortic Vmax 160 cm pe secundă, VTI 21 cm, area valvei aortice 2,1 cm pătrați,', 'aorticValveArea').value, '2.1');
+  // "Doppler" heard as "doper" must not leak into the previous value.
+  assert.equal(parsed('Flux pulmonar. regurgitare pulmonară absentă, doper tisular, unda E\' 7 cm pe secundă', 'pulmonaryRegurgitation').value, 'absentă');
+});
+
 test('a repeated "telediastolic" stays a second choice when it cannot be the telesistolic one', () => {
   const fields = (transcript) => parseEchoTranscript(transcript).measurements.map(({ field }) => field);
   // Larger second value: a correction, not the end-systolic value.

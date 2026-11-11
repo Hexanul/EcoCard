@@ -97,6 +97,7 @@ function dictationSignature(items: ParsedMeasurement[]): string {
       item.unitMismatch,
       item.ambiguousValue,
       item.heardAs,
+      item.heardAsReason,
     ]),
   );
 }
@@ -138,8 +139,13 @@ function noteFor(items: ParsedMeasurement[], previousValue: string | undefined):
     warnings.push('Dictat ca nesigur — verificați valoarea.');
   }
   if (first.heardAs) {
+    const heardLabel = MEASUREMENT_FIELDS[first.heardAs].reviewLabel;
     warnings.push(
-      `Transcris tot ca „${MEASUREMENT_FIELDS[first.heardAs].reviewLabel}” — propus aici fiind a doua valoare, mai mică; verificați.`,
+      first.heardAsReason === 'unit'
+        ? `Transcris ca „${heardLabel}”, dar dictat în ${first.unit} — propus aici; verificați.`
+        : first.heardAsReason === 'larger'
+          ? `Transcris tot ca „${heardLabel}” — propus aici fiind prima valoare, mai mare; verificați.`
+          : `Transcris tot ca „${heardLabel}” — propus aici fiind a doua valoare, mai mică; verificați.`,
     );
   }
   if (first.unitMismatch) {

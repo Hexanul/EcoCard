@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { APP_VERSION, TERMS_REVISION, TERMS_TEXT } from '../config/appInfo';
+import { APP_VERSION, TERMS_REVISION, TERMS_TEXT, THIRD_PARTY_NOTICES } from '../config/appInfo';
 
 type AboutDialogProps = {
   // First start (or changed terms): the app stays blocked until the doctor
@@ -48,6 +48,12 @@ export function AboutDialog({ requireAcceptance, onAccept, onClose }: AboutDialo
         de exportul raportului.
       </p>
       <pre className="about-dialog__terms" tabIndex={0}>{TERMS_TEXT}</pre>
+      {!requireAcceptance && (
+        <details className="about-dialog__notices">
+          <summary>Licențele componentelor terțe</summary>
+          <pre className="about-dialog__terms" tabIndex={0}>{THIRD_PARTY_NOTICES}</pre>
+        </details>
+      )}
       {requireAcceptance && (
         <label className="about-dialog__accept">
           <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />

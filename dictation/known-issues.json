@@ -98,5 +98,15 @@
     "mitralEaRatio": "derived from the misheard mitral E",
     "eePrimeRatio": "derived from the misheard mitral E",
     "mitralTriv": "recorded when the script read 'TRIV 84'; the script now reads 94"
+  },
+  "full-app-2026-11-11-2114": {
+    "lvLateromedialDiameter": "whisper dropped the number: 'Vâsâ diametrul atero-median' runs straight into 'VD diametrul'",
+    "lvotVmax": "'Flux LVOT' heading dropped and 'Vmax' heard as 'Pmax'; offered as a second aortic Pmax",
+    "lvotPmax": "'Flux LVOT' heading dropped; offered as a third aortic Pmax",
+    "lvotVti": "'Flux LVOT' heading dropped; bare 'VTI' has no field in the aortic section",
+    "mitralE": "whisper wrote '67' for 66",
+    "mitralEaRatio": "derived from the misheard mitral E",
+    "eePrimeRatio": "derived from the misheard mitral E",
+    "conclusions": "whisper dropped 'Regurgitare mitrală moderată' and wrote 'ușoară redusă', 'diastorică'; conclusions are kept verbatim"
   }
 }
